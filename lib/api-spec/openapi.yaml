@@ -1,0 +1,308 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: couples
+    description: Couple pairing and nightly entries
+paths:
+  /sessions:
+    post:
+      operationId: createSession
+      tags: [couples]
+      summary: Create a private account session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /couples:
+    post:
+      operationId: createCouple
+      tags: [couples]
+      summary: Create a couple invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCoupleRequest"
+      responses:
+        "201":
+          description: Couple created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoupleResponse"
+        "409":
+          description: User is already paired
+  /couples/join:
+    post:
+      operationId: joinCouple
+      tags: [couples]
+      summary: Join a couple with an invite code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinCoupleRequest"
+      responses:
+        "200":
+          description: Couple joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoupleResponse"
+        "400":
+          description: Invalid or unavailable invite code
+  /couples/{coupleId}:
+    get:
+      operationId: getCouple
+      tags: [couples]
+      summary: Get the current couple state
+      parameters:
+        - $ref: "#/components/parameters/CoupleId"
+      responses:
+        "200":
+          description: Couple state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoupleResponse"
+        "404":
+          description: Couple or member not found
+  /couples/{coupleId}/entries:
+    get:
+      operationId: getCoupleEntries
+      tags: [couples]
+      summary: Get shared entries for a couple
+      parameters:
+        - $ref: "#/components/parameters/CoupleId"
+      responses:
+        "200":
+          description: Shared entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SharedEntry"
+        "404":
+          description: Couple or member not found
+  /couples/{coupleId}/entries/{date}:
+    put:
+      operationId: saveCoupleEntry
+      tags: [couples]
+      summary: Save or submit a nightly entry
+      parameters:
+        - $ref: "#/components/parameters/CoupleId"
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveEntryRequest"
+      responses:
+        "200":
+          description: Saved entry state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SharedEntry"
+        "400":
+          description: Invalid entry
+        "404":
+          description: Couple or member not found
+components:
+  parameters:
+    CoupleId:
+      name: coupleId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    CreateCoupleRequest:
+      type: object
+      properties:
+        userName:
+          type: string
+          minLength: 1
+          maxLength: 80
+      required: [userName]
+    CreateSessionRequest:
+      type: object
+      properties:
+        accountKey:
+          type: string
+          minLength: 8
+          maxLength: 40
+        recoveryPin:
+          type: string
+          minLength: 6
+          maxLength: 64
+        userName:
+          type: string
+          maxLength: 80
+        birthday:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        pronouns:
+          type: string
+          maxLength: 40
+      required: [accountKey, recoveryPin]
+    SessionResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        couple:
+          $ref: "#/components/schemas/CoupleResponse"
+      required: [userId, token, user]
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        birthday:
+          type: string
+        pronouns:
+          type: string
+      required: [id, name]
+    CoupleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        inviteCode:
+          type: string
+        partnerName:
+          type: string
+        userId:
+          type: string
+        startDate:
+          type: string
+        currentStreak:
+          type: number
+        longestStreak:
+          type: number
+        isDemoMode:
+          type: boolean
+      required: [id, inviteCode, partnerName, userId, startDate, currentStreak, longestStreak, isDemoMode]
+    JoinCoupleRequest:
+      type: object
+      properties:
+        inviteCode:
+          type: string
+          minLength: 6
+          maxLength: 6
+        userName:
+          type: string
+          minLength: 1
+          maxLength: 80
+      required: [inviteCode, userName]
+    SaveEntryRequest:
+      type: object
+      properties:
+        grateful:
+          type: string
+          maxLength: 2000
+        cute:
+          type: string
+          maxLength: 2000
+        grow:
+          type: string
+          maxLength: 2000
+        submitted:
+          type: boolean
+        reaction:
+          type: string
+          maxLength: 40
+      required: [grateful, cute, grow, submitted]
+    SharedEntry:
+      type: object
+      properties:
+        date:
+          type: string
+        grateful:
+          type: string
+        cute:
+          type: string
+        grow:
+          type: string
+        submitted:
+          type: boolean
+        partnerGrateful:
+          type: string
+        partnerCute:
+          type: string
+        partnerGrow:
+          type: string
+        partnerSubmitted:
+          type: boolean
+        partnerReaction:
+          type: string
+        myReaction:
+          type: string
+        revealed:
+          type: boolean
+      required:
+        - date
+        - grateful
+        - cute
+        - grow
+        - submitted
+        - partnerGrateful
+        - partnerCute
+        - partnerGrow
+        - partnerSubmitted
+        - revealed
+
