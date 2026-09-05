@@ -21,7 +21,9 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.lunara.app.widget"]
+        "com.apple.security.application-groups": [
+          "group.com.lunara.app.widget"
+        ]
       }
     },
     "android": {
@@ -32,7 +34,8 @@
       "package": "com.lunara.app",
       "versionCode": 1,
       "permissions": [
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "RECORD_AUDIO"
       ]
     },
     "web": {
@@ -51,13 +54,13 @@
           "sounds": []
         }
       ],
+      "@bacons/apple-targets",
       [
-        "@react-native-google-signin/google-signin",
+        "expo-audio",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID"
+          "microphonePermission": "Lunara uses the microphone only when you choose to record a voice note for tonight's ritual. Recordings stay private to you and your partner."
         }
-      ],
-      "@bacons/apple-targets"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -65,8 +68,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "e6cb5f12-95b9-4c8d-b097-399b34250563"
       }
-    }
+    },
+    "owner": "nihu0504"
   }
 }

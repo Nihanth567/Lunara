@@ -1,3 +1,4 @@
+import { radius } from '@/constants/tokens';
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -39,15 +40,16 @@ export function GlassCard({
 
 const styles = StyleSheet.create({
   base: {
-  borderRadius: 12,
+  borderRadius: radius.md,
+  borderCurve: 'continuous',
     borderWidth: 1,
     overflow: 'hidden',
   },
   iosOverlay: {
-    backgroundColor: '#1E1B3A',
+    backgroundColor: '#1A1730',
     flex: 1,
   },
   androidBase: {
-    backgroundColor: '#1E1B3A',
+    backgroundColor: '#1A1730',
   },
 });

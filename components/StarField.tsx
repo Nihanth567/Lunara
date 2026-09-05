@@ -73,6 +73,6 @@ export function StarField() {
 const styles = StyleSheet.create({
   star: {
     position: 'absolute',
-    backgroundColor: '#F8F5FF',
+    backgroundColor: '#F5F2FB',
   },
 });

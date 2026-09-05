@@ -10,8 +10,10 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
 import { useApp } from '@/context/AppContext';
+import { partnerLabel } from '@/lib/partner';
+import { radius } from '@/constants/tokens';
 
-const ACCENTS = ['#FF9A8B', '#C3B1E1', '#A8D8A8', '#FFD6A5', '#A5C8FF'];
+const ACCENTS = ['#FF9A8B', '#C3B1E1', '#A8D8A8', '#F0C07A', '#A5C8FF'];
 
 function QuestionCard({
   index,
@@ -116,7 +118,7 @@ function QuestionCard({
             </View>
           ) : (
             <View style={styles.waitingRow}>
-              <Ionicons name="moon-outline" size={14} color="#7A6D98" />
+              <Ionicons name="moon-outline" size={14} color="#948BAC" />
               <Text style={styles.waitingText}>
                 Kept safe until {partnerName} answers this one too
               </Text>
@@ -134,7 +136,7 @@ export default function KeepsakesScreen() {
   const params = useLocalSearchParams<{ intro?: string }>();
   const isIntro = params.intro === '1';
   const { keepsakes, saveKeepsakeAnswer, couple, whoPays } = useApp();
-  const partnerName = couple?.partnerName ?? 'your partner';
+  const partnerName = partnerLabel(couple);
 
   const answeredCount = keepsakes.filter((k) => k.mySubmitted).length;
 
@@ -142,18 +144,18 @@ export default function KeepsakesScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const shouldShowPaywall = isIntro && whoPays === 'me' && couple && !couple.isDemoMode && !couple.isSubscribed;
     if (shouldShowPaywall) {
-      router.replace('/paywall');
+      router.replace('/(modals)/paywall');
     } else {
       router.back();
     }
   };
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       {!isIntro && (
         <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color="#9B89C2" />
+          <Ionicons name="close" size={22} color="#C0B8D4" />
         </Pressable>
       )}
 
@@ -166,7 +168,7 @@ export default function KeepsakesScreen() {
           <Text style={styles.title}>Your Keepsake</Text>
           <Text style={styles.subtitle}>
             {isIntro
-              ? `A few small questions about ${partnerName === 'Waiting...' ? 'your partner' : partnerName} — answer at your own pace, whenever it feels right. Nothing here is timed.`
+              ? `A few small questions about ${partnerName} — answer at your own pace, whenever it feels right.ht. Nothing here is timed.`
               : 'The little things you both keep close, gathered in one soft place.'}
           </Text>
         </View>
@@ -224,63 +226,64 @@ const styles = StyleSheet.create({
     zIndex: 10,
     width: 38,
     height: 38,
-    borderRadius: 8,
-    backgroundColor: '#1E1B3A',
+    borderRadius: radius.sm,
+    backgroundColor: '#1A1730',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: { paddingHorizontal: 22, gap: 28 },
   header: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
-  title: { fontSize: 26, fontFamily: 'Inter_700Bold', color: '#F8F5FF' },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB' },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     textAlign: 'center',
     lineHeight: 21,
   },
   questions: { gap: 14 },
   card: {
-    backgroundColor: '#1E1B3A',
-    borderRadius: 14,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
     padding: 18,
     gap: 12,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardPrompt: { flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold', lineHeight: 21 },
-  helperText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#7A6D98', lineHeight: 17 },
+  cardPrompt: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', lineHeight: 21 },
+  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC', lineHeight: 17 },
   answerPrompt: { gap: 6 },
-  answerPromptText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
+  answerPromptText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium' },
   editArea: { gap: 10 },
   input: {
-    backgroundColor: '#181532',
-    borderRadius: 8,
+    backgroundColor: '#121024',
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     padding: 14,
     minHeight: 90,
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#F5F2FB',
     textAlignVertical: 'top',
     paddingTop: Platform.OS === 'android' ? 14 : 14,
   },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, alignItems: 'center' },
   cancelBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  cancelText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
-  saveBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: 8 },
-  saveText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#1A0E18' },
+  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  saveBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.lg },
+  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#0A0817' },
   answersStack: { gap: 12 },
   answerBlock: { gap: 4 },
   answerMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  answerOwner: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: '#7A6D98', textTransform: 'uppercase', letterSpacing: 0.5 },
-  editLink: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  answerText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#E8E0FF', lineHeight: 21 },
+  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#948BAC', textTransform: 'uppercase', letterSpacing: 0.5 },
+  editLink: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
+  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#DCD1EF', lineHeight: 21 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  waitingText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#7A6D98', flex: 1, lineHeight: 17 },
+  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC', flex: 1, lineHeight: 17 },
   footer: { gap: 12, alignItems: 'center' },
-  footerNote: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
+  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
   skipBtn: { paddingVertical: 6 },
-  skipText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
+  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
 });

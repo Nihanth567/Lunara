@@ -1,0 +1,112 @@
+# Supabase CLI configuration.
+#
+# Absent until now, which is why `supabase db reset` / `supabase start` had
+# nothing to point at and the local stack could not be brought up at all.
+#
+# `project_id` names the *local* stack's Docker containers. The remote project
+# is chosen by `supabase link --project-ref <ref>`, which writes to
+# supabase/.temp/ and is intentionally not checked in.
+
+project_id = "lunara"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Match the remote (Postgres 17) so a migration that passes locally passes there.
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+# Local mail catcher. Every outbound email is captured here instead of sent,
+# so magic links and OTPs during development go nowhere near a real inbox.
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# The largest bucket limit in the migrations is voice-notes at 10 MB; this is
+# the outer envelope for the whole API.
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "lunara://"
+# Where a magic link / OAuth callback is allowed to land. The custom scheme is
+# what the app registers (see `scheme` in app.json).
+additional_redirect_urls = ["lunara://", "lunara://join", "exp://localhost:8081"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Off locally only, so a dev account is usable the moment it is created.
+# The hosted project keeps confirmation on.
+enable_confirmations = false
+
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+
+# The three sign-in methods the app offers are Apple, Google and phone OTP.
+# Locally, Apple and Google need real client ids to be exercised end to end;
+# left disabled so `supabase start` works with no secrets present, and enabled
+# per-developer via a local override rather than by editing this file.
+[auth.external.apple]
+enabled = false
+
+[auth.external.google]
+enabled = false
+
+[analytics]
+enabled = false
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
+
+# Deno edge functions. `verify_jwt = false` on the two webhooks because they are
+# called by an outside service (RevenueCat, and Postgres' own pg_net trigger),
+# not by a signed-in user — each authenticates its caller itself. The two
+# user-facing functions keep JWT verification on.
+[functions.send-nudge]
+verify_jwt = true
+
+# Deletes the caller's own account (App Store 5.1.1(v)). JWT verification is
+# essential here, not incidental: the account acted on is taken from the
+# verified token and the function accepts no target parameter.
+[functions.delete-account]
+verify_jwt = true
+
+[functions.grow-guidance]
+verify_jwt = true
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+[functions.entries-webhook]
+verify_jwt = false

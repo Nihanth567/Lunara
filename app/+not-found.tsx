@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <LinearGradient
-        colors={['#0F0C29', '#1A1635', '#302B63', '#1A1635', '#0F0C29']}
+        colors={['#0A0817', '#141127', '#221D40', '#141127', '#0A0817']}
         locations={[0, 0.3, 0.55, 0.8, 1]}
         style={styles.container}
       >
@@ -39,15 +39,16 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   title: {
-    fontSize: 20,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontSize: 22,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     textAlign: 'center',
+    letterSpacing: -0.4,
   },
   body: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     textAlign: 'center',
     lineHeight: 21,
   },
@@ -57,8 +58,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   linkText: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#C3B1E1',
   },
 });

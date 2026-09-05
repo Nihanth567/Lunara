@@ -1,3 +1,4 @@
+import { radius } from '@/constants/tokens';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MoonPhaseIndicator, getMoonColor } from './MoonPhaseIndicator';
@@ -24,7 +25,12 @@ function milestoneName(m: number): string {
   }
 }
 
-function getCaption(streak: number, longestStreak: number): { title: string; sub: string } {
+function getCaption(
+  streak: number,
+  longestStreak: number,
+  atRisk: boolean,
+  isProtected: boolean,
+): { title: string; sub: string } {
   if (streak === 0 && longestStreak === 0) {
     return {
       title: 'Tonight, your story begins',
@@ -37,8 +43,34 @@ function getCaption(streak: number, longestStreak: number): { title: string; sub
       sub: 'Tonight is a fresh start, whenever you’re ready',
     };
   }
-  const next = nextMilestone(streak);
+
   const title = `${streak} ${streak === 1 ? 'night' : 'nights'} of choosing each other`;
+
+  // A run that's being carried over a missed night says so plainly, once. It's
+  // the difference between "you broke it" and "we kept it for you" — and the
+  // second one is the reason anyone comes back on day 9.
+  if (isProtected) {
+    return {
+      title,
+      sub: atRisk
+        ? 'One night off is already forgiven — tonight keeps it going'
+        : 'One night off, quietly held. Still going.',
+    };
+  }
+
+  // At risk is never framed as almost-lost. It's an open night, not a warning.
+  if (atRisk) {
+    const next = nextMilestone(streak);
+    return {
+      title,
+      sub:
+        next && next - streak === 1
+          ? `Tonight makes it ${milestoneName(next)}`
+          : 'Tonight’s still open — no rush',
+    };
+  }
+
+  const next = nextMilestone(streak);
   if (!next) {
     return { title, sub: 'However far this goes, this is worth noticing' };
   }
@@ -52,17 +84,45 @@ function getCaption(streak: number, longestStreak: number): { title: string; sub
 interface Props {
   streak: number;
   longestStreak: number;
+  /** A live run that tonight hasn't renewed yet. Softens the caption, never scolds. */
+  atRisk?: boolean;
+  /** The one missed night this run is stepping over, if there is one. */
+  protectedNight?: boolean;
+  /**
+   * Quieter rendering for when tonight is still unfinished: the streak sits
+   * *below* the ritual then, and a full-size module there would read as the
+   * point of the screen rather than the reward for finishing it.
+   */
+  compact?: boolean;
 }
 
 /** Calm, prominent home-screen streak module — moon phase, gentle caption, soft progress toward the next milestone */
-export function StreakSpotlight({ streak, longestStreak }: Props) {
+export function StreakSpotlight({
+  streak,
+  longestStreak,
+  atRisk = false,
+  protectedNight = false,
+  compact = false,
+}: Props) {
   const next = nextMilestone(streak);
   const prev = prevMilestone(streak);
   const progress = next
     ? Math.min(1, Math.max(streak > 0 ? 0.04 : 0, (streak - prev) / (next - prev)))
     : 1;
-  const { title, sub } = getCaption(streak, longestStreak);
+  const { title, sub } = getCaption(streak, longestStreak, atRisk, protectedNight);
   const tierColor = getMoonColor(streak);
+
+  if (compact) {
+    return (
+      <View style={styles.compactContainer}>
+        <MoonPhaseIndicator streak={streak} size="small" showLabel={false} />
+        <View style={styles.compactCaption}>
+          <Text style={styles.compactTitle} numberOfLines={1}>{title}</Text>
+          <Text style={styles.compactSub} numberOfLines={1}>{sub}</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -81,11 +141,36 @@ export function StreakSpotlight({ streak, longestStreak }: Props) {
 }
 
 const styles = StyleSheet.create({
+  compactContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(30,27,58,0.55)',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
+  compactCaption: { flex: 1, gap: 1 },
+  compactTitle: {
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#C0B8D4',
+  },
+  compactSub: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
+  },
   container: {
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#1E1B3A',
-    borderRadius: 16,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.09)',
     paddingVertical: 22,
@@ -98,14 +183,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F5F2FB',
     textAlign: 'center',
   },
   sub: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     textAlign: 'center',
     lineHeight: 18,
   },

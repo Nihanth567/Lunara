@@ -7,6 +7,7 @@ import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { radius } from '@/constants/tokens';
 
 const BENEFITS = [
   {
@@ -29,7 +30,7 @@ const BENEFITS = [
   },
   {
     icon: 'time-outline' as const,
-    color: '#FFD6A5',
+    color: '#F0C07A',
     title: 'Just a few minutes a night',
     body: 'A few honest minutes each night, and somehow the rest of the day feels lighter too',
   },
@@ -46,7 +47,7 @@ export default function BenefitsScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -107,29 +108,30 @@ const styles = StyleSheet.create({
   heroImageFrame: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     marginBottom: 24,
   },
   heroImage: { width: '100%', height: '100%' },
   header: { marginBottom: 28, gap: 10 },
   eyebrow: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#C3B1E1',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 38,
   },
   subtitle: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 23,
   },
   benefits: { gap: 20, marginBottom: 36 },
@@ -141,13 +143,13 @@ const styles = StyleSheet.create({
   benefitText: { flex: 1, gap: 3 },
   benefitTitle: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F5F2FB',
   },
   benefitBody: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 20,
   },
   footer: {},

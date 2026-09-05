@@ -17,6 +17,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder';
+import colors from '@/constants/colors';
+import { type } from '@/constants/typography';
+import { radius, space, touchTarget } from '@/constants/tokens';
 
 export type CardType = 'grateful' | 'cute' | 'grow';
 
@@ -28,6 +32,19 @@ interface RitualCardProps {
   onDone: () => void;
   onChange: (text: string) => void;
   isSubmitted?: boolean;
+  /** Existing voice note for this card (Storage path, or file:// in demo mode). */
+  voiceValue?: string | null;
+  /** Omit to hide the recorder entirely (e.g. for a free account). */
+  onRecordVoice?: (localUri: string) => Promise<void> | void;
+  onDeleteVoice?: () => Promise<void> | void;
+  /** Shown instead of the recorder when voice is a locked feature. */
+  onVoiceLocked?: () => void;
+  /**
+   * Label for the confirm affordance. The Tonight screen passes "Next" while
+   * there are still empty cards, so finishing the ritual is one continuous
+   * pass rather than three separate open/close trips.
+   */
+  doneLabel?: string;
 }
 
 const CONFIG = {
@@ -71,6 +88,11 @@ export function RitualCard({
   onDone,
   onChange,
   isSubmitted = false,
+  voiceValue = null,
+  onRecordVoice,
+  onDeleteVoice,
+  onVoiceLocked,
+  doneLabel = 'Done',
 }: RitualCardProps) {
   const config = CONFIG[type];
   const inputRef = useRef<TextInput>(null);
@@ -96,7 +118,7 @@ export function RitualCard({
   }, [value]);
 
   const expandedStyle = useAnimatedStyle(() => ({
-    maxHeight: interpolate(progress.value, [0, 1], [0, 180], 'clamp'),
+    maxHeight: interpolate(progress.value, [0, 1], [0, 260], 'clamp'),
     opacity: progress.value,
     overflow: 'hidden',
   }));
@@ -142,7 +164,7 @@ export function RitualCard({
             styles.card,
             {
               borderColor: isExpanded ? config.borderColor : 'rgba(255,255,255,0.08)',
-              backgroundColor: '#1E1B3A',
+              backgroundColor: '#1A1730',
             },
           ]}
         >
@@ -167,7 +189,7 @@ export function RitualCard({
                   }}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneText, { color: config.color }]}>Done</Text>
+                  <Text style={[styles.doneText, { color: config.color }]}>{doneLabel}</Text>
                 </Pressable>
               )}
             </View>
@@ -178,6 +200,14 @@ export function RitualCard({
             <Text style={styles.preview} numberOfLines={2}>
               {value}
             </Text>
+          )}
+
+          {/* Quiet marker that this card carries a recording too */}
+          {voiceValue && !isExpanded && (
+            <View style={styles.voiceBadge}>
+              <Ionicons name="mic" size={11} color={config.color} />
+              <Text style={[styles.voiceBadgeText, { color: config.color }]}>Voice note attached</Text>
+            </View>
           )}
 
           {/* Prompt when empty and collapsed */}
@@ -198,12 +228,28 @@ export function RitualCard({
                 placeholder={config.prompt}
                 placeholderTextColor="rgba(255,255,255,0.25)"
                 multiline
-                style={[styles.input, { color: '#F8F5FF' }]}
+                style={[styles.input, { color: '#F5F2FB' }]}
                 returnKeyType="done"
                 onSubmitEditing={onDone}
                 blurOnSubmit={false}
                 editable={!isSubmitted}
               />
+
+              {/* Optional voice note — never required, never blocks submitting */}
+              {onRecordVoice && onDeleteVoice ? (
+                <VoiceNoteRecorder
+                  value={voiceValue}
+                  color={config.color}
+                  onRecorded={onRecordVoice}
+                  onDelete={onDeleteVoice}
+                  disabled={isSubmitted}
+                />
+              ) : onVoiceLocked ? (
+                <Pressable onPress={onVoiceLocked} style={styles.voiceLocked}>
+                  <Ionicons name="lock-closed-outline" size={13} color="#948BAC" />
+                  <Text style={styles.voiceLockedText}>Add a voice note with Lunara Pro</Text>
+                </Pressable>
+              ) : null}
             </View>
           </Animated.View>
         </View>
@@ -214,10 +260,11 @@ export function RitualCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    padding: 18,
-    gap: 10,
+    padding: space.xl,
+    gap: space.md,
   },
   header: {
     flexDirection: 'row',
@@ -234,48 +281,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 0.3,
+    ...type.heading,
   },
   prompt: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.3)',
-    lineHeight: 20,
+    ...type.callout,
+    color: colors.dark.onCardMuted,
   },
   preview: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: 22,
+    ...type.prose,
+    color: colors.dark.onCardBody,
   },
   expandedContent: {
     gap: 8,
     paddingTop: 4,
   },
   helperText: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.3)',
-    lineHeight: 17,
+    ...type.caption,
+    color: colors.dark.onCardMuted,
   },
   input: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 22,
-    minHeight: 80,
+    ...type.prose,
+    minHeight: 96,
     textAlignVertical: 'top',
     paddingTop: Platform.OS === 'android' ? 4 : 0,
   },
   doneButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'transparent',
+    paddingHorizontal: space.lg,
+    minHeight: touchTarget,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   doneText: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+    ...type.label,
   },
+  voiceBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  voiceBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
+  voiceLocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: touchTarget,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  voiceLockedText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#948BAC' },
 });

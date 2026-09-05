@@ -1,40 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Image, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Image, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
-import { requestNotificationPermissions, getNotificationPermissionStatus } from '@/services/notifications';
-
-/**
- * A soft pre-ask before the OS permission dialog, whose own wording we can't
- * customize. Only shown once, and only if permission hasn't been decided yet.
- */
-async function maybeAskForNotifications(): Promise<void> {
-  if (Platform.OS === 'web') return;
-  const status = await getNotificationPermissionStatus();
-  if (status !== 'undetermined') return;
-  await new Promise<void>((resolve) => {
-    Alert.alert(
-      'One quiet reminder a night?',
-      'If the night is slipping by and you haven’t shared with your partner yet, we’ll send one gentle nudge — never more than that.',
-      [
-        { text: 'Not now', style: 'cancel', onPress: () => resolve() },
-        {
-          text: 'Sounds good',
-          onPress: async () => {
-            await requestNotificationPermissions().catch(() => {});
-            resolve();
-          },
-        },
-      ],
-    );
-  });
-}
+import { radius } from '@/constants/tokens';
+import {
+  requestNotificationPermissions,
+  formatReminderTime,
+} from '@/services/notifications';
 
 const { width } = Dimensions.get('window');
 
@@ -57,7 +36,7 @@ const STEPS = [
   },
   {
     icon: 'sparkles-outline' as const,
-    color: '#FFD6A5',
+    color: '#F0C07A',
     title: 'Reveal together',
     body: 'When you\'re both ready, tap Reveal — and see what your partner wrote just for you.',
     example: 'A quiet, beautiful moment every night',
@@ -65,33 +44,63 @@ const STEPS = [
   },
 ];
 
+/** The hours a nightly ritual actually happens. Three choices, not nine. */
+const REMINDER_CHOICES = [
+  { hour: 20, minute: 0 },
+  { hour: 21, minute: 0 },
+  { hour: 22, minute: 0 },
+];
+
 export default function TutorialScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { completeOnboarding, couple } = useApp();
+  const { couple, notificationSettings, setNotificationSettings, registerPushToken } = useApp();
   const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const isLast = step === STEPS.length - 1;
   const current = STEPS[step];
 
+  /**
+   * The reminder time is asked for here rather than left in settings, because a
+   * nightly ritual with no nightly trigger is a ritual people forget by day 3.
+   * It's one tap on a row that's already correct by default — picking a time is
+   * optional, and so is the permission itself.
+   */
+  const pickTime = async (hour: number, minute: number) => {
+    Haptics.selectionAsync();
+    await setNotificationSettings({
+      ...notificationSettings,
+      enabled: true,
+      reminderHour: hour,
+      reminderMinute: minute,
+    }).catch(() => {});
+  };
+
   const handleNext = async () => {
     if (!isLast) {
+      Haptics.selectionAsync();
       setStep((s) => s + 1);
       return;
     }
-    setLoading(true);
-    await maybeAskForNotifications();
-    await completeOnboarding();
-    setLoading(false);
-    router.replace('/(app)/' as never);
-    if (couple) {
-      router.push('/keepsakes?intro=1' as never);
+    // Ask for the permission at the moment its value is obvious, not at launch.
+    setBusy(true);
+    if (notificationSettings.enabled) {
+      const granted = await requestNotificationPermissions().catch(() => false);
+      // iOS drops anything scheduled before authorisation and never redelivers
+      // it, so the reminders have to be laid down *after* the grant — not when
+      // the time chip was tapped.
+      await setNotificationSettings({ ...notificationSettings, enabled: granted }).catch(() => {});
+      // The grant is also what makes the two *remote* pushes deliverable, and
+      // those need a token on the profile row, not just a local schedule.
+      if (granted) await registerPushToken().catch(() => {});
     }
+    setBusy(false);
+    router.push('/(onboarding)/pro-preview');
   };
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#302B63', '#0F0C29']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#221D40', '#0A0817']} style={styles.container}>
       <StarField />
       <View style={[styles.content, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 44 }]}>
 
@@ -138,12 +147,62 @@ export default function TutorialScreen() {
           </Animated.View>
         )}
 
+        {/* Nightly reminder — the trigger half of the habit loop */}
+        {isLast && (
+          <Animated.View style={styles.reminderCard}>
+            <View style={styles.reminderHeader}>
+              <Ionicons name="moon-outline" size={16} color="#C3B1E1" />
+              <Text style={styles.reminderTitle}>A gentle nudge each night</Text>
+            </View>
+            {/*
+              The priming, and it has to come before the OS dialog rather than
+              after it. Lunara sends three things and only three, and two of
+              them are the other person — a prompt that arrives cold reads as
+              "this app wants to interrupt you", which on iOS is a decision
+              nobody can take back from inside the app.
+            */}
+            <Text style={styles.reminderWhy}>
+              Three things, and nothing else: this nightly reminder, a note when
+              your partner has shared theirs, and the moment you&apos;re both
+              ready to reveal.
+            </Text>
+            <View style={styles.reminderRow}>
+              {REMINDER_CHOICES.map(({ hour, minute }) => {
+                const active =
+                  notificationSettings.enabled &&
+                  notificationSettings.reminderHour === hour &&
+                  notificationSettings.reminderMinute === minute;
+                return (
+                  <Pressable
+                    key={`${hour}:${minute}`}
+                    style={[styles.reminderChip, active && styles.reminderChipActive]}
+                    onPress={() => pickTime(hour, minute)}
+                  >
+                    <Text style={[styles.reminderChipText, active && styles.reminderChipTextActive]}>
+                      {formatReminderTime(hour, minute)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() =>
+                setNotificationSettings({ ...notificationSettings, enabled: false }).catch(() => {})
+              }
+            >
+              <Text style={styles.reminderSkip}>
+                {notificationSettings.enabled ? 'No reminder, thanks' : 'Reminders are off'}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
         {/* Button */}
         <View style={styles.footer}>
           <LunaraButton
-            title={isLast ? (couple?.isDemoMode ? 'Open Lunara' : "Let's begin") : 'Next'}
+            title={isLast ? "Let's begin" : 'Next'}
             onPress={handleNext}
-            loading={loading}
+            loading={busy}
           />
         </View>
       </View>
@@ -153,6 +212,54 @@ export default function TutorialScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  reminderWhy: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
+    lineHeight: 19,
+  },
+  reminderCard: {
+    width: '100%',
+    gap: 10,
+    backgroundColor: '#1A1730',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    padding: 16,
+    marginBottom: 4,
+  },
+  reminderHeader: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  reminderTitle: {
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F5F2FB',
+  },
+  reminderRow: { flexDirection: 'row', gap: 8 },
+  reminderChip: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+  },
+  reminderChipActive: {
+    borderColor: 'rgba(195,177,225,0.55)',
+    backgroundColor: 'rgba(195,177,225,0.14)',
+  },
+  reminderChipText: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#C0B8D4',
+  },
+  reminderChipTextActive: { color: '#F5F2FB' },
+  reminderSkip: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
+    textAlign: 'center',
+  },
   content: {
     flex: 1,
     paddingHorizontal: 28,
@@ -181,26 +288,28 @@ const styles = StyleSheet.create({
   stepImageFrame: {
     width: '100%',
     height: 200,
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     overflow: 'hidden',
   },
   stepImage: { width: '100%', height: '100%' },
   title: {
-    fontSize: 30,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     textAlign: 'center',
   },
   body: {
-    fontSize: 17,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 16,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     textAlign: 'center',
     lineHeight: 26,
   },
   exampleBubble: {
-     backgroundColor: '#1E1B3A',
-     borderRadius: 12,
+     backgroundColor: '#1A1730',
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.09)',
     paddingHorizontal: 20,
@@ -208,7 +317,7 @@ const styles = StyleSheet.create({
   },
   exampleText: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'PlusJakartaSans_400Regular',
     color: '#C3B1E1',
     textAlign: 'center',
     lineHeight: 20,
@@ -219,7 +328,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: 'rgba(195,177,225,0.1)',
-    borderRadius: 18,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(195,177,225,0.2)',
     padding: 16,
@@ -228,14 +338,14 @@ const styles = StyleSheet.create({
   },
   demoText: { flex: 1, gap: 2 },
   demoName: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F5F2FB',
   },
   demoSub: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
   },
   footer: { width: '100%' },
 });

@@ -1,254 +1,133 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Platform,
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
-import { useApp } from '@/context/AppContext';
-import { DailyEntry } from '@/context/AppContext';
+import { useApp, type DailyEntry } from '@/context/AppContext';
+import { isPro, freeHistoryCutoffDate, FREE_HISTORY_DAYS } from '@/lib/entitlements';
+import { formatMomentDate, momentIsComplete, momentVoiceCount } from '@/lib/moments';
+import { radius } from '@/constants/tokens';
 
-type FilterType = 'all' | 'grateful' | 'cute' | 'grow';
+/**
+ * Moments — a plain chronological list of the nights a couple completed
+ * together. Tapping a night opens it in full.
+ *
+ * Deliberately no filters and no search: the value here is scrolling back
+ * through your own history, and every control added to that is a control
+ * between someone and the thing they came to read.
+ */
 
-const FILTERS: { key: FilterType; label: string; color: string }[] = [
-  { key: 'all', label: 'All', color: '#F8F5FF' },
-  { key: 'grateful', label: 'Grateful', color: '#FF9A8B' },
-  { key: 'cute', label: 'Cute', color: '#C3B1E1' },
-  { key: 'grow', label: 'Grow', color: '#A8D8A8' },
-];
-
-function formatEntryDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const entryDay = new Date(date);
-  entryDay.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((today.getTime() - entryDay.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'long' });
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-}
-
-function EntryCard({ entry, filter }: { entry: DailyEntry; filter: FilterType }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const showGrateful = filter === 'all' || filter === 'grateful';
-  const showCute = filter === 'all' || filter === 'cute';
-  const showGrow = filter === 'all' || filter === 'grow';
-
-  if (!entry.revealed && entry.date !== new Date().toISOString().split('T')[0]) {
-    return null;
-  }
+function MomentRow({ entry, onPress }: { entry: DailyEntry; onPress: () => void }) {
+  const voiceCount = momentVoiceCount(entry);
+  // The first line of the Grateful note is the warmest preview available.
+  const preview = entry.grateful || entry.cute || entry.grow || '';
 
   return (
-    <Pressable
-      style={styles.entryCard}
-      onPress={() => setExpanded((e) => !e)}
-    >
-      <View style={styles.entryHeader}>
-        <View style={styles.entryDateRow}>
-          <Text style={styles.entryDate}>{formatEntryDate(entry.date)}</Text>
-          {entry.date === new Date().toISOString().split('T')[0] && (
-            <View style={styles.todayBadge}>
-              <Text style={styles.todayBadgeText}>Today</Text>
-            </View>
-          )}
+    <Pressable style={styles.row} onPress={onPress}>
+      <View style={styles.rowMain}>
+        <View style={styles.rowHeader}>
+          <Text style={styles.rowDate}>{formatMomentDate(entry.date)}</Text>
+          <View style={styles.rowDots}>
+            {entry.grateful ? <View style={[styles.dot, { backgroundColor: '#FF9A8B' }]} /> : null}
+            {entry.cute ? <View style={[styles.dot, { backgroundColor: '#C3B1E1' }]} /> : null}
+            {entry.grow ? <View style={[styles.dot, { backgroundColor: '#A8D8A8' }]} /> : null}
+          </View>
         </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color="#7A6D98"
-        />
+        <Text style={styles.rowPreview} numberOfLines={1}>{preview}</Text>
+        {voiceCount > 0 && (
+          <View style={styles.rowVoice}>
+            <Ionicons name="mic" size={11} color="#948BAC" />
+            <Text style={styles.rowVoiceText}>
+              {voiceCount} voice {voiceCount === 1 ? 'note' : 'notes'}
+            </Text>
+          </View>
+        )}
       </View>
-
-      {/* Preview (collapsed) */}
-      {!expanded && (
-        <View style={styles.previewRow}>
-          {showGrateful && entry.grateful ? (
-            <View style={[styles.previewDot, { backgroundColor: '#FF9A8B' }]} />
-          ) : null}
-          {showCute && entry.cute ? (
-            <View style={[styles.previewDot, { backgroundColor: '#C3B1E1' }]} />
-          ) : null}
-          {showGrow && entry.grow ? (
-            <View style={[styles.previewDot, { backgroundColor: '#A8D8A8' }]} />
-          ) : null}
-          <Text style={styles.previewText} numberOfLines={1}>
-            {filter === 'grateful' && entry.grateful
-              ? entry.grateful
-              : filter === 'cute' && entry.cute
-              ? entry.cute
-              : filter === 'grow' && entry.grow
-              ? entry.grow
-              : entry.grateful || entry.cute || entry.grow || ''}
-          </Text>
-        </View>
-      )}
-
-      {/* Expanded content */}
-      {expanded && (
-        <View style={styles.expandedContent}>
-          {showGrateful && entry.grateful ? (
-            <View style={styles.entrySection}>
-              <View style={styles.entrySectionHeader}>
-                <View style={[styles.entrySectionDot, { backgroundColor: '#FF9A8B' }]} />
-                <Text style={[styles.entrySectionLabel, { color: '#FF9A8B' }]}>Grateful</Text>
-                <Text style={styles.entrySectionMine}>You</Text>
-              </View>
-              <Text style={styles.entrySectionText}>{entry.grateful}</Text>
-              {entry.partnerGrateful && (
-                <>
-                  <View style={styles.entrySectionHeader}>
-                    <View style={[styles.entrySectionDot, { backgroundColor: '#FF9A8B' }]} />
-                    <Text style={[styles.entrySectionLabel, { color: '#FF9A8B' }]}>Grateful</Text>
-                    <Text style={styles.entrySectionMine}>Partner</Text>
-                  </View>
-                  <Text style={styles.entrySectionText}>{entry.partnerGrateful}</Text>
-                </>
-              )}
-            </View>
-          ) : null}
-
-          {showCute && entry.cute ? (
-            <View style={styles.entrySection}>
-              <View style={styles.entrySectionHeader}>
-                <View style={[styles.entrySectionDot, { backgroundColor: '#C3B1E1' }]} />
-                <Text style={[styles.entrySectionLabel, { color: '#C3B1E1' }]}>Cute</Text>
-                <Text style={styles.entrySectionMine}>You</Text>
-              </View>
-              <Text style={styles.entrySectionText}>{entry.cute}</Text>
-              {entry.partnerCute && (
-                <>
-                  <View style={styles.entrySectionHeader}>
-                    <View style={[styles.entrySectionDot, { backgroundColor: '#C3B1E1' }]} />
-                    <Text style={[styles.entrySectionLabel, { color: '#C3B1E1' }]}>Cute</Text>
-                    <Text style={styles.entrySectionMine}>Partner</Text>
-                  </View>
-                  <Text style={styles.entrySectionText}>{entry.partnerCute}</Text>
-                </>
-              )}
-            </View>
-          ) : null}
-
-          {showGrow && entry.grow ? (
-            <View style={styles.entrySection}>
-              <View style={styles.entrySectionHeader}>
-                <View style={[styles.entrySectionDot, { backgroundColor: '#A8D8A8' }]} />
-                <Text style={[styles.entrySectionLabel, { color: '#A8D8A8' }]}>Grow</Text>
-                <Text style={styles.entrySectionMine}>You</Text>
-              </View>
-              <Text style={styles.entrySectionText}>{entry.grow}</Text>
-              {entry.partnerGrow && (
-                <>
-                  <View style={styles.entrySectionHeader}>
-                    <View style={[styles.entrySectionDot, { backgroundColor: '#A8D8A8' }]} />
-                    <Text style={[styles.entrySectionLabel, { color: '#A8D8A8' }]}>Grow</Text>
-                    <Text style={styles.entrySectionMine}>Partner</Text>
-                  </View>
-                  <Text style={styles.entrySectionText}>{entry.partnerGrow}</Text>
-                </>
-              )}
-            </View>
-          ) : null}
-        </View>
-      )}
+      <Ionicons name="chevron-forward" size={16} color="#2E2A4C" />
     </Pressable>
   );
 }
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { entries, couple } = useApp();
-  const [filter, setFilter] = useState<FilterType>('all');
 
+  const proUser = isPro(couple);
   const topPad = insets.top + (Platform.OS === 'web' ? 67 : 0);
   const bottomPad = insets.bottom + 90 + (Platform.OS === 'web' ? 34 : 0);
 
-  // Sort entries newest first, only revealed ones
-  const visibleEntries = [...entries]
-    .filter((e) => e.revealed || e.submitted)
+  // Only nights both partners finished belong here — an unfinished night has
+  // nothing shared to show, and the reveal gate wouldn't return it anyway.
+  const allMoments = entries
+    .filter(momentIsComplete)
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  // Free accounts keep a trailing window; the rest are counted so the banner
+  // can say how much is waiting.
+  const cutoff = freeHistoryCutoffDate();
+  const visible = proUser ? allMoments : allMoments.filter((e) => e.date >= cutoff);
+  const lockedCount = allMoments.length - visible.length;
+
+  const open = (date: string) => {
+    Haptics.selectionAsync();
+    router.push(`/moment/${date}`);
+  };
 
   return (
     <LinearGradient
-      colors={['#0F0C29', '#1A1635', '#24243E', '#1A1635', '#0F0C29']}
+      colors={['#0A0817', '#141127', '#23203D', '#141127', '#0A0817']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
       <StarField />
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: topPad + 16, paddingBottom: bottomPad },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad + 16, paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Moments</Text>
           <Text style={styles.subtitle}>
-            {visibleEntries.length > 0
-              ? `${visibleEntries.length} nights you've kept together`
+            {visible.length > 0
+              ? `${visible.length} ${visible.length === 1 ? 'night' : 'nights'} you've kept together`
               : 'The nights you share will gather here, gently'}
           </Text>
         </View>
 
-        {/* Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filters}
-          style={styles.filtersScroll}
-        >
-          {FILTERS.map((f) => (
-            <Pressable
-              key={f.key}
-              style={[
-                styles.filterPill,
-                filter === f.key && styles.filterPillActive,
-              ]}
-              onPress={() => setFilter(f.key)}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  filter === f.key && { color: f.color, fontFamily: 'Inter_600SemiBold' },
-                ]}
-              >
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        {/* Entries */}
-        {visibleEntries.length > 0 ? (
-          <View style={styles.entries}>
-            {visibleEntries.map((entry, i) => (
-              <Animated.View
-                key={entry.date}
-              >
-                <EntryCard entry={entry} filter={filter} />
-              </Animated.View>
+        {visible.length > 0 ? (
+          <View style={styles.list}>
+            {visible.map((entry) => (
+              <MomentRow key={entry.date} entry={entry} onPress={() => open(entry.date)} />
             ))}
           </View>
-        ) : (
+        ) : lockedCount === 0 ? (
           <View style={styles.emptyState}>
-             <Ionicons name="moon-outline" size={36} color="rgba(195,177,225,0.4)" />
+            <Ionicons name="moon-outline" size={36} color="rgba(195,177,225,0.4)" />
             <Text style={styles.emptyTitle}>Your story starts tonight</Text>
             <Text style={styles.emptyBody}>
               Share tonight's ritual with your partner, and this{'\n'}quiet little archive of your moments together begins
             </Text>
           </View>
+        ) : null}
+
+        {lockedCount > 0 && (
+          <Pressable style={styles.lockedBanner} onPress={() => router.push('/(modals)/paywall')}>
+            <View style={styles.lockedIcon}>
+              <Ionicons name="lock-closed" size={16} color="#FF9A8B" />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.lockedTitle}>
+                {lockedCount} earlier {lockedCount === 1 ? 'moment is' : 'moments are'} waiting
+              </Text>
+              <Text style={styles.lockedBody}>
+                Free keeps your last {FREE_HISTORY_DAYS} days — Lunara Pro keeps all of them
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color="#948BAC" />
+          </Pressable>
         )}
       </ScrollView>
     </LinearGradient>
@@ -258,128 +137,63 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 22 },
-  header: { marginBottom: 20, gap: 4 },
-  title: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
-  },
-  filtersScroll: { marginBottom: 20 },
-  filters: { gap: 8, paddingRight: 22 },
-  filterPill: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    flex: 1,
-    alignItems: 'center',
-  },
-  filterPillActive: { borderBottomColor: '#FF9A8B' },
-  filterText: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
-  },
-  entries: { gap: 12 },
-  entryCard: {
-    backgroundColor: '#1E1B3A',
-    borderRadius: 12,
-    borderWidth: 0,
-    padding: 16,
-    gap: 10,
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  entryDateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  entryDate: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
-  },
-  todayBadge: {
-    backgroundColor: 'rgba(255,154,139,0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.3)',
-  },
-  todayBadgeText: {
-    fontSize: 11,
-    fontFamily: 'Inter_500Medium',
-    color: '#FF9A8B',
-  },
-  previewRow: {
+  header: { marginBottom: 22, gap: 4 },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB' },
+  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+
+  list: { gap: 10 },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  previewDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  previewText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
-  },
-  expandedContent: { gap: 16, paddingTop: 4 },
-  entrySection: { gap: 4 },
-  entrySectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  entrySectionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  entrySectionLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  entrySectionMine: {
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
-    marginLeft: 'auto' as any,
-  },
-  entrySectionText: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#D4C8F0',
-    lineHeight: 21,
-    paddingLeft: 12,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 60,
     gap: 12,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 16,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+  rowMain: { flex: 1, gap: 5 },
+  rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowDate: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
+  rowDots: { flexDirection: 'row', gap: 4 },
+  dot: { width: 5, height: 5, borderRadius: 2.5 },
+  rowPreview: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  rowVoice: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  rowVoiceText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+
+  emptyState: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyTitle: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB',
+    letterSpacing: -0.4,
   },
   emptyBody: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     textAlign: 'center',
     lineHeight: 21,
   },
+
+  lockedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,154,139,0.2)',
+    padding: 16,
+  },
+  lockedIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,154,139,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
+  lockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
 });

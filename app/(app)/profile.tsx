@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
   Modal,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,10 +16,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+// SDK 54 ships the new File/Paths API on expo-file-system; the legacy subpath is
+// the supported route for the string helpers and is what this one export needs.
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { StarField } from '@/components/StarField';
 import { MoonPhaseIndicator } from '@/components/MoonPhaseIndicator';
+import { DateNightSection } from '@/components/DateNightSection';
+import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { useApp } from '@/context/AppContext';
+import { useGrowth } from '@/hooks/useGrowth';
+import { isPro, proFeatureSummary } from '@/lib/entitlements';
+import { isPartnerJoined } from '@/lib/partner';
+import { isSunday } from '@/lib/growth';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
+import { radius } from '@/constants/tokens';
+
+/**
+ * Apple's Standard Licensed Application End User License Agreement.
+ *
+ * The Terms screen already *mentioned* the standard EULA in prose, but nothing
+ * in the app ever linked to it. Guideline 3.1.2 requires a functional link to
+ * the licence terms from anywhere a subscription is sold, and a sentence naming
+ * a document the user cannot open does not satisfy it.
+ */
+const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 import {
   requestNotificationPermissions,
   getNotificationPermissionStatus,
@@ -68,14 +90,15 @@ function SettingsRow({
     >
       <Ionicons
           name={icon as any}
-          size={18}
-          color={destructive ? '#FF6B6B' : color || '#9B89C2'}
+          size={20}
+          color={destructive ? '#F2716B' : color || '#C0B8D4'}
+          style={{ opacity: 0.7 }}
         />
-      <Text style={[styles.settingsLabel, destructive && { color: '#FF6B6B' }]}>
+      <Text style={[styles.settingsLabel, destructive && { color: '#F2716B' }]}>
         {label}
       </Text>
       {value && <Text style={styles.settingsValue}>{value}</Text>}
-      {onPress && <Ionicons name="chevron-forward" size={16} color="#7A6D98" />}
+      {onPress && <Ionicons name="chevron-forward" size={16} color="#948BAC" style={{ opacity: 0.7 }} />}
     </Pressable>
   );
 }
@@ -147,7 +170,13 @@ function TimePickerModal({
               </Pressable>
             );
           })}
-          <Pressable style={styles.modalDismiss} onPress={onClose}>
+          <Pressable
+            style={styles.modalDismiss}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onClose();
+            }}
+          >
             <Text style={styles.modalDismissText}>Done</Text>
           </Pressable>
         </Pressable>
@@ -161,8 +190,23 @@ function TimePickerModal({
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, couple, entries, keepsakes, signOut, notificationSettings, setNotificationSettings } = useApp();
+  const { user, couple, entries, keepsakes, ritualDate, signOut, deleteAccount, exitDemoMode, notificationSettings, setNotificationSettings } = useApp();
+  const { getWeeklyRecap } = useGrowth();
   const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const proUser = isPro(couple);
+  // The pinned night, not a fresh `todayKey()`. Every other surface agrees on
+  // `ritualDate` for the length of a session; reading the clock here meant the
+  // weekly recap could appear or vanish underneath someone at midnight while
+  // the night they were still writing stayed on Saturday.
+  const showRecap = isSunday(ritualDate);
+  const completedPromptDates = entries
+    .filter((e) => e.submitted && e.partnerSubmitted)
+    .map((e) => e.date);
+  const weeklyRecap = getWeeklyRecap(completedPromptDates);
+
+  const goToPaywall = () => router.push('/(modals)/paywall');
 
   const topPad = insets.top + (Platform.OS === 'web' ? 67 : 0);
   const bottomPad = insets.bottom + 90 + (Platform.OS === 'web' ? 34 : 0);
@@ -216,6 +260,122 @@ export default function ProfileScreen() {
     await setNotificationSettings({ ...notificationSettings, reminderHour: hour, reminderMinute: minute });
   };
 
+  /**
+   * Hand the couple their own words back, as a file they keep.
+   *
+   * This row existed with `onPress={() => {}}` — a dead control sitting in the
+   * Privacy section promising an export that had never been built. A button
+   * that does nothing is worse than an absent one: it reads as broken, and
+   * here it also reads as a data-rights promise the app doesn't keep.
+   */
+  const handleExport = async () => {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        profile: { name: user?.name ?? '', birthday: user?.birthday, pronouns: user?.pronouns },
+        couple: couple
+          ? { startDate: couple.startDate, currentStreak: couple.currentStreak, longestStreak: couple.longestStreak }
+          : null,
+        nights: entries.map((e) => ({
+          date: e.date,
+          grateful: e.grateful,
+          cute: e.cute,
+          grow: e.grow,
+          submitted: e.submitted,
+          myReaction: e.myReaction ?? null,
+        })),
+        keepsakes: keepsakes.map((k) => ({ question: k.questionKey, answer: k.myAnswer })),
+      };
+      const path = `${FileSystem.cacheDirectory}lunara-export.json`;
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(payload, null, 2));
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: 'application/json', UTI: 'public.json' });
+      } else {
+        Alert.alert('Export ready', `Saved to ${path}`);
+      }
+    } catch {
+      Alert.alert('Could not export', 'Something went wrong building your file. Please try again.');
+    }
+  };
+
+  /**
+   * Account deletion, in two deliberate steps.
+   *
+   * App Store guideline 5.1.1(v) requires this to exist and to be reachable
+   * from inside the app; it does not require it to be a single careless tap.
+   * The first alert states the consequence that people do not expect — that
+   * their nights leave their partner's Moments too — and the second is the
+   * point of no return.
+   */
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      `This erases your profile, every night you’ve written, your voice notes and your keepsakes. Because your nights are shared, they also disappear from your partner’s Moments. This cannot be undone.${
+        isPro(couple)
+          ? '\n\nYour Lunara Pro subscription is billed by Apple and is not cancelled by deleting your account. Cancel it in Settings → your name → Subscriptions, or you will keep being charged.'
+          : ''
+      }`,
+      [
+        { text: 'Keep my account', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'This is permanent',
+              'There is no way to recover any of it afterwards. Delete your account?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete forever',
+                  style: 'destructive',
+                  onPress: async () => {
+                    setDeleting(true);
+                    try {
+                      await deleteAccount();
+                      router.replace('/');
+                    } catch (error) {
+                      Alert.alert(
+                        'Could not delete your account',
+                        error instanceof Error && error.message
+                          ? error.message
+                          : 'Please try again in a moment.',
+                      );
+                    } finally {
+                      setDeleting(false);
+                    }
+                  },
+                },
+              ],
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  /**
+   * The demo's exit. Worth a confirmation because the practice nights are
+   * genuinely discarded — but the copy has to make clear that what is being
+   * thrown away is fake, so nobody reads this as losing real memories.
+   */
+  const handleExitDemo = () => {
+    Alert.alert(
+      'Leave demo mode?',
+      'You’ve been trying Lunara with Luna, a simulated partner. Leaving discards those practice nights and takes you to pairing, where you can invite your real partner. Your account stays exactly as it is.',
+      [
+        { text: 'Stay in demo', style: 'cancel' },
+        {
+          text: 'Pair for real',
+          onPress: async () => {
+            await exitDemoMode();
+            router.replace('/(onboarding)/pairing');
+          },
+        },
+      ],
+    );
+  };
+
   const handleSignOut = () => {
     Alert.alert(
       'Sign out',
@@ -236,7 +396,7 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={['#0F0C29', '#1A1635', '#24243E', '#1A1635', '#0F0C29']}
+      colors={['#0A0817', '#141127', '#23203D', '#141127', '#0A0817']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -266,15 +426,25 @@ export default function ProfileScreen() {
               <Text style={styles.userPronouns}>{user.pronouns}</Text>
             )}
             {couple?.isDemoMode && (
-              <View style={styles.demoBadge}>
-                <Text style={styles.demoBadgeText}>Demo mode</Text>
-              </View>
+              <Pressable
+                style={styles.demoBadge}
+                onPress={handleExitDemo}
+                accessibilityRole="button"
+                accessibilityLabel="You are in demo mode. Leave the demo and pair with your real partner."
+              >
+                <Ionicons name="flask-outline" size={13} color="#C3B1E1" />
+                <Text style={styles.demoBadgeText}>Demo · tap to pair for real</Text>
+              </Pressable>
             )}
           </View>
           {couple && (
             <View style={styles.partnerBadge}>
-              <Text style={styles.partnerLabel}>with</Text>
-              <Text style={styles.partnerName}>{couple.partnerName}</Text>
+              <Text style={styles.partnerLabel}>
+                {isPartnerJoined(couple) ? 'with' : 'waiting for'}
+              </Text>
+              <Text style={styles.partnerName}>
+                {isPartnerJoined(couple) ? couple.partnerName : 'your partner to join'}
+              </Text>
             </View>
           )}
         </Animated.View>
@@ -302,17 +472,28 @@ export default function ProfileScreen() {
 
         {longestStreak > 0 && (
           <View style={styles.longestStreakRow}>
-            <Ionicons name="trophy-outline" size={14} color="#FFD6A5" />
+            <Ionicons name="trophy-outline" size={14} color="#F0C07A" />
             <Text style={styles.longestStreakText}>
               Longest streak: {longestStreak} {longestStreak === 1 ? 'night' : 'nights'}
             </Text>
           </View>
         )}
 
+        {/* Sunday recap — weekly growth follow-up summary */}
+        {couple && showRecap && (
+          <WeeklyRecapCard recap={weeklyRecap} isPro={proUser} onUnlock={goToPaywall} />
+        )}
+
         {/* Keepsake card */}
         {couple && (
           <Animated.View style={styles.keepsakeCard}>
-            <Pressable style={styles.keepsakeRow} onPress={() => router.push('/keepsakes')}>
+            <Pressable
+              style={styles.keepsakeRow}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/keepsakes');
+              }}
+            >
               <View style={styles.keepsakeIcon}>
                 <Ionicons name="heart-outline" size={20} color="#FF9A8B" />
               </View>
@@ -322,7 +503,7 @@ export default function ProfileScreen() {
                   {keepsakes.filter((k) => k.mySubmitted).length} of {keepsakes.length || KEEPSAKE_QUESTIONS.length} answered
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#7A6D98" />
+              <Ionicons name="chevron-forward" size={18} color="#948BAC" />
             </Pressable>
           </Animated.View>
         )}
@@ -336,20 +517,32 @@ export default function ProfileScreen() {
                 <Text style={styles.premiumTitle}>
                   {couple?.isSubscribed ? 'Lunara Premium — Active' : 'Lunara Premium'}
                 </Text>
+                {/* Named from lib/entitlements.ts, so this can't outlive a feature. */}
                 <Text style={styles.premiumBody}>
                   {couple?.isSubscribed
-                    ? 'Unlimited history, photos, voice notes, and full widget customization are unlocked for both of you.'
-                    : 'Unlimited history, photos, voice notes, and full widget customization. One subscription for both of you.'}
+                    ? `${proFeatureSummary().replace(/\.$/, '')} — all unlocked for both of you.`
+                    : `${proFeatureSummary()} One subscription for both of you.`}
                 </Text>
               </View>
             </View>
             {!couple?.isSubscribed && (
-              <Pressable style={styles.premiumBtn} onPress={() => router.push('/paywall')}>
-                <Text style={styles.premiumBtnText}>Upgrade — $4.99/mo</Text>
+              <Pressable
+                style={styles.premiumBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(modals)/paywall');
+                }}
+              >
+                <Text style={styles.premiumBtnText}>Upgrade to Pro</Text>
               </Pressable>
             )}
            </View>
         </Animated.View>
+
+        {/* Growth & Date Night Ideas */}
+        {couple && (
+          <DateNightSection isPro={proUser} onUnlock={goToPaywall} />
+        )}
 
         {/* Settings */}
          <Animated.View style={styles.settingsSection}>
@@ -379,19 +572,25 @@ export default function ProfileScreen() {
               icon="lock-closed-outline"
               label="Privacy Policy"
               color="#A8D8A8"
-              onPress={() => {}}
+              onPress={() => router.push('/(modals)/privacy')}
             />
             <SettingsRow
               icon="document-text-outline"
               label="Terms of Service"
               color="#A8D8A8"
-              onPress={() => {}}
+              onPress={() => router.push('/(modals)/terms')}
             />
             <SettingsRow
               icon="download-outline"
               label="Export my data"
               color="#A8D8A8"
-              onPress={() => {}}
+              onPress={handleExport}
+            />
+            <SettingsRow
+              icon="reader-outline"
+              label="License Agreement (EULA)"
+              color="#A8D8A8"
+              onPress={() => Linking.openURL(APPLE_EULA_URL)}
             />
           </View>
         </Animated.View>
@@ -403,6 +602,12 @@ export default function ProfileScreen() {
               label="Sign out"
               destructive
               onPress={handleSignOut}
+            />
+            <SettingsRow
+              icon="trash-outline"
+              label={deleting ? 'Deleting…' : 'Delete my account'}
+              destructive
+              onPress={deleting ? undefined : handleDeleteAccount}
             />
           </View>
         </Animated.View>
@@ -427,9 +632,9 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 22 },
   pageHeader: { marginBottom: 20 },
   pageTitle: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
   },
 
   // User card
@@ -437,17 +642,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1E1B3A',
-    borderRadius: 12,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 18,
     marginBottom: 12,
   },
   avatarCircle: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     backgroundColor: 'rgba(255,154,139,0.18)',
     borderWidth: 1.5,
     borderColor: 'rgba(255,154,139,0.3)',
@@ -455,35 +662,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarInitials: {
-    fontSize: 18,
-    fontFamily: 'Inter_700Bold',
+    fontSize: 22,
+    fontFamily: 'PlusJakartaSans_700Bold',
     color: '#FF9A8B',
   },
   userInfo: { flex: 1, gap: 2 },
-  userName: { fontSize: 17, fontFamily: 'Inter_600SemiBold', color: '#F8F5FF' },
-  userPronouns: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#9B89C2' },
+  userName: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
+  userPronouns: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  // Now a control rather than a label, so it carries an icon, real padding and
+  // a tap target instead of being a 2pt-tall chip nobody would think to press.
   demoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(195,177,225,0.15)',
-    borderRadius: 8,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    minHeight: 34,
     borderWidth: 1,
     borderColor: 'rgba(195,177,225,0.3)',
-    marginTop: 2,
+    marginTop: 8,
   },
-  demoBadgeText: { fontSize: 11, fontFamily: 'Inter_500Medium', color: '#C3B1E1' },
+  demoBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
   partnerBadge: { alignItems: 'flex-end', gap: 1 },
-  partnerLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
-  partnerName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#C3B1E1' },
+  partnerLabel: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  partnerName: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
 
   // Stats
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E1B3A',
-    borderRadius: 12,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 20,
     marginBottom: 8,
     alignItems: 'center',
@@ -491,15 +704,15 @@ const styles = StyleSheet.create({
   },
   statBlock: { alignItems: 'center', gap: 4, flex: 1 },
   statNumber: {
-    fontSize: 36,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 40,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 40,
   },
   statLabel: {
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     textAlign: 'center',
   },
   statDivider: {
@@ -515,9 +728,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   longestStreakText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
   },
 
   // Keepsake
@@ -526,61 +739,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1E1B3A',
-    borderRadius: 12,
+    backgroundColor: '#1A1730',
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.18)',
+    borderColor: 'rgba(255,255,255,0.08)',
     padding: 16,
   },
   keepsakeIcon: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: radius.sm,
     backgroundColor: 'rgba(255,154,139,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  keepsakeTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold', color: '#F8F5FF' },
-  keepsakeSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
+  keepsakeTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
+  keepsakeSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
 
   // Premium
   premiumCard: {
-    borderRadius: 12,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.2)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  premiumGradient: { padding: 20, gap: 16, backgroundColor: '#1E1B3A' },
+  premiumGradient: { padding: 20, gap: 16, backgroundColor: '#1A1730' },
   premiumContent: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   premiumText: { flex: 1, gap: 4 },
-  premiumTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#F8F5FF' },
+  premiumTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#F5F2FB' },
   premiumBody: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 19,
   },
   premiumBtn: {
     backgroundColor: '#FF9A8B',
-    borderRadius: 12,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     paddingVertical: 13,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,154,139,0.35)',
   },
   premiumBtnText: {
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#1A0E18',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#0A0817',
   },
 
   // Settings
   settingsSection: { marginBottom: 20, gap: 8 },
   sectionTitle: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#948BAC',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     paddingLeft: 4,
@@ -599,19 +815,20 @@ const styles = StyleSheet.create({
   },
   settingsLabel: {
     flex: 1,
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#F8F5FF',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#F5F2FB',
+    letterSpacing: 0.1,
   },
   settingsValue: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
   },
   versionText: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    color: '#4A4166',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#2E2A4C',
     textAlign: 'center',
     paddingTop: 8,
     paddingBottom: 16,
@@ -624,7 +841,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#1A1635',
+    backgroundColor: '#141127',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 22,
@@ -642,15 +859,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontSize: 22,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     marginBottom: 6,
+    letterSpacing: -0.4,
   },
   modalSubtitle: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     lineHeight: 19,
     marginBottom: 20,
   },
@@ -660,7 +878,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     marginBottom: 4,
   },
   timeOptionSelected: {
@@ -670,23 +889,24 @@ const styles = StyleSheet.create({
   },
   timeOptionText: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
   },
   timeOptionTextSelected: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#C3B1E1',
   },
   modalDismiss: {
     marginTop: 12,
     backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 12,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     paddingVertical: 14,
     alignItems: 'center',
   },
   modalDismissText: {
     fontSize: 16,
-    fontFamily: 'Inter_500Medium',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#F5F2FB',
   },
 });

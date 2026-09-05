@@ -19,10 +19,10 @@ export function getMoonColor(streak: number): string {
   if (streak === 0) return 'rgba(195,177,225,0.3)';
   if (streak < 7) return 'rgba(195,177,225,0.55)';
   if (streak < 14) return '#C3B1E1';
-  if (streak < 30) return '#FFD6A5';
+  if (streak < 30) return '#F0C07A';
   if (streak < 60) return '#A8D8A8';
   if (streak < 100) return '#FF9A8B';
-  return '#F0E8FF'; // full moon, a hundred nights and beyond
+  return '#F5F2FB'; // full moon, a hundred nights and beyond
 }
 
 function getMoonIcon(streak: number): 'moon-outline' | 'moon' {
@@ -124,17 +124,17 @@ const styles = StyleSheet.create({
   },
   count: {
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     color: '#C3B1E1',
   },
   countLarge: {
     fontSize: 40,
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Fraunces_600SemiBold',
     lineHeight: 44,
   },
   label: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
   },
 });

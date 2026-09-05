@@ -1,3 +1,4 @@
+import { radius } from '@/constants/tokens';
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
@@ -61,7 +62,7 @@ export function MilestoneBanner({ milestone }: MilestoneBannerProps) {
           <View key={i} style={[styles.dot, { opacity: 0.25 + (i / 4) * 0.75 }]} />
         ))}
       </View>
-      <Ionicons name="sparkles" size={22} color="#FFD6A5" />
+      <Ionicons name="sparkles" size={22} color="#F0C07A" />
       <Text style={styles.title}>{copy.title}</Text>
       <Text style={styles.body}>{copy.body}</Text>
     </Animated.View>
@@ -75,17 +76,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,214,165,0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255,214,165,0.25)',
-    borderRadius: 16,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     padding: 22,
     marginBottom: 20,
   },
   dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 2 },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#FFD6A5' },
-  title: { fontSize: 18, fontFamily: 'Inter_700Bold', color: '#F8F5FF', textAlign: 'center' },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#F0C07A' },
+  title: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB', textAlign: 'center',
+    letterSpacing: -0.4,
+  },
   body: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#C9BFE0',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     textAlign: 'center',
     lineHeight: 19,
     paddingHorizontal: 6,

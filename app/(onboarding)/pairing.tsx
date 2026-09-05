@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
@@ -18,6 +18,16 @@ import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
+import { toDateKey } from '@/lib/streak';
+import { radius } from '@/constants/tokens';
+import {
+  INVITE_CODE_LENGTH,
+  clearPendingInvite,
+  inviteShareMessage,
+  isWellFormedInviteCode,
+  normalizeInviteCode,
+  readPendingInvite,
+} from '@/lib/inviteLinks';
 
 type Mode = 'choose' | 'create' | 'join';
 
@@ -29,15 +39,45 @@ export default function PairingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { createCouple, joinCouple, setCouple } = useApp();
+  // Arrives from an invite link (lunara://join/<code> → app/join/[code].tsx).
+  const { code: invitedCode } = useLocalSearchParams<{ code?: string }>();
+  const prefilled = normalizeInviteCode(invitedCode);
 
-  const [mode, setMode] = useState<Mode>('choose');
+  // Someone who followed an invite link came here to join, not to choose —
+  // open straight onto the join form with their code already in it, so all
+  // that's left is the one tap they came for.
+  const [mode, setMode] = useState<Mode>(prefilled ? 'join' : 'choose');
   const [inviteCode, setInviteCode] = useState('');
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(prefilled);
   const [loading, setLoading] = useState(false);
+  /**
+   * Why a join didn't work, shown inline under the field rather than in an
+   * Alert. A modal that has to be dismissed before the code is even visible
+   * again is the wrong shape for "check this and try once more" — and this is
+   * the screen where a mistyped or expired code is the *expected* outcome, not
+   * an exceptional one.
+   */
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  /**
+   * An invite tapped before signing in. `app/join/[code].tsx` stashed the code
+   * and sent them to auth; this is the far side of that detour, so the code
+   * they tapped is waiting for them instead of an empty field.
+   */
+  useEffect(() => {
+    if (prefilled) return;
+    let cancelled = false;
+    readPendingInvite().then((pending) => {
+      if (cancelled || !pending) return;
+      setJoinCode(pending);
+      setMode('join');
+    });
+    return () => { cancelled = true; };
+  }, [prefilled]);
 
   const handleShareCode = () => {
     Share.share({
-      message: `Join me on Lunara — our private daily ritual app. Enter code ${inviteCode} or use this link: lunara://join/${inviteCode}`,
+      message: inviteShareMessage(inviteCode),
       title: 'Join me on Lunara',
     });
   };
@@ -46,15 +86,28 @@ export default function PairingScreen() {
     router.push('/(onboarding)/tutorial');
   };
 
+  /**
+   * Only the server can tell a real code from one that's expired, already used,
+   * or simply never existed — so every one of those arrives here as a failed
+   * RPC. They are all the same thing to the person holding the phone ("this
+   * code isn't working"), and none of them are their fault, so they get one
+   * warm sentence and the field they need, rather than a raw Postgres message.
+   */
   const handleJoinCouple = async () => {
-    if (joinCode.length < 6) return;
+    const code = normalizeInviteCode(joinCode);
+    if (!isWellFormedInviteCode(code)) return;
     setLoading(true);
+    setJoinError(null);
     try {
-      await joinCouple(joinCode);
+      await joinCouple(code);
+      await clearPendingInvite();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.push('/(onboarding)/tutorial');
     } catch (error) {
-      Alert.alert('Could not join this couple', error instanceof Error ? error.message : 'Please check the code and try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setJoinError(
+        'That code isn’t opening anything on our side. Codes expire once a couple is full, so it may already have been used — ask your partner to share a fresh one from their Lunara.',
+      );
     } finally {
       setLoading(false);
     }
@@ -78,7 +131,8 @@ export default function PairingScreen() {
     await setCouple({
       id: generateId(),
       partnerName: 'Luna',
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      partnerJoined: true,
+      startDate: toDateKey(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
       currentStreak: 7,
       longestStreak: 7,
       inviteCode: 'DEMO01',
@@ -94,7 +148,7 @@ export default function PairingScreen() {
 
   if (mode === 'create') {
     return (
-      <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+      <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
         <StarField />
         <ScrollView
           contentContainerStyle={[
@@ -104,7 +158,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#9B89C2" />
+            <Ionicons name="arrow-back" size={22} color="#C0B8D4" />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -124,7 +178,7 @@ export default function PairingScreen() {
           </Animated.View>
 
            <Animated.View style={styles.waitingNote}>
-            <Ionicons name="time-outline" size={16} color="#9B89C2" />
+            <Ionicons name="time-outline" size={16} color="#C0B8D4" />
             <Text style={styles.waitingText}>
               You can keep using Lunara while you wait for your partner to join
             </Text>
@@ -142,7 +196,7 @@ export default function PairingScreen() {
 
   if (mode === 'join') {
     return (
-      <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+      <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
         <StarField />
         <ScrollView
           contentContainerStyle={[
@@ -153,7 +207,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#9B89C2" />
+            <Ionicons name="arrow-back" size={22} color="#C0B8D4" />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -165,16 +219,26 @@ export default function PairingScreen() {
 
            <Animated.View style={styles.joinInput}>
             <TextInput
-              style={styles.codeInput}
+              style={[styles.codeInput, joinError ? styles.codeInputError : null]}
               value={joinCode}
-              onChangeText={(t) => setJoinCode(t.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              onChangeText={(t) => {
+                setJoinCode(normalizeInviteCode(t));
+                // The moment they start fixing it, stop telling them it's wrong.
+                if (joinError) setJoinError(null);
+              }}
               placeholder="XXXXXX"
               placeholderTextColor="rgba(255,255,255,0.2)"
               autoCapitalize="characters"
               autoCorrect={false}
-              maxLength={6}
+              maxLength={INVITE_CODE_LENGTH}
               autoFocus
             />
+            {joinError && (
+              <View style={styles.joinErrorRow}>
+                <Ionicons name="moon-outline" size={15} color="#F0C07A" />
+                <Text style={styles.joinErrorText}>{joinError}</Text>
+              </View>
+            )}
           </Animated.View>
 
            <Animated.View>
@@ -182,7 +246,7 @@ export default function PairingScreen() {
               title="Join couple"
               onPress={handleJoinCouple}
               loading={loading}
-              disabled={joinCode.length < 6}
+              disabled={!isWellFormedInviteCode(joinCode)}
             />
           </Animated.View>
         </ScrollView>
@@ -193,7 +257,7 @@ export default function PairingScreen() {
   // ─── Choose mode ───────────────────────────────────────────────────────────
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -219,7 +283,7 @@ export default function PairingScreen() {
               <Text style={styles.bigOptionTitle}>Start a new couple</Text>
               <Text style={styles.bigOptionSub}>Generate an invite code to share</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#7A6D98" />
+            <Ionicons name="chevron-forward" size={20} color="#948BAC" />
           </Pressable>
 
           <Pressable style={styles.bigOption} onPress={() => setMode('join')}>
@@ -230,7 +294,7 @@ export default function PairingScreen() {
               <Text style={styles.bigOptionTitle}>Join an existing couple</Text>
               <Text style={styles.bigOptionSub}>Enter the code from your partner</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#7A6D98" />
+            <Ionicons name="chevron-forward" size={20} color="#948BAC" />
           </Pressable>
         </Animated.View>
 
@@ -260,22 +324,22 @@ const styles = StyleSheet.create({
   backBtn: { alignSelf: 'flex-start', padding: 4, marginBottom: 8 },
   header: { gap: 8 },
   eyebrow: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 38,
   },
   subtitle: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 22,
   },
   options: { gap: 14 },
@@ -283,8 +347,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-     backgroundColor: '#1E1B3A',
-     borderRadius: 12,
+     backgroundColor: '#1A1730',
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     padding: 20,
@@ -294,17 +359,18 @@ const styles = StyleSheet.create({
   bigOptionText: { flex: 1, gap: 2 },
   bigOptionTitle: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F5F2FB',
   },
   bigOptionSub: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
   },
   codeCard: {
     backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(195,177,225,0.2)',
     padding: 28,
@@ -312,16 +378,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   codeLabel: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#C0B8D4',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   code: {
-    fontSize: 44,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 40,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     letterSpacing: 8,
   },
   shareButton: {
@@ -329,58 +395,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     backgroundColor: 'rgba(255,154,139,0.12)',
-    borderRadius: 20,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,154,139,0.25)',
   },
   shareText: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
   },
   waitingNote: {
     flexDirection: 'row',
     gap: 8,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     padding: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
   waitingText: {
     flex: 1,
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 19,
   },
-  joinInput: { alignItems: 'center' },
+  joinInput: { alignItems: 'center', gap: 14 },
   codeInput: {
-    fontSize: 38,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 40,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     letterSpacing: 10,
     textAlign: 'center',
-     backgroundColor: '#1E1B3A',
-     borderRadius: 8,
+     backgroundColor: '#1A1730',
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(195,177,225,0.3)',
     paddingVertical: 18,
     paddingHorizontal: 24,
     width: '100%',
   },
+  codeInputError: { borderColor: 'rgba(255,214,165,0.45)' },
+  joinErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+    backgroundColor: 'rgba(255,214,165,0.08)',
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(255,214,165,0.22)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  joinErrorText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#F0C07A',
+    lineHeight: 19,
+  },
   demoRow: { gap: 12, alignItems: 'center' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' },
   divLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.07)' },
-  divText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: '#7A6D98' },
+  divText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
   demoBtn: { paddingVertical: 8 },
-  demoBtnText: { fontSize: 16, fontFamily: 'Inter_500Medium', color: '#C3B1E1' },
+  demoBtnText: { fontSize: 16, fontFamily: 'PlusJakartaSans_500Medium', color: '#C3B1E1' },
   demoNote: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     textAlign: 'center',
     lineHeight: 17,
   },

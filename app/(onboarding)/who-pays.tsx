@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
+import { radius } from '@/constants/tokens';
 
 const OPTIONS = [
   {
@@ -49,7 +50,7 @@ export default function WhoPayScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -61,12 +62,9 @@ export default function WhoPayScreen() {
          <Animated.View style={styles.header}>
           <Text style={styles.eyebrow}>Subscription</Text>
           <Text style={styles.title}>One of you pays.{'\n'}Both of you get everything.</Text>
-          <View style={styles.pricePill}>
-            <Text style={styles.priceText}>$4.99 / month  ·  $29.99 / year</Text>
-          </View>
           <Text style={styles.subtitle}>
-            Lunara Premium unlocks unlimited history, voice notes, photos, custom prompts,
-            and full widget customization — for both of you, with a single subscription.
+            Lunara Premium unlocks your whole archive, voice notes, your full weekly recap, and
+            the complete date-night playbook — for both of you, with a single subscription.
           </Text>
         </Animated.View>
 
@@ -84,7 +82,7 @@ export default function WhoPayScreen() {
                 <Ionicons
                   name={opt.icon}
                   size={20}
-                  color={selected === opt.key ? '#FF9A8B' : '#9B89C2'}
+                  color={selected === opt.key ? '#FF9A8B' : '#C0B8D4'}
                 />
               </View>
               <View style={styles.optionText}>
@@ -117,36 +115,22 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 26 },
   header: { marginBottom: 28, gap: 10 },
   eyebrow: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 38,
-  },
-  pricePill: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,154,139,0.12)',
-     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.25)',
-  },
-  priceText: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-    color: '#FF9A8B',
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 21,
   },
   options: { gap: 12, marginBottom: 32 },
@@ -154,11 +138,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-     borderRadius: 12,
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     padding: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
-     backgroundColor: '#1E1B3A',
+     backgroundColor: '#1A1730',
   },
   optionSelected: {
     borderColor: 'rgba(255,154,139,0.45)',
@@ -169,14 +154,14 @@ const styles = StyleSheet.create({
   optionText: { flex: 1, gap: 2 },
   optionLabel: {
     fontSize: 16,
-    fontFamily: 'Inter_500Medium',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#C0B8D4',
   },
-  optionLabelSelected: { color: '#F8F5FF' },
+  optionLabelSelected: { color: '#F5F2FB' },
   optionSub: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
   },
   footer: {},
 });

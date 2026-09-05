@@ -80,10 +80,15 @@ export type Database = {
           date: string
           grateful: string
           grow: string
+          grow_followup: string | null
+          grow_followup_at: string | null
           reaction: string | null
           submitted: boolean
           updated_at: string
           user_id: string
+          voice_cute: string | null
+          voice_grateful: string | null
+          voice_grow: string | null
         }
         Insert: {
           couple_id: string
@@ -91,10 +96,15 @@ export type Database = {
           date: string
           grateful?: string
           grow?: string
+          grow_followup?: string | null
+          grow_followup_at?: string | null
           reaction?: string | null
           submitted?: boolean
           updated_at?: string
           user_id: string
+          voice_cute?: string | null
+          voice_grateful?: string | null
+          voice_grow?: string | null
         }
         Update: {
           couple_id?: string
@@ -102,10 +112,15 @@ export type Database = {
           date?: string
           grateful?: string
           grow?: string
+          grow_followup?: string | null
+          grow_followup_at?: string | null
           reaction?: string | null
           submitted?: boolean
           updated_at?: string
           user_id?: string
+          voice_cute?: string | null
+          voice_grateful?: string | null
+          voice_grow?: string | null
         }
         Relationships: [
           {
@@ -204,9 +219,15 @@ export type Database = {
           member_count: number
           start_date: string
         }
+        SetofOptions: {
+          from: "*"
+          to: "couples"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_my_couple: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           current_streak: number
           id: string
@@ -227,6 +248,12 @@ export type Database = {
           longest_streak: number
           member_count: number
           start_date: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "couples"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
     }

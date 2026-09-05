@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "cosmic": {
+      "source": "bergside/awesome-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cosmic/SKILL.md",
+      "computedHash": "a79f27632577cd78ca473508126b22c1cc771c70f97767dc0aecac1c7b803722"
+    },
+    "design-taste-frontend": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill/SKILL.md",
+      "computedHash": "6d838b246d0e35d0b53f4f23f98ba7a1dd561937e64f7d0c7553b0928e376c3e"
+    },
+    "taste": {
+      "source": "senlindesign/taste-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "609c397d5834ad0aeb146bc27b3d3600536eb8dc6e92ede0bb5707de3a1d2600"
+    }
+  }
+}

@@ -17,6 +17,7 @@ import Animated from 'react-native-reanimated';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
+import { radius } from '@/constants/tokens';
 
 const PRONOUNS = ['he/him', 'she/her', 'they/them', 'he/they', 'she/they', 'prefer not to say'];
 
@@ -50,7 +51,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -149,48 +150,49 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 26, gap: 28 },
   header: { gap: 8 },
   eyebrow: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 38,
   },
   subtitle: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 22,
   },
   form: { gap: 20 },
   field: { gap: 6 },
   label: {
     fontSize: 14,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#C3B1E1',
   },
   fieldNote: {
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
     lineHeight: 16,
     marginBottom: 2,
   },
   input: {
-     backgroundColor: '#1E1B3A',
-     borderRadius: 8,
+     backgroundColor: '#1A1730',
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    color: '#F8F5FF',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#F5F2FB',
   },
   inputFilled: {
     borderColor: 'rgba(255,154,139,0.35)',
@@ -202,7 +204,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pronounPill: {
-     borderRadius: 8,
+     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     paddingVertical: 7,
@@ -214,12 +216,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(195,177,225,0.12)',
   },
   pronounText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
   },
   pronounTextActive: {
     color: '#C3B1E1',
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'PlusJakartaSans_500Medium',
   },
 });

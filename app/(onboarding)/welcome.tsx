@@ -13,6 +13,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { radius } from '@/constants/tokens';
 
 const { width } = Dimensions.get('window');
 
@@ -81,7 +82,7 @@ export default function WelcomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#0F0C29', '#1A1635', '#302B63', '#1A1635', '#0F0C29']}
+      colors={['#0A0817', '#141127', '#221D40', '#141127', '#0A0817']}
       locations={[0, 0.25, 0.5, 0.75, 1]}
       style={styles.container}
     >
@@ -111,7 +112,7 @@ export default function WelcomeScreen() {
         <Animated.View style={[styles.actions, actionsStyle]}>
           <LunaraButton
             title="Get Started"
-            onPress={() => router.push('/(onboarding)/intro')}
+            onPress={() => router.push('/(onboarding)/goals' as never)}
           />
           <Pressable
             onPress={() => router.push('/(onboarding)/auth')}
@@ -157,7 +158,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 110,
     height: 110,
-    borderRadius: 55,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     borderWidth: 1,
     borderColor: 'rgba(195,177,225,0.2)',
   },
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: '#F0EBFF',
-    shadowColor: '#F8F5FF',
+    shadowColor: '#F5F2FB',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.85,
     shadowRadius: 24,
@@ -174,16 +176,16 @@ const styles = StyleSheet.create({
   },
   titleSection: { alignItems: 'center', gap: 10 },
   wordmark: {
-    fontSize: 54,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 52,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     letterSpacing: 3,
     textAlign: 'center',
   },
   tagline: {
-    fontSize: 17,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontSize: 16,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     textAlign: 'center',
     letterSpacing: 0.3,
   },
@@ -197,13 +199,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   signInText: {
-    fontSize: 15,
-    fontFamily: 'Inter_400Regular',
-    color: '#7A6D98',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#948BAC',
   },
   signInAction: {
-    fontSize: 15,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#C3B1E1',
   },
 });

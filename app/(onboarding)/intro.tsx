@@ -7,6 +7,7 @@ import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { radius } from '@/constants/tokens';
 
 const CARDS = [
   {
@@ -37,7 +38,7 @@ export default function IntroScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient colors={['#0F0C29', '#1A1635', '#24243E']} style={styles.container}>
+    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -76,7 +77,7 @@ export default function IntroScreen() {
               <View
                 style={[
                   styles.card,
-                   { borderColor: card.color + '40', backgroundColor: '#1E1B3A' },
+                   { borderColor: card.color + '40', backgroundColor: '#1A1730' },
                 ]}
               >
                  <View>
@@ -106,7 +107,8 @@ const styles = StyleSheet.create({
   heroImageFrame: {
     width: '100%',
     height: 220,
-    borderRadius: 12,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     marginBottom: 24,
   },
@@ -122,22 +124,22 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
   },
   eyebrow: {
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 34,
-    fontFamily: 'Inter_700Bold',
-    color: '#F8F5FF',
+    fontSize: 28,
+    fontFamily: 'Fraunces_600SemiBold',
+    color: '#F5F2FB',
     lineHeight: 40,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    color: '#9B89C2',
+    fontFamily: 'PlusJakartaSans_400Regular',
+    color: '#C0B8D4',
     lineHeight: 24,
   },
   durationBadge: {
@@ -146,7 +148,8 @@ const styles = StyleSheet.create({
     gap: 5,
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,154,139,0.1)',
-    borderRadius: 20,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
@@ -154,12 +157,13 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 12,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'PlusJakartaSans_500Medium',
     color: '#FF9A8B',
   },
   cards: { gap: 12, marginBottom: 32 },
   card: {
-     borderRadius: 12,
+     borderRadius: radius.lg,
+     borderCurve: 'continuous',
     borderWidth: 1,
     padding: 18,
     flexDirection: 'row',
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   cardBody: { flex: 1, gap: 4 },
-  cardTitle: { fontSize: 17, fontFamily: 'Inter_600SemiBold' },
-  cardDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', color: '#9B89C2', lineHeight: 20 },
+  cardTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' },
+  cardDesc: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4', lineHeight: 20 },
   footer: {},
 });

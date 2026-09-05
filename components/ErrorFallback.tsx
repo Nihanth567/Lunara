@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
+import { radius } from '@/constants/tokens';
 import { Feather } from '@expo/vector-icons';
 import { reloadAppAsync } from 'expo';
 
@@ -199,7 +200,8 @@ const styles = StyleSheet.create({
     right: 16,
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
   },
   closeButton: {
@@ -262,7 +264,8 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     width: '100%',
-    borderRadius: 8,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     padding: 16,
   },
