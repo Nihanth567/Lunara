@@ -16,13 +16,13 @@ interface Props {
  * near-white full moon once a hundred nights have gathered.
  */
 export function getMoonColor(streak: number): string {
-  if (streak === 0) return 'rgba(195,177,225,0.3)';
-  if (streak < 7) return 'rgba(195,177,225,0.55)';
-  if (streak < 14) return '#C3B1E1';
-  if (streak < 30) return '#F0C07A';
-  if (streak < 60) return '#A8D8A8';
-  if (streak < 100) return '#FF9A8B';
-  return '#F5F2FB'; // full moon, a hundred nights and beyond
+  if (streak === 0) return 'rgba(248, 241, 246,0.3)';
+  if (streak < 7) return 'rgba(248, 241, 246,0.55)';
+  if (streak < 14) return '#CBB9C9';
+  if (streak < 30) return '#E8B98A';
+  if (streak < 60) return '#9BC9A8';
+  if (streak < 100) return '#E8A0B4';
+  return '#F8F1F6'; // full moon, a hundred nights and beyond
 }
 
 function getMoonIcon(streak: number): 'moon-outline' | 'moon' {
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   count: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
   },
   countLarge: {
     fontSize: 40,
@@ -135,6 +135,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
 });

@@ -47,7 +47,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
       {answer === null ? (
         <>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={15} color="#A8D8A8" />
+            <Ionicons name="leaf-outline" size={15} color="#9BC9A8" />
             <Text style={styles.eyebrow}>Yesterday’s Grow note</Text>
           </View>
           <Text style={styles.question}>{GROW_CHECK_BACK_QUESTION}</Text>
@@ -67,7 +67,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
         </>
       ) : (
         <View style={styles.resultRow}>
-          <Ionicons name="leaf" size={16} color="#A8D8A8" />
+          <Ionicons name="leaf" size={16} color="#9BC9A8" />
           <Text style={styles.resultText}>{growFollowUpAcknowledgement(answer)}</Text>
         </View>
       )}
@@ -77,11 +77,11 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(168,216,168,0.18)',
+    borderColor: 'rgba(155, 201, 168,0.18)',
     padding: 18,
     gap: 9,
     marginBottom: 16,
@@ -90,20 +90,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#948BAC',
+    color: '#A492A6',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   question: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 21,
   },
   quote: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
     fontStyle: 'italic',
   },
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
   },
   pillText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
 });

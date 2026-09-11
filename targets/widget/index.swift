@@ -4,12 +4,15 @@ import SwiftUI
 // Mirrors APP_GROUP in expo-target.config.js — keep in sync.
 private let appGroup = "group.com.lunara.app.widget"
 
-private let backgroundTop = Color(red: 0.06, green: 0.05, blue: 0.16)
-private let backgroundBottom = Color(red: 0.16, green: 0.09, blue: 0.30)
-private let lavender = Color(red: 0.76, green: 0.69, blue: 0.88)
-private let mutedLavender = Color(red: 0.48, green: 0.43, blue: 0.60)
-private let softGreen = Color(red: 0.66, green: 0.85, blue: 0.66)
-private let amber = Color(red: 1.00, green: 0.84, blue: 0.65)
+// Mirrors constants/colors.ts — keep in sync. The widget sits on the home
+// screen next to the app icon, so a palette that has drifted from the app's is
+// visible in a way an in-app inconsistency never is.
+private let backgroundTop = Color(red: 0.082, green: 0.059, blue: 0.098)     // ink[0] #150F19
+private let backgroundBottom = Color(red: 0.133, green: 0.094, blue: 0.188)  // #221830
+private let textPrimary = Color(red: 0.973, green: 0.945, blue: 0.965)       // content[0] #F8F1F6
+private let textMuted = Color(red: 0.643, green: 0.573, blue: 0.651)         // content[2] #A492A6
+private let mint = Color(red: 0.608, green: 0.788, blue: 0.659)              // accent.mint #9BC9A8
+private let peach = Color(red: 0.910, green: 0.725, blue: 0.541)             // accent.peach #E8B98A
 
 /// Mirrors `WidgetStatus` in lib/widget.ts.
 enum LunaraStatus: String {
@@ -97,11 +100,11 @@ struct CompanionMark: View {
 
     private var tint: Color {
         switch mood {
-        case .glowing:              return softGreen
-        case .ready:                return amber
-        case .waiting, .streaklit:  return lavender
-        case .nesting, .resting:    return mutedLavender
-        case .sleeping:             return mutedLavender
+        case .glowing:              return mint
+        case .ready:                return peach
+        case .waiting, .streaklit:  return textPrimary
+        case .nesting, .resting:    return textMuted
+        case .sleeping:             return textMuted
         }
     }
 
@@ -168,7 +171,7 @@ struct CompanionMark: View {
 
             if mood == .waiting {
                 Circle()
-                    .fill(amber)
+                    .fill(peach)
                     .frame(width: size * 0.15, height: size * 0.15)
                     .offset(x: size * 0.38, y: -size * 0.3)
             }
@@ -249,11 +252,11 @@ struct LunaraStreakWidgetView: View {
 
     private var statusColor: Color {
         switch entry.status {
-        case .ready:    return amber
-        case .complete: return softGreen
-        case .waiting:  return lavender
-        case .open:     return entry.atRisk ? amber : mutedLavender
-        case .unpaired: return mutedLavender
+        case .ready:    return peach
+        case .complete: return mint
+        case .waiting:  return textPrimary
+        case .open:     return entry.atRisk ? peach : textMuted
+        case .unpaired: return textMuted
         }
     }
 
@@ -270,10 +273,10 @@ struct LunaraStreakWidgetView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "moon.stars")
                         .font(.system(size: 20))
-                        .foregroundStyle(lavender)
+                        .foregroundStyle(textPrimary)
                     Text("Open Lunara to connect with your partner")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(mutedLavender)
+                        .foregroundStyle(textMuted)
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
                 }
@@ -283,11 +286,11 @@ struct LunaraStreakWidgetView: View {
                     HStack(spacing: 6) {
                         Image(systemName: moonSymbol)
                             .font(.system(size: 15))
-                            .foregroundStyle(entry.status == .ready ? amber : lavender)
+                            .foregroundStyle(entry.status == .ready ? peach : textPrimary)
                         Text("LUNARA")
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(1.4)
-                            .foregroundStyle(lavender)
+                            .foregroundStyle(textPrimary)
                         Spacer(minLength: 4)
                         CompanionMark(mood: entry.companion, size: 20)
                     }
@@ -303,7 +306,7 @@ struct LunaraStreakWidgetView: View {
 
                         Text(streakCaption)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(mutedLavender)
+                            .foregroundStyle(textMuted)
                     } else {
                         Text("Tonight")
                             .font(.system(size: 26, weight: .semibold, design: .rounded))
@@ -311,7 +314,7 @@ struct LunaraStreakWidgetView: View {
 
                         Text("where it starts")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(mutedLavender)
+                            .foregroundStyle(textMuted)
                     }
 
                     Spacer(minLength: 4)

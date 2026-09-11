@@ -111,7 +111,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    SystemUI.setBackgroundColorAsync('#0A0817');
+    SystemUI.setBackgroundColorAsync('#150F19');
   }, []);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0A0817' }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#150F19' }}>
             <KeyboardProvider>
               <AppProvider>
                 <RootLayoutNav />

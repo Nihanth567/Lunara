@@ -48,11 +48,11 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
     <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="leaf-outline" size={16} color="#A8D8A8" />
+          <Ionicons name="leaf-outline" size={16} color="#9BC9A8" />
           <Text style={styles.title}>A gentle way forward</Text>
         </View>
         <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.dismissBtn}>
-          <Ionicons name="close" size={16} color="#948BAC" />
+          <Ionicons name="close" size={16} color="#A492A6" />
         </Pressable>
       </View>
       <Text style={styles.intro}>A few small, no-pressure ideas — take what’s useful, leave the rest.</Text>
@@ -70,11 +70,11 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(168,216,168,0.18)',
+    borderColor: 'rgba(155, 201, 168,0.18)',
     padding: 18,
     gap: 12,
     marginBottom: 24,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#A8D8A8',
+    color: '#9BC9A8',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   intro: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     lineHeight: 18,
   },
   list: { gap: 10 },
@@ -105,14 +105,14 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#A8D8A8',
+    backgroundColor: '#9BC9A8',
     marginTop: 7,
   },
   rowText: {
     flex: 1,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 20,
   },
 });

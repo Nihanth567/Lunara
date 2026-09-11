@@ -136,7 +136,7 @@ export function LunaraButton({
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={isPrimary ? '#0A0817' : '#FF9A8B'} size="small" />
+          <ActivityIndicator color={isPrimary ? '#150F19' : '#E8A0B4'} size="small" />
         ) : (
           <Text
             maxFontSizeMultiplier={maxFontScale}
@@ -164,22 +164,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: space.xl,
   },
-  primary: { backgroundColor: '#FF9A8B' },
+  primary: { backgroundColor: '#E8A0B4' },
   secondary: {
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.55)',
+    borderColor: 'rgba(232, 160, 180,0.55)',
     // A faint wash rather than fully transparent, so the outline reads as a
     // control and not as a stray rule across the page.
-    backgroundColor: 'rgba(255,154,139,0.08)',
+    backgroundColor: 'rgba(232, 160, 180,0.08)',
   },
   label: type.label,
-  primaryLabel: { color: '#0A0817' },
-  secondaryLabel: { color: '#FF9A8B' },
+  primaryLabel: { color: '#150F19' },
+  secondaryLabel: { color: '#E8A0B4' },
 
   // Disabled primary keeps the coral identity at low emphasis. The old pairing
-  // put #C0B8D4 text on a 16%-coral fill, which measured under 3:1.
-  primaryDisabled: { backgroundColor: 'rgba(255,154,139,0.20)' },
-  primaryDisabledLabel: { color: 'rgba(248,245,255,0.55)' },
+  // put #CBB9C9 text on a 16%-coral fill, which measured under 3:1.
+  primaryDisabled: { backgroundColor: 'rgba(232, 160, 180,0.20)' },
+  primaryDisabledLabel: { color: 'rgba(248, 241, 246,0.55)' },
 
   ghost: {
     minHeight: touchTarget,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   ghostText: {
     ...type.label,
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
   },
   dimmed: { opacity: 0.4 },

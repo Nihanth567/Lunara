@@ -18,21 +18,21 @@ import * as Haptics from 'expo-haptics';
 function NativeTabLayout() {
   return (
     <NativeTabs
-      // Coral is the app's action colour everywhere else; the tab bar was the
+      // Rose is the app's action colour everywhere else; the tab bar was the
       // only surface still selecting in blue.
-      tintColor="#FF9A8B"
-      iconColor={{ default: 'rgba(248,245,255,0.45)', selected: '#FF9A8B' }}
-      indicatorColor="rgba(255,154,139,0.14)"
+      tintColor="#E8A0B4"
+      iconColor={{ default: 'rgba(248, 241, 246,0.45)', selected: '#E8A0B4' }}
+      indicatorColor="rgba(232, 160, 180,0.14)"
       labelStyle={{
         default: {
           fontFamily: 'PlusJakartaSans_500Medium',
           fontSize: 11,
-          color: 'rgba(248,245,255,0.45)',
+          color: 'rgba(248, 241, 246,0.45)',
         },
         selected: {
           fontFamily: 'PlusJakartaSans_600SemiBold',
           fontSize: 11,
-          color: '#FF9A8B',
+          color: '#E8A0B4',
         },
       }}
       // Lets the ritual breathe: the bar tucks away as you read down a screen
@@ -42,6 +42,10 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="index">
         <Icon sf={{ default: 'moon.stars', selected: 'moon.stars.fill' }} />
         <Label>Tonight</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="list">
+        <Icon sf={{ default: 'checklist', selected: 'checklist.checked' }} />
+        <Label>List</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="history">
         <Icon sf={{ default: 'heart.text.square', selected: 'heart.text.square.fill' }} />
@@ -68,13 +72,13 @@ function ClassicTabLayout() {
       }}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF9A8B',
-        tabBarInactiveTintColor: 'rgba(248,245,255,0.45)',
+        tabBarActiveTintColor: '#E8A0B4',
+        tabBarInactiveTintColor: 'rgba(248, 241, 246,0.45)',
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : 'rgba(15,12,41,0.97)',
+          backgroundColor: isIOS ? 'transparent' : 'rgba(21, 15, 25,0.97)',
           borderTopWidth: 1,
-          borderTopColor: 'rgba(255,255,255,0.08)',
+          borderTopColor: 'rgba(248, 241, 246,0.08)',
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
@@ -89,7 +93,7 @@ function ClassicTabLayout() {
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: 'rgba(15,12,41,0.97)' },
+                { backgroundColor: 'rgba(21, 15, 25,0.97)' },
               ]}
             />
           ) : null,
@@ -115,6 +119,22 @@ function ClassicTabLayout() {
               />
             ) : (
               <Feather name="moon" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="list"
+        options={{
+          title: 'List',
+          tabBarIcon: ({ color, focused }) =>
+            isIOS ? (
+              <SymbolView
+                name={focused ? 'checklist.checked' : 'checklist'}
+                tintColor={color}
+                size={24}
+              />
+            ) : (
+              <Feather name="check-square" size={22} color={color} />
             ),
         }}
       />

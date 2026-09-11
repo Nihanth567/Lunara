@@ -17,7 +17,7 @@ export function GrowthTipCard({ tip }: Props) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="bulb-outline" size={16} color="#F0C07A" />
+        <Ionicons name="bulb-outline" size={16} color="#E8B98A" />
         <Text style={styles.title}>Growth Tip</Text>
         <View style={styles.topicPill}>
           <Text style={styles.topicText}>{tip.topic}</Text>
@@ -30,11 +30,11 @@ export function GrowthTipCard({ tip }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 18,
     gap: 10,
     marginBottom: 16,
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F0C07A',
+    color: '#E8B98A',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     flex: 1,
@@ -53,19 +53,19 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
   },
   topicText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     letterSpacing: 0.3,
   },
   body: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 21,
   },
 });

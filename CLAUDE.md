@@ -4,15 +4,24 @@ Guidance for working in this repo. See `README.md` for backend/deploy setup deta
 
 ## What Lunara is
 
-A private nightly ritual app for couples. Each partner privately answers three
+A couples app with two halves that deliberately behave in opposite ways.
+
+**The ritual (private until mutual).** Each partner privately answers three
 prompts — **Grateful**, **Cute**, **Grow** — and once *both* have submitted for
-that date, they reveal together. Dark-mode-only, deep-indigo "cosmic" aesthetic.
+that date, they reveal together.
+
+**The shared list (visible immediately).** One list both partners read and write
+in real time. Each person has their own colour; an item can be finished by
+either of them, or marked `needs_both` so it only completes when both tick it.
+
+The contrast is the point: the list is where the app is practical, so the ritual
+never has to be. Dark-mode-only, warm plum "candlelight" aesthetic.
 
 ## Stack
 
 - Expo SDK 54 · Expo Router (file-based) · React Native 0.81 · React 19 · new architecture
 - React Compiler is **on** (`experiments.reactCompiler`, `babel-plugin-react-compiler`) — don't hand-add `useMemo`/`useCallback` purely for referential stability; do keep them where a dependency contract matters.
-- Supabase — Auth (Apple / Google / Phone OTP), Postgres + RLS, Realtime, Edge Functions, Storage
+- Supabase — Auth (**Apple / Google only** — phone OTP and email/password were removed), Postgres + RLS, Realtime, Edge Functions, Storage
 - RevenueCat (`react-native-purchases`) for subscriptions
 - `react-native-reanimated` v4 for animation; `expo-haptics` for feedback
 - iOS home-screen widget via `@bacons/apple-targets` (`targets/widget/`)
@@ -25,7 +34,15 @@ npm run typecheck         # tsc --noEmit — run this before finishing any chang
 npm run test:streak       # node --test lib/streak.test.ts — the streak rules
 npm run ios / android / web
 npx expo prebuild -p ios --clean   # regenerate native projects (needed for widget work)
+cd ios && pod install              # also regenerates ios/build/generated (RN codegen)
 ```
+
+**Do not delete `ios/build/`.** Despite the name it is not only derived data:
+`ios/build/generated/` holds React Native **codegen output** (`ComponentDescriptors.cpp`
+and friends) that the `ReactCodegen` Pods target consumes as a build *input*.
+Removing it fails the build with "Build input file cannot be found". It is
+untracked by git, so "no tracked files" is not a safe check. Recover with
+`cd ios && pod install`, which re-runs codegen.
 
 There is no ESLint script wired up, and no test framework — `lib/streak.test.ts`
 runs on Node's built-in `node --test` and is the only test file. `npm run
@@ -38,9 +55,10 @@ expected**; ignore them and only care about errors in app code.
 ```
 app/                 Expo Router routes
   index.tsx          entry gate → redirects to onboarding or (app)
-  (onboarding)/      auth, profile setup, pairing, tutorial, paywall preview
-  (app)/             the 3 native tabs:
+  (onboarding)/      intro, auth, profile setup, pairing, tutorial, paywall preview
+  (app)/             the 4 native tabs:
     index.tsx          "Tonight"  — the nightly ritual
+    list.tsx           "List"     — the shared list
     history.tsx        "Moments"  — past revealed entries
     profile.tsx        "Us"       — stats, settings, growth/date-night, recap
   (modals)/          paywall, privacy, terms  (presentation: modal)
@@ -51,7 +69,8 @@ components/          shared UI (cards, StarField, LunaraButton, GlassCard, …)
 context/AppContext.tsx   the single source of truth for auth/couple/entries/keepsakes
 hooks/               useColors, useGrowth, useGrowCheckBack
 lib/                 supabase client, entitlements, purchases, widget, growth data,
-                     voiceNotes (Storage upload/signed URLs), moments helpers
+                     voiceNotes (Storage upload/signed URLs), moments helpers,
+                     list.ts (shared-list rules — completion, ordering)
 constants/           colors.ts (design tokens), keepsakeQuestions.ts
 services/            notifications.ts (local + push scheduling)
 supabase/functions/  Deno edge functions (send-nudge, grow-guidance, webhooks)
@@ -71,9 +90,20 @@ targets/widget/      SwiftUI WidgetKit extension
   Server-paired couples get `current_streak`/`longest_streak` from the RPC;
   demo couples compute locally.
 - **Reveal gating is enforced in RLS**, not just UI — a partner's answers are
-  literally not returned until both have submitted for that date.
+  literally not returned until both have submitted for that date. The shared
+  list is the deliberate exception: both members read and write the same rows
+  with no gate at all.
+- **List completion is derived, never stored.** There is no `done` column.
+  `list_item_checks` holds one row per (item, person); `isDone()` in `lib/list.ts`
+  resolves it — any check completes a solo item, every member's check completes
+  a `needs_both` one. Ticking is an insert/delete of *your own* check row, so
+  two simultaneous taps touch disjoint rows and can't clobber each other. Same
+  principle as streaks.
 - **Realtime**: `AppContext` subscribes to `entries`/`couples`/`couple_members`/
-  `keepsakes` for the paired couple and calls `refreshSharedState()` on change.
+  `keepsakes`/`list_items`/`list_item_checks` for the paired couple and calls
+  the narrowest matching refresh on change. `list_item_checks` has no
+  `couple_id` to filter on, so its subscription is unfiltered and the refresh
+  (plus RLS) is what scopes it.
 - **Entitlements**: `isPro(couple)` (`lib/entitlements.ts`) is the single gate.
   One subscription unlocks Premium for both partners. Route locked features to
   `/(modals)/paywall`.
@@ -85,20 +115,27 @@ targets/widget/      SwiftUI WidgetKit extension
 
 - **Imports**: use the `@/` alias (maps to repo root), never long relative paths.
 - **Styling**: `StyleSheet.create` at the bottom of each file. Dark theme only.
-  Cards: `backgroundColor: '#1A1730'` (`ink[2]`), `borderRadius: radius.lg`
+  Cards: `backgroundColor: '#251B2B'` (`ink[2]`), `borderRadius: radius.lg`
   plus `borderCurve: 'continuous'` — iOS squircles, never circular corners.
-  **Neutrals come from the ink ramp, not from taste**: `#0A0817` page ·
-  `#121024` sunk · `#1A1730` surface · `#23203D` raised · `#2E2A4C` line.
-  One hue family (246–248°) with chroma tapering as it lightens; do not
-  introduce a sixth near-black.
-  Text is three separated tiers — `#F5F2FB` / `#C0B8D4` / `#948BAC`
-  (15.7:1, 9.1:1, 5.4:1 on surface). Never reintroduce `#7A6D98`: it failed
-  WCAG AA on every surface in the app.
-  Accents have *rank*: coral `#FF9A8B` is the only colour that means "act on
-  this"; lavender `#C3B1E1` is brand/ambience; sage `#A8D8A8` and amber
-  `#F0C07A` are strictly semantic, never decorative.
+  **Neutrals come from the ink ramp, not from taste**: `#150F19` page ·
+  `#1C1421` sunk · `#251B2B` surface · `#312338` raised · `#42304A` line.
+  One hue family (~290°, plum) with chroma tapering as it lightens; do not
+  introduce a sixth near-black. The ground reads as candlelight, not as a
+  purple gradient wash — keep the chroma low.
+  Text is three separated tiers — `#F8F1F6` / `#CBB9C9` / `#A492A6`
+  (14.9:1, 8.9:1, 5.7:1 on surface). Every tier clears WCAG AA on every
+  surface; verify a new value rather than eyeballing it.
+  Accents have *rank*: rose `#E8A0B4` is the only colour that means "act on
+  this"; lilac `#B9A5E3` is brand/ambience; mint `#9BC9A8` and peach `#E8B98A`
+  are strictly semantic, never decorative. `roseDeep` `#C4718A` is a fill and
+  border colour only — it is below AA and must never carry small text.
+  The two people have fixed colours — `partnerA` `#E8A0B4` (you) and
+  `partnerB` `#8FC5DE` (them) — which differ in lightness as well as hue, so
+  authorship is never conveyed by hue alone.
   The app background is `gradients.screen` from `constants/colors.ts` — one
   definition, not an inline stop array per screen.
+  Prefer importing `palette` / `gradients` over pasting a hex; most older
+  screens still hardcode, and new code should not add to that.
   Type is **Fraunces** (display/serif, the couple's own words) + **Plus Jakarta
   Sans** (all chrome) — *not* Inter, which `constants/typography.ts` rejects by
   name. Use the 8-step scale in that file (12·14·16·18·22·28·40·52) and never

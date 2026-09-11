@@ -87,13 +87,13 @@ export default function MomentScreen() {
 
   if (!entry) {
     return (
-      <LinearGradient colors={['#0A0817', '#221D40']} style={styles.container}>
+      <LinearGradient colors={['#150F19', '#251B2B']} style={styles.container}>
         <StarField />
         <View style={styles.missing}>
-          <Ionicons name="moon-outline" size={26} color="#C0B8D4" />
+          <Ionicons name="moon-outline" size={26} color="#CBB9C9" />
           <Text style={styles.missingText}>That night isn't here anymore</Text>
           <Pressable onPress={() => router.back()} style={styles.backRow}>
-            <Ionicons name="arrow-back" size={18} color="#C0B8D4" />
+            <Ionicons name="arrow-back" size={18} color="#CBB9C9" />
             <Text style={styles.backText}>Back to Moments</Text>
           </Pressable>
         </View>
@@ -103,14 +103,14 @@ export default function MomentScreen() {
 
   return (
     <LinearGradient
-      colors={['#0A0817', '#141127', '#23203D', '#141127', '#0A0817']}
+      colors={['#150F19', '#1B1421', '#312338', '#1B1421', '#150F19']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
       <StarField />
 
       <Pressable style={[styles.closeButton, { top: topPad + 12 }]} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={22} color="#C0B8D4" />
+        <Ionicons name="chevron-back" size={22} color="#CBB9C9" />
       </Pressable>
 
       <ScrollView
@@ -134,7 +134,7 @@ export default function MomentScreen() {
         {/* The check-back reply, kept beside the Grow note it belongs to */}
         {(entry.growFollowUp || entry.partnerGrowFollowUp) && (
           <View style={styles.followUp}>
-            <Ionicons name="leaf-outline" size={14} color="#A8D8A8" />
+            <Ionicons name="leaf-outline" size={14} color="#9BC9A8" />
             <Text style={styles.followUpText}>
               {entry.growFollowUp
                 ? `You checked back the next day: ${growFollowUpLabel(entry.growFollowUp)}.`
@@ -170,14 +170,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   header: { marginBottom: 28, gap: 4 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB' },
-  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6' },
+  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
 
   section: { marginBottom: 26, gap: 10 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -191,24 +191,24 @@ const styles = StyleSheet.create({
   sectionBody: { gap: 10 },
 
   answer: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 16,
     gap: 7,
   },
   answerName: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#948BAC',
+    color: '#A492A6',
     letterSpacing: 0.3,
   },
   answerText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 22,
   },
   answerVoice: { marginTop: 2 },
@@ -223,22 +223,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(168,216,168,0.16)',
-    backgroundColor: 'rgba(168,216,168,0.05)',
+    borderColor: 'rgba(155, 201, 168,0.16)',
+    backgroundColor: 'rgba(155, 201, 168,0.05)',
   },
   followUpText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
 
   reactions: { gap: 4, alignItems: 'center', marginTop: 4 },
-  reactionText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#2E2A4C' },
+  reactionText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#42304A' },
 
   missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
-  missingText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  missingText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#C0B8D4' },
+  backText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
 });

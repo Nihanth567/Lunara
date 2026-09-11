@@ -91,14 +91,14 @@ function SettingsRow({
       <Ionicons
           name={icon as any}
           size={20}
-          color={destructive ? '#F2716B' : color || '#C0B8D4'}
+          color={destructive ? '#E27A85' : color || '#CBB9C9'}
           style={{ opacity: 0.7 }}
         />
-      <Text style={[styles.settingsLabel, destructive && { color: '#F2716B' }]}>
+      <Text style={[styles.settingsLabel, destructive && { color: '#E27A85' }]}>
         {label}
       </Text>
       {value && <Text style={styles.settingsValue}>{value}</Text>}
-      {onPress && <Ionicons name="chevron-forward" size={16} color="#948BAC" style={{ opacity: 0.7 }} />}
+      {onPress && <Ionicons name="chevron-forward" size={16} color="#A492A6" style={{ opacity: 0.7 }} />}
     </Pressable>
   );
 }
@@ -165,7 +165,7 @@ function TimePickerModal({
                   {opt.label}
                 </Text>
                 {selected && (
-                  <Ionicons name="checkmark" size={18} color="#C3B1E1" />
+                  <Ionicons name="checkmark" size={18} color="#CBB9C9" />
                 )}
               </Pressable>
             );
@@ -396,7 +396,7 @@ export default function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={['#0A0817', '#141127', '#23203D', '#141127', '#0A0817']}
+      colors={['#150F19', '#1B1421', '#312338', '#1B1421', '#150F19']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -432,7 +432,7 @@ export default function ProfileScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="You are in demo mode. Leave the demo and pair with your real partner."
               >
-                <Ionicons name="flask-outline" size={13} color="#C3B1E1" />
+                <Ionicons name="flask-outline" size={13} color="#CBB9C9" />
                 <Text style={styles.demoBadgeText}>Demo · tap to pair for real</Text>
               </Pressable>
             )}
@@ -472,7 +472,7 @@ export default function ProfileScreen() {
 
         {longestStreak > 0 && (
           <View style={styles.longestStreakRow}>
-            <Ionicons name="trophy-outline" size={14} color="#F0C07A" />
+            <Ionicons name="trophy-outline" size={14} color="#E8B98A" />
             <Text style={styles.longestStreakText}>
               Longest streak: {longestStreak} {longestStreak === 1 ? 'night' : 'nights'}
             </Text>
@@ -495,7 +495,7 @@ export default function ProfileScreen() {
               }}
             >
               <View style={styles.keepsakeIcon}>
-                <Ionicons name="heart-outline" size={20} color="#FF9A8B" />
+                <Ionicons name="heart-outline" size={20} color="#E8A0B4" />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.keepsakeTitle}>Your Keepsake</Text>
@@ -503,7 +503,7 @@ export default function ProfileScreen() {
                   {keepsakes.filter((k) => k.mySubmitted).length} of {keepsakes.length || KEEPSAKE_QUESTIONS.length} answered
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#948BAC" />
+              <Ionicons name="chevron-forward" size={18} color="#A492A6" />
             </Pressable>
           </Animated.View>
         )}
@@ -512,7 +512,7 @@ export default function ProfileScreen() {
          <Animated.View style={styles.premiumCard}>
            <View style={styles.premiumGradient}>
             <View style={styles.premiumContent}>
-              <Ionicons name="sparkles" size={22} color="#FF9A8B" />
+              <Ionicons name="sparkles" size={22} color="#E8A0B4" />
               <View style={styles.premiumText}>
                 <Text style={styles.premiumTitle}>
                   {couple?.isSubscribed ? 'Lunara Premium — Active' : 'Lunara Premium'}
@@ -552,14 +552,14 @@ export default function ProfileScreen() {
               icon={notifEnabled ? 'notifications' : 'notifications-off-outline'}
               label="Notifications"
               value={notifEnabled ? 'On' : 'Off'}
-              color="#C3B1E1"
+              color="#CBB9C9"
               onPress={handleNotificationsToggle}
             />
             <SettingsRow
               icon="time-outline"
               label="Reminder time"
               value={reminderLabel}
-              color="#C3B1E1"
+              color="#CBB9C9"
               onPress={() => setTimePickerVisible(true)}
             />
           </View>
@@ -571,25 +571,25 @@ export default function ProfileScreen() {
             <SettingsRow
               icon="lock-closed-outline"
               label="Privacy Policy"
-              color="#A8D8A8"
+              color="#9BC9A8"
               onPress={() => router.push('/(modals)/privacy')}
             />
             <SettingsRow
               icon="document-text-outline"
               label="Terms of Service"
-              color="#A8D8A8"
+              color="#9BC9A8"
               onPress={() => router.push('/(modals)/terms')}
             />
             <SettingsRow
               icon="download-outline"
               label="Export my data"
-              color="#A8D8A8"
+              color="#9BC9A8"
               onPress={handleExport}
             />
             <SettingsRow
               icon="reader-outline"
               label="License Agreement (EULA)"
-              color="#A8D8A8"
+              color="#9BC9A8"
               onPress={() => Linking.openURL(APPLE_EULA_URL)}
             />
           </View>
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
 
   // User card
@@ -642,11 +642,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 18,
     marginBottom: 12,
   },
@@ -655,20 +655,20 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,154,139,0.18)',
+    backgroundColor: 'rgba(232, 160, 180,0.18)',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,154,139,0.3)',
+    borderColor: 'rgba(232, 160, 180,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
     fontSize: 22,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#FF9A8B',
+    color: '#E8A0B4',
   },
   userInfo: { flex: 1, gap: 2 },
-  userName: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
-  userPronouns: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  userName: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  userPronouns: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
   // Now a control rather than a label, so it carries an icon, real padding and
   // a tap target instead of being a 2pt-tall chip nobody would think to press.
   demoBadge: {
@@ -676,27 +676,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(195,177,225,0.15)',
+    backgroundColor: 'rgba(248, 241, 246,0.15)',
     borderRadius: radius.sm,
     paddingHorizontal: 12,
     minHeight: 34,
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.3)',
+    borderColor: 'rgba(248, 241, 246,0.3)',
     marginTop: 8,
   },
-  demoBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
+  demoBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
   partnerBadge: { alignItems: 'flex-end', gap: 1 },
-  partnerLabel: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
-  partnerName: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
+  partnerLabel: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  partnerName: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
 
   // Stats
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 20,
     marginBottom: 8,
     alignItems: 'center',
@@ -706,19 +706,19 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 40,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 40,
   },
   statLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     textAlign: 'center',
   },
   statDivider: {
     width: 1,
     height: 44,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.08)',
   },
   longestStreakRow: {
     flexDirection: 'row',
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
   longestStreakText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
 
   // Keepsake
@@ -739,23 +739,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 16,
   },
   keepsakeIcon: {
     width: 40,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,154,139,0.12)',
+    backgroundColor: 'rgba(232, 160, 180,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  keepsakeTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
-  keepsakeSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  keepsakeTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  keepsakeSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
 
   // Premium
   premiumCard: {
@@ -764,31 +764,31 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
   },
-  premiumGradient: { padding: 20, gap: 16, backgroundColor: '#1A1730' },
+  premiumGradient: { padding: 20, gap: 16, backgroundColor: '#251B2B' },
   premiumContent: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   premiumText: { flex: 1, gap: 4 },
-  premiumTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#F5F2FB' },
+  premiumTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: '#F8F1F6' },
   premiumBody: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
   premiumBtn: {
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
     borderRadius: radius.md,
     borderCurve: 'continuous',
     paddingVertical: 13,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.35)',
+    borderColor: 'rgba(232, 160, 180,0.35)',
   },
   premiumBtnText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#0A0817',
+    color: '#150F19',
   },
 
   // Settings
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#948BAC',
+    color: '#A492A6',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     paddingLeft: 4,
@@ -811,24 +811,24 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: 'rgba(248, 241, 246,0.05)',
   },
   settingsLabel: {
     flex: 1,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     letterSpacing: 0.1,
   },
   settingsValue: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
   versionText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#2E2A4C',
+    color: '#42304A',
     textAlign: 'center',
     paddingTop: 8,
     paddingBottom: 16,
@@ -841,34 +841,34 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#141127',
+    backgroundColor: '#1B1421',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 22,
     paddingBottom: 40,
     paddingTop: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
   },
   modalHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(248, 241, 246,0.2)',
     alignSelf: 'center',
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 22,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     marginBottom: 6,
     letterSpacing: -0.4,
   },
   modalSubtitle: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     lineHeight: 19,
     marginBottom: 20,
   },
@@ -883,22 +883,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   timeOptionSelected: {
-    backgroundColor: 'rgba(195,177,225,0.12)',
+    backgroundColor: 'rgba(248, 241, 246,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.25)',
+    borderColor: 'rgba(248, 241, 246,0.25)',
   },
   timeOptionText: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
   },
   timeOptionTextSelected: {
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
   },
   modalDismiss: {
     marginTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(248, 241, 246,0.07)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     paddingVertical: 14,
@@ -907,6 +907,6 @@ const styles = StyleSheet.create({
   modalDismissText: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
 });

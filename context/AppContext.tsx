@@ -20,6 +20,12 @@ import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
 import type { VoiceSlot } from '@/lib/voiceNotes';
 import { isGrowFollowUpResponse, type GrowFollowUpResponse } from '@/lib/growCheckBack';
 import {
+  withDoneState,
+  sortItems,
+  nextPosition,
+  type ListItem,
+} from '@/lib/list';
+import {
   NotificationSettings,
   DEFAULT_NOTIFICATION_SETTINGS,
   scheduleNightlyReminder,
@@ -287,10 +293,6 @@ interface AppContextType {
   setWhoPays: (who: 'me' | 'partner' | 'later') => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  sendPhoneOtp: (phone: string) => Promise<void>;
-  verifyPhoneOtp: (phone: string, code: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
   updateProfile: (fields: { name: string; birthday?: string; pronouns?: string }) => Promise<void>;
   setCouple: (couple: Couple) => Promise<void>;
   createCouple: () => Promise<Couple>;
@@ -331,6 +333,17 @@ interface AppContextType {
   setVoiceNote: (slot: VoiceSlot, path: string | null) => Promise<void>;
   setGrowFollowUp: (date: string, response: GrowFollowUpResponse) => Promise<void>;
   saveKeepsakeAnswer: (questionKey: string, answer: string) => Promise<void>;
+  /**
+   * The shared list. Already sorted — open items first, completed at the
+   * bottom — so screens render it as-is rather than each re-deciding the order.
+   */
+  listItems: ListItem[];
+  addListItem: (title: string, options?: { note?: string; needsBoth?: boolean }) => Promise<void>;
+  /** Ticks or un-ticks *your* mark. Never touches your partner's. */
+  toggleListItem: (id: string) => Promise<void>;
+  updateListItem: (id: string, fields: { title?: string; note?: string; needsBoth?: boolean }) => Promise<void>;
+  deleteListItem: (id: string) => Promise<void>;
+  refreshList: () => Promise<void>;
   checkMilestone: () => Promise<number | null>;
   sendNudge: () => Promise<void>;
   /**
@@ -373,6 +386,7 @@ const KEYS = {
   DEMO_COUPLE: 'lunara_demo_couple_v2',
   DEMO_ENTRIES: 'lunara_demo_entries_v2',
   DEMO_KEEPSAKES: 'lunara_demo_keepsakes_v1',
+  DEMO_LIST: 'lunara_demo_list_v1',
   REVEALED_DATES: 'lunara_revealed_dates_v2',
   NOTIFICATION_SETTINGS: 'lunara_notification_settings_v2',
   CELEBRATED_MILESTONES: 'lunara_celebrated_milestones_v1',
@@ -532,6 +546,107 @@ function mergeKeepsakeRows(rows: KeepsakeRow[], userId: string): KeepsakeAnswer[
   });
 }
 
+interface ListItemRow {
+  id: string;
+  title: string;
+  note: string;
+  needs_both: boolean;
+  created_by: string;
+  position: number;
+  created_at: string;
+}
+
+interface ListCheckRow {
+  item_id: string;
+  user_id: string;
+}
+
+const LIST_ITEM_COLUMNS = 'id, title, note, needs_both, created_by, position, created_at';
+
+/**
+ * Fold the two server tables into the flat shape screens render.
+ *
+ * The checks arrive as a separate result set rather than a join because a join
+ * would return one row per (item, check) and the client would have to collapse
+ * it anyway — with the added trap that an item nobody has ticked disappears
+ * from an inner join entirely.
+ */
+function mergeListRows(
+  items: ListItemRow[],
+  checks: ListCheckRow[],
+  userId: string,
+  partnerPaired: boolean,
+): ListItem[] {
+  const mine = new Set<string>();
+  const theirs = new Set<string>();
+  for (const check of checks) {
+    (check.user_id === userId ? mine : theirs).add(check.item_id);
+  }
+  return sortItems(
+    withDoneState(
+      items.map((row) => ({
+        id: row.id,
+        title: row.title,
+        note: row.note,
+        needsBoth: row.needs_both,
+        createdByMe: row.created_by === userId,
+        checkedByMe: mine.has(row.id),
+        checkedByPartner: theirs.has(row.id),
+        done: false,
+        position: row.position,
+        createdAt: row.created_at,
+      })),
+      partnerPaired,
+    ),
+  );
+}
+
+/**
+ * The demo couple's partner. Ticks nothing on its own — a simulated partner
+ * that raced you to the checkbox would be indistinguishable from a bug — but it
+ * seeds enough that the list is not empty on first open, including one
+ * both-must-tick item so the mechanic is visible before you have a real
+ * partner to try it with.
+ */
+const DEMO_LIST_SEED: ListItem[] = [
+  {
+    id: 'demo-1',
+    title: 'Book the table for Friday',
+    note: 'The little place with the garden',
+    needsBoth: false,
+    createdByMe: false,
+    checkedByMe: false,
+    checkedByPartner: false,
+    done: false,
+    position: 0,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'demo-2',
+    title: 'Decide where we are going in March',
+    note: '',
+    needsBoth: true,
+    createdByMe: true,
+    checkedByMe: false,
+    checkedByPartner: false,
+    done: false,
+    position: 1000,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'demo-3',
+    title: 'Call the landlord back',
+    note: '',
+    needsBoth: false,
+    createdByMe: true,
+    checkedByMe: false,
+    checkedByPartner: true,
+    done: true,
+    position: 2000,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 function mergeEntryRows(rows: EntryRow[], userId: string, revealedDates: Set<string>): DailyEntry[] {
   const byDate = new Map<string, EntryRow[]>();
   for (const row of rows) {
@@ -616,6 +731,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [baseCouple, setCoupleState] = useState<Couple | null>(null);
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [keepsakes, setKeepsakes] = useState<KeepsakeAnswer[]>([]);
+  const [listItems, setListItems] = useState<ListItem[]>([]);
   const [revealedDates, setRevealedDates] = useState<Set<string>>(new Set());
   const [notificationSettings, setNotificationSettingsState] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   /**
@@ -685,16 +801,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ─── Auth bootstrap ───────────────────────────────────────────────────────
 
   const loadDemoState = useCallback(async () => {
-    const [userJson, coupleJson, entriesJson, keepsakesJson] = await Promise.all([
+    const [userJson, coupleJson, entriesJson, keepsakesJson, listJson] = await Promise.all([
       AsyncStorage.getItem(KEYS.DEMO_USER),
       AsyncStorage.getItem(KEYS.DEMO_COUPLE),
       AsyncStorage.getItem(KEYS.DEMO_ENTRIES),
       AsyncStorage.getItem(KEYS.DEMO_KEEPSAKES),
+      AsyncStorage.getItem(KEYS.DEMO_LIST),
     ]);
     if (userJson) setUserState(JSON.parse(userJson));
     if (coupleJson) setCoupleState(JSON.parse(coupleJson));
     if (entriesJson) setEntries(JSON.parse(entriesJson));
     if (keepsakesJson) setKeepsakes(JSON.parse(keepsakesJson));
+    // Seeded rather than empty: an empty list is the one state that teaches
+    // nothing about what the list is for.
+    setListItems(listJson ? JSON.parse(listJson) : DEMO_LIST_SEED);
   }, []);
 
   const loadRemoteProfileAndCouple = useCallback(async (userId: string): Promise<RemoteAccountState> => {
@@ -737,7 +857,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isSubscribed: coupleRow.is_subscribed,
       });
 
-      const [{ data: entryRows }, { data: keepsakeRows }] = await Promise.all([
+      const [{ data: entryRows }, { data: keepsakeRows }, { data: listRows }] = await Promise.all([
         supabase
           .from('entries')
           .select(ENTRY_COLUMNS)
@@ -746,13 +866,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .from('keepsakes')
           .select('couple_id, user_id, question_key, answer')
           .eq('couple_id', coupleRow.id),
+        supabase
+          .from('list_items')
+          .select(LIST_ITEM_COLUMNS)
+          .eq('couple_id', coupleRow.id)
+          .order('position', { ascending: true }),
       ]);
       setEntries(mergeEntryRows(entryRows ?? [], userId, revealedDates));
       setKeepsakes(mergeKeepsakeRows(keepsakeRows ?? [], userId));
+
+      // The checks can only be fetched once the item ids are known, so this is
+      // a second round-trip rather than a fourth parallel query.
+      const itemRows = (listRows ?? []) as ListItemRow[];
+      if (itemRows.length === 0) {
+        setListItems([]);
+      } else {
+        const { data: checkRows } = await supabase
+          .from('list_item_checks')
+          .select('item_id, user_id')
+          .in('item_id', itemRows.map((r) => r.id));
+        setListItems(
+          mergeListRows(itemRows, (checkRows ?? []) as ListCheckRow[], userId, Boolean(partnerRow)),
+        );
+      }
     } else {
       setCoupleState(null);
       setEntries([]);
       setKeepsakes([]);
+      setListItems([]);
     }
 
     // Entitlement has to wait for `configurePurchases` — `checkIsPro()` returns
@@ -860,6 +1001,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         { event: 'UPDATE', schema: 'public', table: 'couples', filter: `id=eq.${baseCouple.id}` },
         () => { refreshSharedStateRef.current?.(); },
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'list_items', filter: `couple_id=eq.${baseCouple.id}` },
+        () => { refreshListRef.current?.().catch(() => {}); },
+      )
+      .on(
+        // `list_item_checks` has no couple_id to filter on, so this fires for
+        // every check in the database and the refresh is what scopes it. The
+        // read is two small queries and RLS returns nothing for other couples,
+        // so the cost of the extra wake-ups is far below the cost of
+        // denormalising couple_id onto every check row to filter here.
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'list_item_checks' },
+        () => { refreshListRef.current?.().catch(() => {}); },
+      )
       .subscribe((status) => {
         // Screens poll only while this is false, so it has to be honest about
         // a channel that errored or timed out rather than optimistic.
@@ -915,10 +1071,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setKeepsakes(mergeKeepsakeRows(data ?? [], session.user.id));
   }, [baseCouple?.id, isDemo, session]);
 
+  /**
+   * Re-read the shared list.
+   *
+   * Two queries rather than one join, and the checks query is scoped by
+   * `item_id in (...)` rather than by couple — `list_item_checks` has no
+   * `couple_id` of its own, and adding one would be a second place for the
+   * couple to be recorded (and to drift) when the item already knows.
+   */
+  const refreshList = useCallback(async (): Promise<void> => {
+    const coupleId = baseCouple?.id;
+    if (!session || isDemo || !coupleId) return;
+    const { data: items, error } = await supabase
+      .from('list_items')
+      .select(LIST_ITEM_COLUMNS)
+      .eq('couple_id', coupleId)
+      .order('position', { ascending: true });
+    if (error) throw new Error(error.message);
+    const rows = (items ?? []) as ListItemRow[];
+    if (rows.length === 0) {
+      setListItems([]);
+      return;
+    }
+    const { data: checks, error: checksError } = await supabase
+      .from('list_item_checks')
+      .select('item_id, user_id')
+      .in('item_id', rows.map((r) => r.id));
+    if (checksError) throw new Error(checksError.message);
+    setListItems(
+      mergeListRows(rows, (checks ?? []) as ListCheckRow[], session.user.id, isPartnerJoined(baseCouple)),
+    );
+  }, [baseCouple, isDemo, session]);
+
   const refreshEntriesRef = useRef(refreshEntries);
   useEffect(() => { refreshEntriesRef.current = refreshEntries; }, [refreshEntries]);
   const refreshKeepsakesRef = useRef(refreshKeepsakes);
   useEffect(() => { refreshKeepsakesRef.current = refreshKeepsakes; }, [refreshKeepsakes]);
+  const refreshListRef = useRef(refreshList);
+  useEffect(() => { refreshListRef.current = refreshList; }, [refreshList]);
 
   /**
    * Re-read the entitlement from RevenueCat's CustomerInfo and unlock (or lock)
@@ -1176,26 +1366,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (error) throw new Error(error.message);
   }, []);
 
-  const sendPhoneOtp = useCallback(async (phone: string) => {
-    const { error } = await supabase.auth.signInWithOtp({ phone });
-    if (error) throw new Error(error.message);
-  }, []);
-
-  const verifyPhoneOtp = useCallback(async (phone: string, code: string) => {
-    const { error } = await supabase.auth.verifyOtp({ phone, token: code, type: 'sms' });
-    if (error) throw new Error(error.message);
-  }, []);
-
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email: email.trim(), password });
-    if (error) throw new Error(error.message);
-  }, []);
-
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) throw new Error(error.message);
-  }, []);
-
   const updateProfile = useCallback(async (fields: { name: string; birthday?: string; pronouns?: string }) => {
     if (!session) throw new Error('You need to be signed in to update your profile.');
     const { error } = await supabase
@@ -1438,6 +1608,139 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshKeepsakes();
   }, [couple, isDemo, keepsakes, refreshKeepsakes, session]);
 
+  // ─── The shared list ──────────────────────────────────────────────────────
+
+  const partnerPaired = isPartnerJoined(couple);
+
+  /**
+   * Commit a demo list. Re-derives `done` and re-sorts on the way through, so
+   * no caller has to remember that flipping `needsBoth` can complete an item
+   * that was already half-ticked.
+   */
+  const persistDemoList = useCallback(async (next: ListItem[]) => {
+    const settled = sortItems(withDoneState(next, partnerPaired));
+    setListItems(settled);
+    await AsyncStorage.setItem(KEYS.DEMO_LIST, JSON.stringify(settled));
+  }, [partnerPaired]);
+
+  const addListItem = useCallback(async (
+    title: string,
+    options?: { note?: string; needsBoth?: boolean },
+  ) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    const note = (options?.note ?? '').trim();
+    const needsBoth = options?.needsBoth ?? false;
+
+    if (isDemo) {
+      await persistDemoList([
+        ...listItems,
+        {
+          id: generateId(),
+          title: trimmed,
+          note,
+          needsBoth,
+          createdByMe: true,
+          checkedByMe: false,
+          checkedByPartner: false,
+          done: false,
+          position: nextPosition(listItems),
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      return;
+    }
+
+    if (!session || !couple) return;
+    const { error } = await supabase.from('list_items').insert({
+      couple_id: couple.id,
+      title: trimmed,
+      note,
+      needs_both: needsBoth,
+      created_by: session.user.id,
+      position: nextPosition(listItems),
+    });
+    if (error) throw new Error(error.message);
+    await refreshList();
+  }, [couple, isDemo, listItems, persistDemoList, refreshList, session]);
+
+  /**
+   * Tick or un-tick your own mark.
+   *
+   * Written as an insert/delete of one check row rather than a read-modify-
+   * write of a shared flag, which is what makes two people tapping the same
+   * item at the same moment safe: the rows are disjoint, so neither write can
+   * clobber the other.
+   */
+  const toggleListItem = useCallback(async (id: string) => {
+    const item = listItems.find((i) => i.id === id);
+    if (!item) return;
+
+    if (isDemo) {
+      await persistDemoList(
+        listItems.map((i) => (i.id === id ? { ...i, checkedByMe: !i.checkedByMe } : i)),
+      );
+      return;
+    }
+
+    if (!session) return;
+    if (item.checkedByMe) {
+      const { error } = await supabase
+        .from('list_item_checks')
+        .delete()
+        .eq('item_id', id)
+        .eq('user_id', session.user.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from('list_item_checks')
+        .insert({ item_id: id, user_id: session.user.id });
+      if (error) throw new Error(error.message);
+    }
+    await refreshList();
+  }, [isDemo, listItems, persistDemoList, refreshList, session]);
+
+  const updateListItem = useCallback(async (
+    id: string,
+    fields: { title?: string; note?: string; needsBoth?: boolean },
+  ) => {
+    if (isDemo) {
+      await persistDemoList(
+        listItems.map((i) => (i.id === id
+          ? {
+              ...i,
+              title: fields.title?.trim() ?? i.title,
+              note: fields.note?.trim() ?? i.note,
+              needsBoth: fields.needsBoth ?? i.needsBoth,
+            }
+          : i)),
+      );
+      return;
+    }
+
+    if (!session) return;
+    const patch: { title?: string; note?: string; needs_both?: boolean } = {};
+    if (fields.title !== undefined) patch.title = fields.title.trim();
+    if (fields.note !== undefined) patch.note = fields.note.trim();
+    if (fields.needsBoth !== undefined) patch.needs_both = fields.needsBoth;
+    if (Object.keys(patch).length === 0) return;
+    const { error } = await supabase.from('list_items').update(patch).eq('id', id);
+    if (error) throw new Error(error.message);
+    await refreshList();
+  }, [isDemo, listItems, persistDemoList, refreshList, session]);
+
+  const deleteListItem = useCallback(async (id: string) => {
+    if (isDemo) {
+      await persistDemoList(listItems.filter((i) => i.id !== id));
+      return;
+    }
+    if (!session) return;
+    // The checks go with it via `on delete cascade`.
+    const { error } = await supabase.from('list_items').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    await refreshList();
+  }, [isDemo, listItems, persistDemoList, refreshList, session]);
+
   const checkMilestone = useCallback(async (): Promise<number | null> => {
     const streak = streakState.current;
     if (!couple || !STREAK_MILESTONES.includes(streak)) return null;
@@ -1521,6 +1824,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCoupleState(null);
     setEntries([]);
     setKeepsakes([]);
+    setListItems([]);
     setRevealedDates(new Set());
     setNotificationSettingsState(DEFAULT_NOTIFICATION_SETTINGS);
     setProEntitlement(false);
@@ -1536,10 +1840,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       KEYS.DEMO_COUPLE,
       KEYS.DEMO_ENTRIES,
       KEYS.DEMO_KEEPSAKES,
+      KEYS.DEMO_LIST,
     ]);
     setCoupleState(null);
     setEntries([]);
     setKeepsakes([]);
+    setListItems([]);
     setRevealedDates(new Set());
     // Re-read the real account if there is one behind the demo.
     if (sessionRef.current) {
@@ -1611,10 +1917,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setWhoPays,
         signInWithApple,
         signInWithGoogle,
-        sendPhoneOtp,
-        verifyPhoneOtp,
-        signUpWithEmail,
-        signInWithEmail,
         updateProfile,
         setCouple,
         createCouple,
@@ -1630,6 +1932,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setVoiceNote,
         setGrowFollowUp,
         saveKeepsakeAnswer,
+        listItems,
+        addListItem,
+        toggleListItem,
+        updateListItem,
+        deleteListItem,
+        refreshList,
         checkMilestone,
         sendNudge,
         registerPushToken,

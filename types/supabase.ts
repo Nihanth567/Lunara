@@ -164,6 +164,76 @@ export type Database = {
           },
         ]
       }
+      list_items: {
+        Row: {
+          couple_id: string
+          created_at: string
+          created_by: string
+          id: string
+          needs_both: boolean
+          note: string
+          position: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          needs_both?: boolean
+          note?: string
+          position?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          needs_both?: boolean
+          note?: string
+          position?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      list_item_checks: {
+        Row: {
+          checked_at: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_item_checks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "list_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

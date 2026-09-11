@@ -199,14 +199,14 @@ export default function PaywallScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
       <StarField />
       <Pressable
         style={[styles.closeButton, { top: insets.top + 12 }]}
         onPress={dismiss}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#C0B8D4" />
+        <Ionicons name="close" size={22} color="#CBB9C9" />
       </Pressable>
 
       <ScrollView
@@ -215,12 +215,12 @@ export default function PaywallScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerIcon}>
-            <Ionicons name="sparkles" size={26} color="#FF9A8B" />
+            <Ionicons name="sparkles" size={26} color="#E8A0B4" />
           </View>
           <Text style={styles.title}>Unlock Your Shared Galaxy with Lunara Pro</Text>
           <Text style={styles.subtitle}>{priceSentence(selected)}</Text>
           <View style={styles.coversBadge}>
-            <Ionicons name="people-outline" size={13} color="#C3B1E1" />
+            <Ionicons name="people-outline" size={13} color="#CBB9C9" />
             <Text style={styles.coversBadgeText}>One Subscription Covers Both of You</Text>
           </View>
         </View>
@@ -229,7 +229,7 @@ export default function PaywallScreen() {
           {PRO_FEATURES.map((f) => (
             <View key={f.text} style={styles.featureRow}>
               <View style={styles.featureIcon}>
-                <Ionicons name={f.icon as any} size={16} color="#A8D8A8" />
+                <Ionicons name={f.icon as any} size={16} color="#9BC9A8" />
               </View>
               <Text style={styles.featureText}>{f.text}</Text>
             </View>
@@ -237,7 +237,7 @@ export default function PaywallScreen() {
         </View>
 
         <View style={styles.guaranteeBanner}>
-          <Ionicons name="heart-outline" size={13} color="#948BAC" />
+          <Ionicons name="heart-outline" size={13} color="#A492A6" />
           {/*
             The free tier stated in full, including the archive window — the one
             Pro claim that is also a restriction. Saying "daily prompts and
@@ -248,10 +248,10 @@ export default function PaywallScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#FF9A8B" style={{ marginVertical: 32 }} />
+          <ActivityIndicator color="#E8A0B4" style={{ marginVertical: 32 }} />
         ) : !canPurchase ? (
           <View style={styles.demoNotice}>
-            <Ionicons name="people-outline" size={16} color="#C3B1E1" />
+            <Ionicons name="people-outline" size={16} color="#CBB9C9" />
             <Text style={styles.demoNoticeText}>
               You&apos;re exploring Lunara on your own. Pro is one subscription for two people, so
               it unlocks once your partner has joined you — nothing to pay for until then.
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -369,18 +369,18 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,154,139,0.14)',
+    backgroundColor: 'rgba(232, 160, 180,0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.3)',
+    borderColor: 'rgba(232, 160, 180,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
   },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB', textAlign: 'center' },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6', textAlign: 'center' },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 8,
@@ -394,21 +394,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: radius.lg,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(195,177,225,0.1)',
+    backgroundColor: 'rgba(248, 241, 246,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
   },
-  coversBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
+  coversBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
   features: { gap: 14, marginBottom: 18 },
   guaranteeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
+    borderColor: 'rgba(248, 241, 246,0.07)',
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 24,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     lineHeight: 17,
   },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -425,15 +425,15 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(168,216,168,0.12)',
+    backgroundColor: 'rgba(155, 201, 168,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  featureText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#DCD1EF', flex: 1 },
+  featureText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', flex: 1 },
   noOfferings: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     textAlign: 'center',
     lineHeight: 19,
     marginVertical: 24,
@@ -442,9 +442,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     padding: 16,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
   packages: { gap: 12, marginBottom: 8 },
@@ -463,52 +463,52 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: '#1A1730',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: '#251B2B',
   },
   packageOptionSelected: {
-    borderColor: 'rgba(255,154,139,0.45)',
-    backgroundColor: 'rgba(255,154,139,0.08)',
+    borderColor: 'rgba(232, 160, 180,0.45)',
+    backgroundColor: 'rgba(232, 160, 180,0.08)',
   },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   trialBadge: {
-    backgroundColor: 'rgba(195,177,225,0.16)',
+    backgroundColor: 'rgba(248, 241, 246,0.16)',
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.3)',
+    borderColor: 'rgba(248, 241, 246,0.3)',
   },
-  trialBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#C3B1E1' },
+  trialBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
   valueBadge: {
-    backgroundColor: 'rgba(255,154,139,0.16)',
+    backgroundColor: 'rgba(232, 160, 180,0.16)',
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.32)',
+    borderColor: 'rgba(232, 160, 180,0.32)',
   },
-  valueBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#FF9A8B' },
+  valueBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#E8A0B4' },
   packageRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  packageTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
-  packagePrice: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4', marginTop: 2 },
+  packageTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  packagePrice: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', marginTop: 2 },
   radio: {
     width: 22,
     height: 22,
     borderRadius: radius.sm,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(248, 241, 246,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioSelected: { borderColor: '#FF9A8B' },
-  radioDot: { width: 11, height: 11, borderRadius: radius.sm, backgroundColor: '#FF9A8B' },
+  radioSelected: { borderColor: '#E8A0B4' },
+  radioDot: { width: 11, height: 11, borderRadius: radius.sm, backgroundColor: '#E8A0B4' },
   footer: { gap: 4, marginTop: 12 },
   freeBtn: { alignItems: 'center', paddingVertical: 10 },
-  freeText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#C3B1E1' },
+  freeText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
   restoreBtn: { alignItems: 'center', paddingVertical: 4, marginTop: 6 },
-  restoreText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  restoreText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  legalText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC', textDecorationLine: 'underline' },
-  legalDivider: { fontSize: 12, color: '#2E2A4C' },
+  legalText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', textDecorationLine: 'underline' },
+  legalDivider: { fontSize: 12, color: '#42304A' },
 });

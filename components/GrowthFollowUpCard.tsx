@@ -50,14 +50,14 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
       {answer === null && (
         <>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={16} color="#A8D8A8" />
+            <Ionicons name="leaf-outline" size={16} color="#9BC9A8" />
             <Text style={styles.eyebrow}>Yesterday’s Growth Tip · {tip.topic}</Text>
           </View>
           <Text style={styles.prompt}>Did you get a chance to try yesterday’s growth tip?</Text>
           <Text style={styles.tipRef}>“{tip.tip}”</Text>
           <View style={styles.pills}>
             <Pressable style={[styles.pill, styles.pillYes]} onPress={() => handle('yes')}>
-              <Ionicons name="sparkles" size={14} color="#A8D8A8" />
+              <Ionicons name="sparkles" size={14} color="#9BC9A8" />
               <Text style={[styles.pillText, styles.pillTextYes]}>Yes, we did!</Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={() => handle('later')}>
@@ -69,7 +69,7 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
 
       {answer === 'yes' && (
         <View style={styles.resultRow}>
-          <Ionicons name="flame" size={18} color="#FF9A8B" />
+          <Ionicons name="flame" size={18} color="#E8A0B4" />
           <Text style={styles.resultText}>
             Connection Streak: {connectionStreak} {connectionStreak === 1 ? 'day' : 'days'} — nicely done.
           </Text>
@@ -78,7 +78,7 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
 
       {answer === 'later' && (
         <View style={styles.resultRow}>
-          <Ionicons name="moon-outline" size={16} color="#C0B8D4" />
+          <Ionicons name="moon-outline" size={16} color="#CBB9C9" />
           <Text style={styles.resultText}>No pressure — today’s a fresh chance.</Text>
         </View>
       )}
@@ -88,11 +88,11 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 18,
     gap: 10,
     marginBottom: 16,
@@ -102,19 +102,19 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#948BAC',
+    color: '#A492A6',
     letterSpacing: 0.3,
   },
   prompt: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 21,
   },
   tipRef: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
     fontStyle: 'italic',
   },
@@ -129,25 +129,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
   },
   pillYes: {
-    borderColor: 'rgba(168,216,168,0.3)',
-    backgroundColor: 'rgba(168,216,168,0.08)',
+    borderColor: 'rgba(155, 201, 168,0.3)',
+    backgroundColor: 'rgba(155, 201, 168,0.08)',
   },
   pillText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
   },
-  pillTextYes: { color: '#A8D8A8' },
+  pillTextYes: { color: '#9BC9A8' },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resultText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
 });

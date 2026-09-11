@@ -45,14 +45,14 @@ export default function PrivacyScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
       <StarField />
       <Pressable
         style={[styles.closeButton, { top: insets.top + 12 }]}
         onPress={() => router.back()}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#C0B8D4" />
+        <Ionicons name="close" size={22} color="#CBB9C9" />
       </Pressable>
 
       <ScrollView
@@ -105,26 +105,26 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: { paddingHorizontal: 26 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB', marginBottom: 4 },
-  effectiveDate: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#948BAC', marginBottom: 24 },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6', marginBottom: 4 },
+  effectiveDate: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#A492A6', marginBottom: 24 },
   section: { marginBottom: 22, gap: 8 },
-  heading: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
-  body: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4', lineHeight: 21 },
+  heading: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  body: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
   bulletList: { gap: 10, marginTop: 2 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bulletDot: {
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#C3B1E1',
+    backgroundColor: '#CBB9C9',
     marginTop: 7,
   },
-  bulletText: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4', lineHeight: 21 },
-  bulletLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', color: '#DCD1EF' },
-  link: { color: '#C3B1E1', textDecorationLine: 'underline' },
+  bulletText: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
+  bulletLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
+  link: { color: '#CBB9C9', textDecorationLine: 'underline' },
 });

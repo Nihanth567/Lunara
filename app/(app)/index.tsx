@@ -95,7 +95,7 @@ function InvitePartnerCard({ inviteCode }: { inviteCode: string }) {
   return (
     <Animated.View style={[styles.inviteCard, animStyle]}>
       <View style={styles.inviteHeader}>
-        <Ionicons name="heart-outline" size={20} color="#FF9A8B" />
+        <Ionicons name="heart-outline" size={20} color="#E8A0B4" />
         <Text style={styles.inviteTitle}>Bring your partner in</Text>
       </View>
       <Text style={styles.inviteBody}>
@@ -110,7 +110,7 @@ function InvitePartnerCard({ inviteCode }: { inviteCode: string }) {
         <Ionicons
           name={copied ? 'checkmark-circle-outline' : 'share-outline'}
           size={17}
-          color="#0A0817"
+          color="#150F19"
         />
         <Text style={styles.inviteBtnText}>{copied ? 'Invite shared' : 'Send the invite'}</Text>
       </Pressable>
@@ -198,7 +198,7 @@ function WaitingState({
         <Ionicons
           name={nudge === 'sent' ? 'checkmark-circle-outline' : 'notifications-outline'}
           size={15}
-          color={nudge === 'sent' ? '#A8D8A8' : '#C0B8D4'}
+          color={nudge === 'sent' ? '#9BC9A8' : '#CBB9C9'}
         />
         <Text style={[styles.nudgeText, nudge === 'sent' && styles.nudgeTextSent]}>
           {nudge === 'sent'
@@ -233,7 +233,7 @@ function RevealReadyState({
       </Text>
       <Pressable style={styles.revealBtn} onPress={onReveal}>
         <View style={styles.revealBtnGradient}>
-          <Ionicons name="sparkles" size={20} color="#0A0817" />
+          <Ionicons name="sparkles" size={20} color="#150F19" />
           <Text style={styles.revealBtnText}>Reveal</Text>
         </View>
       </Pressable>
@@ -283,7 +283,7 @@ function AlreadyRevealedState({
         style={styles.companionSlot}
       />
       <View style={styles.revealedMeta}>
-        <Ionicons name="checkmark-circle" size={15} color="#A8D8A8" />
+        <Ionicons name="checkmark-circle" size={15} color="#9BC9A8" />
         <Text style={styles.revealedStreak}>
           {streak > 0
             ? `${streak} ${streak === 1 ? 'NIGHT' : 'NIGHTS'} IN A ROW`
@@ -296,7 +296,7 @@ function AlreadyRevealedState({
       </Text>
       <Pressable onPress={onView} style={styles.viewBtn} accessibilityRole="button">
         <Text style={styles.viewBtnText}>Read tonight&apos;s again</Text>
-        <Ionicons name="arrow-forward" size={15} color="#FF9A8B" />
+        <Ionicons name="arrow-forward" size={15} color="#E8A0B4" />
       </Pressable>
     </Animated.View>
   );
@@ -573,7 +573,7 @@ export default function TonightScreen() {
 
   return (
     <LinearGradient
-      colors={['#0A0817', '#141127', '#221D40', '#141127', '#0A0817']}
+      colors={['#150F19', '#1B1421', '#251B2B', '#1B1421', '#150F19']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 36,
     letterSpacing: -0.8,
   },
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#948BAC',
+    color: '#A492A6',
     letterSpacing: 1.4,
   },
 
@@ -820,24 +820,24 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(248, 241, 246,0.14)',
   },
-  progressDotFilled: { backgroundColor: '#FF9A8B' },
+  progressDotFilled: { backgroundColor: '#E8A0B4' },
   progressText: {
     marginLeft: 4,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
 
 
   // Invite partner (not paired yet)
   inviteCard: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.22)',
+    borderColor: 'rgba(232, 160, 180,0.22)',
     padding: 24,
     gap: 12,
     marginBottom: 24,
@@ -846,13 +846,13 @@ const styles = StyleSheet.create({
   inviteTitle: {
     fontSize: 22,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     letterSpacing: -0.4,
   },
   inviteBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 21,
   },
   inviteCodeRow: {
@@ -863,19 +863,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: radius.lg,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
   },
   inviteCodeLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
   inviteCode: {
     fontSize: 22,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     letterSpacing: 3,
   },
   inviteBtn: {
@@ -886,22 +886,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
   },
   inviteBtnText: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#0A0817',
+    color: '#150F19',
     letterSpacing: 0.2,
   },
 
   // Submitted, but there is nobody to reveal with yet
   soloDoneCard: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.15)',
+    borderColor: 'rgba(248, 241, 246,0.15)',
     padding: 28,
     alignItems: 'flex-start',
     gap: 10,
@@ -909,23 +909,23 @@ const styles = StyleSheet.create({
   soloDoneTitle: {
     fontSize: 22,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     letterSpacing: -0.4,
   },
   soloDoneBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 21,
   },
 
   // Waiting state
   waitingCard: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.15)',
+    borderColor: 'rgba(248, 241, 246,0.15)',
     padding: 28,
     alignItems: 'flex-start',
     gap: 12,
@@ -933,14 +933,14 @@ const styles = StyleSheet.create({
   waitingTitle: {
     fontSize: 22,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'left',
     letterSpacing: -0.4,
   },
   waitingBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'left',
     lineHeight: 21,
   },
@@ -951,26 +951,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(248, 241, 246,0.05)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(248, 241, 246,0.09)',
   },
   nudgeBtnSent: {
-    backgroundColor: 'rgba(168,216,168,0.08)',
-    borderColor: 'rgba(168,216,168,0.2)',
+    backgroundColor: 'rgba(155, 201, 168,0.08)',
+    borderColor: 'rgba(155, 201, 168,0.2)',
   },
-  nudgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
-  nudgeTextSent: { color: '#A8D8A8' },
+  nudgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  nudgeTextSent: { color: '#9BC9A8' },
 
   // Reveal ready
   revealReadyCard: {
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.25)',
-    backgroundColor: '#1A1730',
+    borderColor: 'rgba(232, 160, 180,0.25)',
+    backgroundColor: '#251B2B',
     padding: 28,
     alignItems: 'center',
     gap: 12,
@@ -979,14 +979,14 @@ const styles = StyleSheet.create({
   revealReadyTitle: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   revealReadyBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -999,18 +999,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
   },
   revealBtnText: {
     fontSize: 22,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#0A0817',
+    color: '#150F19',
     letterSpacing: 0.3,
   },
 
   // Already revealed
   revealedCard: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     // Depth instead of an outline. A 1px hairline on every card is what made
@@ -1026,13 +1026,13 @@ const styles = StyleSheet.create({
   revealedStreak: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#A8D8A8',
+    color: '#9BC9A8',
     letterSpacing: 1.3,
   },
   revealedTitle: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'left',
     lineHeight: 32,
     letterSpacing: -0.6,
@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
   revealedBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'left',
     lineHeight: 23,
   },
@@ -1056,6 +1056,6 @@ const styles = StyleSheet.create({
   viewBtnText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#FF9A8B',
+    color: '#E8A0B4',
   },
 });

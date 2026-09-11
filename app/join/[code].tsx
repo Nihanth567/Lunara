@@ -81,7 +81,7 @@ export default function JoinDeepLink() {
   if (outcome === 'working') {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#FF9A8B" size="large" />
+        <ActivityIndicator color="#E8A0B4" size="large" />
       </View>
     );
   }
@@ -90,7 +90,7 @@ export default function JoinDeepLink() {
 
   return (
     <LinearGradient
-      colors={['#0A0817', '#141127', '#221D40', '#141127', '#0A0817']}
+      colors={['#150F19', '#1B1421', '#251B2B', '#1B1421', '#150F19']}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -105,7 +105,7 @@ export default function JoinDeepLink() {
           <Ionicons
             name={malformed ? 'moon-outline' : 'heart-outline'}
             size={26}
-            color={malformed ? '#C3B1E1' : '#FF9A8B'}
+            color={malformed ? '#CBB9C9' : '#E8A0B4'}
           />
         </View>
 
@@ -137,7 +137,7 @@ export default function JoinDeepLink() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#0A0817', alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, backgroundColor: '#150F19', alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1 },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 14 },
   icon: {
@@ -145,9 +145,9 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(248, 241, 246,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -155,18 +155,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 21,
   },
   actions: { alignSelf: 'stretch', marginTop: 14, gap: 4 },
   secondary: { alignItems: 'center', paddingVertical: 12 },
-  secondaryText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#C0B8D4' },
+  secondaryText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
 });

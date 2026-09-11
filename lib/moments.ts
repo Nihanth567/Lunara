@@ -67,7 +67,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'grateful',
       title: 'Grateful',
-      color: '#FF9A8B',
+      color: '#E8A0B4',
       mine: entry.grateful,
       theirs: entry.partnerGrateful,
       myVoice: entry.voiceGrateful ?? null,
@@ -76,7 +76,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'cute',
       title: 'Cute',
-      color: '#C3B1E1',
+      color: '#B9A5E3',
       mine: entry.cute,
       theirs: entry.partnerCute,
       myVoice: entry.voiceCute ?? null,
@@ -85,7 +85,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'grow',
       title: 'Grow',
-      color: '#A8D8A8',
+      color: '#9BC9A8',
       mine: entry.grow,
       theirs: entry.partnerGrow,
       myVoice: entry.voiceGrow ?? null,

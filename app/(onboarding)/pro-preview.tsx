@@ -87,7 +87,7 @@ function PhonePreview() {
           resizeMode="cover"
         />
         <LinearGradient
-          colors={['rgba(15,12,41,0.55)', 'transparent', 'rgba(15,12,41,0.75)']}
+          colors={['rgba(21, 15, 25,0.55)', 'transparent', 'rgba(21, 15, 25,0.75)']}
           locations={[0, 0.35, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -97,7 +97,7 @@ function PhonePreview() {
         <Animated.View entering={FadeIn.delay(400).duration(600)} style={styles.widgetCard}>
           <View style={styles.widgetHeader}>
             <View style={styles.widgetIcon}>
-              <Ionicons name="moon" size={11} color="#F5F2FB" />
+              <Ionicons name="moon" size={11} color="#F8F1F6" />
             </View>
             <Text style={styles.widgetLabel}>Lunara</Text>
           </View>
@@ -138,7 +138,7 @@ export default function ProPreviewScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#221D40', '#0A0817']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#251B2B', '#150F19']} style={styles.container}>
       <StarField />
       <View style={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}>
         <PhonePreview />
@@ -179,10 +179,10 @@ const styles = StyleSheet.create({
     width: PHONE_WIDTH * 1.3,
     height: PHONE_WIDTH * 1.3,
     borderRadius: PHONE_WIDTH,
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
     opacity: 0.35,
     // Soft radial-style glow behind the phone frame.
-    shadowColor: '#FF9A8B',
+    shadowColor: '#E8A0B4',
     shadowRadius: 60,
     shadowOpacity: 1,
   },
@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: '#0A0817',
+    borderColor: 'rgba(248, 241, 246,0.18)',
+    backgroundColor: '#150F19',
   },
   phoneScreen: { ...StyleSheet.absoluteFillObject },
   notch: {
@@ -222,9 +222,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     padding: 10,
-    backgroundColor: 'rgba(20,16,40,0.55)',
+    backgroundColor: 'rgba(21, 15, 25,0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
+    borderColor: 'rgba(248, 241, 246,0.16)',
     gap: 5,
   },
   widgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -232,35 +232,35 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,154,139,0.4)',
+    backgroundColor: 'rgba(232, 160, 180,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   widgetLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   widgetMessage: {
     fontSize: 12.5,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 17,
   },
   copy: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
   title: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'center',
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   covers: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
     textAlign: 'center',
   },
 });

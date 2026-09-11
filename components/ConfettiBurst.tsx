@@ -15,7 +15,7 @@ interface Props {
   onDone?: () => void;
 }
 
-const COLORS = ['#FF9A8B', '#C3B1E1', '#A8D8A8', '#F0C07A', '#F5F2FB'];
+const COLORS = ['#E8A0B4', '#CBB9C9', '#9BC9A8', '#E8B98A', '#F8F1F6'];
 const PIECES = 16;
 
 function Piece({ index, trigger, onLast }: { index: number; trigger: number; onLast?: () => void }) {

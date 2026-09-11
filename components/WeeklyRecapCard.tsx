@@ -25,7 +25,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="calendar-outline" size={16} color="#F0C07A" />
+        <Ionicons name="calendar-outline" size={16} color="#E8B98A" />
         <Text style={styles.title}>Sunday Recap</Text>
       </View>
 
@@ -47,7 +47,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
               onUnlock();
             }}
           >
-            <Ionicons name="sparkles" size={15} color="#0A0817" />
+            <Ionicons name="sparkles" size={15} color="#150F19" />
             <Text style={styles.unlockText}>See full insights with Lunara Pro</Text>
           </Pressable>
         </>
@@ -69,11 +69,11 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 18,
     gap: 14,
     marginBottom: 20,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F0C07A',
+    color: '#E8B98A',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
@@ -91,19 +91,19 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 28,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
   statLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     textAlign: 'center',
   },
-  statDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.08)' },
+  statDivider: { width: 1, height: 32, backgroundColor: 'rgba(248, 241, 246,0.08)' },
   teaser: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 21,
   },
   unlockBtn: {
@@ -111,17 +111,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
     borderRadius: radius.md,
     borderCurve: 'continuous',
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.35)',
+    borderColor: 'rgba(232, 160, 180,0.35)',
   },
   unlockText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#0A0817',
+    color: '#150F19',
   },
   insights: { gap: 10 },
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -129,14 +129,14 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#F0C07A',
+    backgroundColor: '#E8B98A',
     marginTop: 7,
   },
   insightText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 20,
   },
 });

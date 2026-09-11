@@ -44,7 +44,7 @@ function IdeaCard({
   return (
     <View style={[styles.ideaCard, width ? { width } : null, style]}>
       <View style={styles.ideaHeader}>
-        <Ionicons name={THEME_ICON[idea.theme]} size={15} color="#C3B1E1" />
+        <Ionicons name={THEME_ICON[idea.theme]} size={15} color="#CBB9C9" />
         <Text style={styles.ideaTheme}>{idea.theme}</Text>
         <Text style={styles.ideaDuration}>{idea.duration}</Text>
       </View>
@@ -80,7 +80,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
             <IdeaCard key={idea.id} idea={idea} />
           ))}
           <View style={styles.lockRow}>
-            <Ionicons name="lock-closed" size={13} color="#948BAC" />
+            <Ionicons name="lock-closed" size={13} color="#A492A6" />
             <Text style={styles.lockText}>
               {DATE_IDEAS.length} ideas across Cozy, Outdoor & Conversational themes
             </Text>
@@ -92,7 +92,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
               onUnlock();
             }}
           >
-            <Ionicons name="sparkles" size={16} color="#0A0817" />
+            <Ionicons name="sparkles" size={16} color="#150F19" />
             <Text style={styles.unlockText}>Unlock Full Date Night Playbook with Lunara Pro</Text>
           </Pressable>
         </View>
@@ -116,7 +116,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
                   <Ionicons
                     name={THEME_ICON[t]}
                     size={13}
-                    color={active ? '#F5F2FB' : '#C0B8D4'}
+                    color={active ? '#F8F1F6' : '#CBB9C9'}
                   />
                   <Text style={[styles.themeChipText, active && styles.themeChipTextActive]}>{t}</Text>
                 </Pressable>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#948BAC',
+    color: '#A492A6',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     paddingLeft: 4,
@@ -167,11 +167,11 @@ const styles = StyleSheet.create({
   previewWrap: { gap: 12 },
 
   ideaCard: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
     padding: 18,
     gap: 8,
   },
@@ -179,46 +179,46 @@ const styles = StyleSheet.create({
   ideaTheme: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
     letterSpacing: 0.3,
     flex: 1,
   },
   ideaDuration: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
   ideaTitle: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
   ideaDesc: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 19,
   },
 
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 4 },
-  lockText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  lockText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
   unlockBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FF9A8B',
+    backgroundColor: '#E8A0B4',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     paddingVertical: 13,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.35)',
+    borderColor: 'rgba(232, 160, 180,0.35)',
   },
   unlockText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#0A0817',
+    color: '#150F19',
     textAlign: 'center',
     flexShrink: 1,
   },
@@ -232,22 +232,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.04)',
   },
   themeChipActive: {
-    borderColor: 'rgba(195,177,225,0.4)',
-    backgroundColor: 'rgba(195,177,225,0.16)',
+    borderColor: 'rgba(248, 241, 246,0.4)',
+    backgroundColor: 'rgba(248, 241, 246,0.16)',
   },
-  themeChipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#C0B8D4' },
-  themeChipTextActive: { color: '#F5F2FB' },
+  themeChipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  themeChipTextActive: { color: '#F8F1F6' },
 
   dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 12 },
   dot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(248, 241, 246,0.15)',
   },
-  dotActive: { backgroundColor: '#C3B1E1' },
+  dotActive: { backgroundColor: '#CBB9C9' },
 });

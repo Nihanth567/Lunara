@@ -16,7 +16,7 @@ export function GlassCard({
   children,
   style,
   innerStyle,
-  borderColor = 'rgba(255,255,255,0.12)',
+  borderColor = 'rgba(248, 241, 246,0.12)',
   intensity = 18,
 }: GlassCardProps) {
   if (Platform.OS === 'ios') {
@@ -46,10 +46,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   iosOverlay: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     flex: 1,
   },
   androidBase: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
   },
 });

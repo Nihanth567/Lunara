@@ -53,30 +53,30 @@ const CONFIG = {
     prompt: 'Something I love about you today...',
     helper: 'Share something specific you appreciated about your partner',
     icon: 'heart-outline' as const,
-    color: '#FF9A8B',
-    borderColor: 'rgba(255,154,139,0.35)',
-    bgColor: 'rgba(255,154,139,0.07)',
-    inputBg: 'rgba(255,154,139,0.05)',
+    color: '#E8A0B4',
+    borderColor: 'rgba(232, 160, 180,0.35)',
+    bgColor: 'rgba(232, 160, 180,0.07)',
+    inputBg: 'rgba(232, 160, 180,0.05)',
   },
   cute: {
     title: 'Cute',
     prompt: 'A moment that made me smile because of you...',
     helper: 'A funny, sweet, or soft moment you noticed or shared',
     icon: 'happy-outline' as const,
-    color: '#C3B1E1',
-    borderColor: 'rgba(195,177,225,0.35)',
-    bgColor: 'rgba(195,177,225,0.07)',
-    inputBg: 'rgba(195,177,225,0.05)',
+    color: '#CBB9C9',
+    borderColor: 'rgba(248, 241, 246,0.35)',
+    bgColor: 'rgba(248, 241, 246,0.07)',
+    inputBg: 'rgba(248, 241, 246,0.05)',
   },
   grow: {
     title: 'Grow',
     prompt: 'One thing we can grow together...',
     helper: 'A gentle, positive thing you would love to try or improve',
     icon: 'trending-up-outline' as const,
-    color: '#A8D8A8',
-    borderColor: 'rgba(168,216,168,0.35)',
-    bgColor: 'rgba(168,216,168,0.07)',
-    inputBg: 'rgba(168,216,168,0.05)',
+    color: '#9BC9A8',
+    borderColor: 'rgba(155, 201, 168,0.35)',
+    bgColor: 'rgba(155, 201, 168,0.07)',
+    inputBg: 'rgba(155, 201, 168,0.05)',
   },
 } as const;
 
@@ -163,8 +163,8 @@ export function RitualCard({
           style={[
             styles.card,
             {
-              borderColor: isExpanded ? config.borderColor : 'rgba(255,255,255,0.08)',
-              backgroundColor: '#1A1730',
+              borderColor: isExpanded ? config.borderColor : 'rgba(248, 241, 246,0.08)',
+              backgroundColor: '#251B2B',
             },
           ]}
         >
@@ -226,9 +226,9 @@ export function RitualCard({
                 value={value}
                 onChangeText={onChange}
                 placeholder={config.prompt}
-                placeholderTextColor="rgba(255,255,255,0.25)"
+                placeholderTextColor="rgba(248, 241, 246,0.25)"
                 multiline
-                style={[styles.input, { color: '#F5F2FB' }]}
+                style={[styles.input, { color: '#F8F1F6' }]}
                 returnKeyType="done"
                 onSubmitEditing={onDone}
                 blurOnSubmit={false}
@@ -246,7 +246,7 @@ export function RitualCard({
                 />
               ) : onVoiceLocked ? (
                 <Pressable onPress={onVoiceLocked} style={styles.voiceLocked}>
-                  <Ionicons name="lock-closed-outline" size={13} color="#948BAC" />
+                  <Ionicons name="lock-closed-outline" size={13} color="#A492A6" />
                   <Text style={styles.voiceLockedText}>Add a voice note with Lunara Pro</Text>
                 </Pressable>
               ) : null}
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(248, 241, 246,0.06)',
   },
   doneText: {
     ...type.label,
@@ -327,8 +327,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.03)',
   },
-  voiceLockedText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#948BAC' },
+  voiceLockedText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#A492A6' },
 });

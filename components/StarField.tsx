@@ -12,14 +12,25 @@ import Animated, {
 const { width, height } = Dimensions.get('window');
 
 // Pre-generate star positions so they stay stable across renders
-const STAR_DATA = Array.from({ length: 50 }, (_, i) => ({
+/*
+ * Was 50 stars at up to 2.6px and 0.6 opacity, twinkling.
+ *
+ * A drifting starfield behind every screen is the other half of the cosmic-app
+ * signature, and it actively fought the type: fine scattered specks sit in the
+ * same visual register as text and make a page look noisy rather than deep.
+ * What remains is 14 stars, sub-pixel-fine, at a fifth of the brightness —
+ * enough that a dark page has some grain and isn't a flat void, not enough for
+ * anyone to identify it as a starfield. If the design later wants no texture at
+ * all, set this to 0 rather than deleting the component.
+ */
+const STAR_DATA = Array.from({ length: 14 }, (_, i) => ({
   id: i,
   x: Math.random() * width,
   y: Math.random() * height * 1.2,
-  size: Math.random() * 2.2 + 0.4,
-  delay: Math.floor(Math.random() * 4000),
-  duration: Math.floor(Math.random() * 2500) + 2000,
-  baseOpacity: Math.random() * 0.5 + 0.1,
+  size: Math.random() * 1.1 + 0.4,
+  delay: Math.floor(Math.random() * 6000),
+  duration: Math.floor(Math.random() * 3500) + 3500,
+  baseOpacity: Math.random() * 0.10 + 0.04,
 }));
 
 /** Individual animated star — own hook, avoids map-inside-hook rule */
@@ -73,6 +84,6 @@ export function StarField() {
 const styles = StyleSheet.create({
   star: {
     position: 'absolute',
-    backgroundColor: '#F5F2FB',
+    backgroundColor: '#F8F1F6',
   },
 });

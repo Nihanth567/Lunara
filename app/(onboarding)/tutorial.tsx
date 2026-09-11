@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,32 +15,27 @@ import {
   formatReminderTime,
 } from '@/services/notifications';
 
-const { width } = Dimensions.get('window');
-
 const STEPS = [
   {
     icon: 'pencil-outline' as const,
-    color: '#FF9A8B',
+    color: '#E8A0B4',
     title: 'Answer privately',
     body: 'Fill in your three cards — Grateful, Cute, Grow. Your partner won\'t see your answers until you both reveal.',
     example: 'e.g. "You made me laugh at the exact right moment today"',
-    image: require('../../assets/images/tutorial-1.jpg'),
   },
   {
     icon: 'time-outline' as const,
-    color: '#C3B1E1',
+    color: '#CBB9C9',
     title: 'Wait for each other',
     body: 'Once you share your answers, you\'ll see when your partner has also shared theirs.',
     example: 'A gentle nudge can be sent if they forget',
-    image: require('../../assets/images/tutorial-2.jpg'),
   },
   {
     icon: 'sparkles-outline' as const,
-    color: '#F0C07A',
+    color: '#E8B98A',
     title: 'Reveal together',
     body: 'When you\'re both ready, tap Reveal — and see what your partner wrote just for you.',
     example: 'A quiet, beautiful moment every night',
-    image: require('../../assets/images/tutorial-3.jpg'),
   },
 ];
 
@@ -96,72 +91,48 @@ export default function TutorialScreen() {
       if (granted) await registerPushToken().catch(() => {});
     }
     setBusy(false);
-    router.push('/(onboarding)/pro-preview');
+    router.push('/(onboarding)/who-pays');
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#221D40', '#0A0817']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#150F19']} style={styles.container}>
       <StarField />
-      <View style={[styles.content, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 44 }]}>
+      <View style={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 28 }]}>
 
-        {/* Step dots */}
+        {/* Progress. Left-aligned with everything else — a centred rail above a
+            left-aligned page is the seam that made this screen look assembled
+            rather than composed. */}
         <View style={styles.dots}>
           {STEPS.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                i === step && styles.dotActive,
-                i < step && styles.dotPast,
-              ]}
-            />
+            <View key={i} style={[styles.dot, i === step && styles.dotActive, i < step && styles.dotPast]} />
           ))}
         </View>
 
-        {/* Main card */}
-         <Animated.View key={step} style={styles.card}>
-           <View style={styles.stepImageFrame}>
-             <Image
-               source={current.image}
-               style={styles.stepImage}
-               resizeMode="cover"
-             />
-           </View>
+        <Animated.View key={step} style={styles.block}>
+          <Text style={styles.eyebrow}>{`Step ${step + 1} of ${STEPS.length}`}</Text>
           <Text style={styles.title}>{current.title}</Text>
           <Text style={styles.body}>{current.body}</Text>
-          <View style={styles.exampleBubble}>
-            <Text style={styles.exampleText}>{current.example}</Text>
+
+          {/* A quote, set against a rule rather than boxed. Three stacked
+              rounded rectangles of near-identical weight is what made the old
+              version read as a template. */}
+          <View style={styles.quote}>
+            <Text style={styles.quoteText}>{current.example}</Text>
           </View>
         </Animated.View>
 
-        {/* Partner greeting for demo mode */}
         {isLast && couple?.isDemoMode && (
-           <Animated.View style={styles.demoGreeting}>
-             <View>
-              <Ionicons name="moon" size={20} color="#C3B1E1" />
-            </View>
-            <View style={styles.demoText}>
-              <Text style={styles.demoName}>Luna is waiting for you</Text>
-              <Text style={styles.demoSub}>She has already shared her thoughts for tonight</Text>
-            </View>
+          <Animated.View style={styles.rule}>
+            <Text style={styles.ruleTitle}>Luna is waiting for you</Text>
+            <Text style={styles.ruleBody}>She has already shared her thoughts for tonight.</Text>
           </Animated.View>
         )}
 
-        {/* Nightly reminder — the trigger half of the habit loop */}
+        {/* The trigger half of the habit loop. A section, not a card. */}
         {isLast && (
-          <Animated.View style={styles.reminderCard}>
-            <View style={styles.reminderHeader}>
-              <Ionicons name="moon-outline" size={16} color="#C3B1E1" />
-              <Text style={styles.reminderTitle}>A gentle nudge each night</Text>
-            </View>
-            {/*
-              The priming, and it has to come before the OS dialog rather than
-              after it. Lunara sends three things and only three, and two of
-              them are the other person — a prompt that arrives cold reads as
-              "this app wants to interrupt you", which on iOS is a decision
-              nobody can take back from inside the app.
-            */}
-            <Text style={styles.reminderWhy}>
+          <Animated.View style={styles.rule}>
+            <Text style={styles.ruleTitle}>A gentle nudge each night</Text>
+            <Text style={styles.ruleBody}>
               Three things, and nothing else: this nightly reminder, a note when
               your partner has shared theirs, and the moment you&apos;re both
               ready to reveal.
@@ -175,10 +146,12 @@ export default function TutorialScreen() {
                 return (
                   <Pressable
                     key={`${hour}:${minute}`}
-                    style={[styles.reminderChip, active && styles.reminderChipActive]}
+                    style={[styles.chip, active && styles.chipActive]}
                     onPress={() => pickTime(hour, minute)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
                   >
-                    <Text style={[styles.reminderChipText, active && styles.reminderChipTextActive]}>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
                       {formatReminderTime(hour, minute)}
                     </Text>
                   </Pressable>
@@ -189,21 +162,19 @@ export default function TutorialScreen() {
               onPress={() =>
                 setNotificationSettings({ ...notificationSettings, enabled: false }).catch(() => {})
               }
+              hitSlop={8}
             >
-              <Text style={styles.reminderSkip}>
+              <Text style={styles.skip}>
                 {notificationSettings.enabled ? 'No reminder, thanks' : 'Reminders are off'}
               </Text>
             </Pressable>
           </Animated.View>
         )}
 
-        {/* Button */}
+        {/* Pushed down by margin rather than by `space-between`, so the content
+            above stays anchored to the top instead of floating in the slack. */}
         <View style={styles.footer}>
-          <LunaraButton
-            title={isLast ? "Let's begin" : 'Next'}
-            onPress={handleNext}
-            loading={busy}
-          />
+          <LunaraButton title={isLast ? "Let's begin" : 'Next'} onPress={handleNext} loading={busy} />
         </View>
       </View>
     </LinearGradient>
@@ -212,140 +183,113 @@ export default function TutorialScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  reminderWhy: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
-    lineHeight: 19,
-  },
-  reminderCard: {
-    width: '100%',
-    gap: 10,
-    backgroundColor: '#1A1730',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    padding: 16,
-    marginBottom: 4,
-  },
-  reminderHeader: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  reminderTitle: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
-  },
-  reminderRow: { flexDirection: 'row', gap: 8 },
-  reminderChip: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
-    alignItems: 'center',
-  },
-  reminderChipActive: {
-    borderColor: 'rgba(195,177,225,0.55)',
-    backgroundColor: 'rgba(195,177,225,0.14)',
-  },
-  reminderChipText: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C0B8D4',
-  },
-  reminderChipTextActive: { color: '#F5F2FB' },
-  reminderSkip: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
-    textAlign: 'center',
-  },
+
+  /*
+   * Was `justifyContent: 'space-between'` with `alignItems: 'center'` over five
+   * children. On the last step that distributed the slack *between* the blocks,
+   * which is what opened ~390pt of void above the title while the content below
+   * it stayed cramped. Content now stacks from the top on a fixed rhythm and
+   * the footer is pushed down on its own.
+   */
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingHorizontal: 26,
+    gap: 22,
   },
-  dots: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+
+  dots: { flexDirection: 'row', gap: 6 },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 5,
+    height: 5,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(248, 241, 246,0.14)',
   },
-  dotActive: { backgroundColor: '#FF9A8B', width: 24 },
-  dotPast: { backgroundColor: 'rgba(255,154,139,0.4)' },
-  card: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 18,
-    paddingHorizontal: 8,
+  dotActive: { backgroundColor: '#E8A0B4', width: 18 },
+  dotPast: { backgroundColor: 'rgba(232, 160, 180,0.35)' },
+
+  block: { gap: 14 },
+  eyebrow: {
+    fontSize: 12,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#A492A6',
   },
-  stepImageFrame: {
-    width: '100%',
-    height: 200,
-    borderRadius: radius.md,
-    borderCurve: 'continuous',
-    overflow: 'hidden',
-  },
-  stepImage: { width: '100%', height: '100%' },
   title: {
-    fontSize: 28,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -0.8,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
-    textAlign: 'center',
+    color: '#F8F1F6',
   },
   body: {
     fontSize: 16,
+    lineHeight: 25,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
-    textAlign: 'center',
+    color: '#CBB9C9',
+    maxWidth: 340,
+  },
+
+  /* A rule and an indent. No fill, no border box, no radius. */
+  quote: {
+    borderLeftWidth: 1,
+    borderLeftColor: '#42304A',
+    paddingLeft: 14,
+    marginTop: 2,
+  },
+  quoteText: {
+    fontSize: 16,
     lineHeight: 26,
+    fontFamily: 'Fraunces_400Regular',
+    color: '#CBB9C9',
   },
-  exampleBubble: {
-     backgroundColor: '#1A1730',
-     borderRadius: radius.lg,
-     borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.09)',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+
+  /* Sections divide with a hairline instead of floating as tinted cards. */
+  rule: {
+    gap: 8,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#42304A',
   },
-  exampleText: {
+  ruleTitle: {
+    fontSize: 16,
+    fontFamily: 'PlusJakartaSans_600SemiBold',
+    color: '#F8F1F6',
+  },
+  ruleBody: {
     fontSize: 14,
+    lineHeight: 21,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C3B1E1',
-    textAlign: 'center',
-    lineHeight: 20,
-    fontStyle: 'italic',
+    color: '#A492A6',
   },
-  demoGreeting: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(195,177,225,0.1)',
-    borderRadius: radius.lg,
+
+  reminderRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  chip: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: radius.sm,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.2)',
-    padding: 16,
-    marginBottom: 8,
-    width: '100%',
+    borderColor: '#42304A',
+    alignItems: 'center',
   },
-  demoText: { flex: 1, gap: 2 },
-  demoName: {
+  /* Selection reads through the one accent, not a second hue. */
+  chipActive: {
+    borderColor: '#E8A0B4',
+    backgroundColor: 'rgba(232, 160, 180,0.10)',
+  },
+  chipText: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F5F2FB',
+    fontFamily: 'PlusJakartaSans_500Medium',
+    color: '#CBB9C9',
   },
-  demoSub: {
-    fontSize: 12,
+  chipTextActive: { color: '#F8F1F6' },
+  skip: {
+    fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#A492A6',
+    paddingTop: 2,
   },
-  footer: { width: '100%' },
+
+  footer: { marginTop: 'auto', paddingTop: 8 },
 });

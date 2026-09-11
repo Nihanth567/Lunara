@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,13 +7,27 @@ import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
-import { LunaraButton } from '@/components/LunaraButton';
 import { useApp, type RemoteAccountState } from '@/context/AppContext';
 import { isGoogleSignInConfigured } from '@/lib/googleSignIn';
-import { supabase } from '@/lib/supabase';
-import { radius } from '@/constants/tokens';
+import { gradients, palette } from '@/constants/colors';
+import { radius, space } from '@/constants/tokens';
+import { type as text } from '@/constants/typography';
 
-type AuthMode = 'choose' | 'phone' | 'phone-otp' | 'email';
+/**
+ * Sign in — Apple and Google, and nothing else.
+ *
+ * This screen used to offer four ways in: Apple, Google, phone OTP and
+ * email/password. Four is not generosity, it is a decision handed to someone
+ * who has been in the app for less than a minute, and each extra route is a
+ * separate account that can end up being the "wrong" one when the same person
+ * reinstalls and picks differently. Two federated providers cover effectively
+ * everyone on both platforms, neither needs a password, and both return a
+ * verified identity — so pairing can trust it.
+ *
+ * Removing phone and email also removed the app's only unverified-identity
+ * path, which is what made `signUpWithEmail`'s "check your email to confirm"
+ * dead-end state necessary in the first place.
+ */
 
 /**
  * Where a successful sign-in lands.
@@ -49,20 +63,9 @@ export default function AuthScreen() {
   const {
     signInWithApple,
     signInWithGoogle,
-    sendPhoneOtp,
-    verifyPhoneOtp,
-    signUpWithEmail,
-    signInWithEmail,
     refreshSharedState,
     completeOnboarding,
   } = useApp();
-  const [mode, setMode] = useState<AuthMode>('choose');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [emailIsSignUp, setEmailIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailNotice, setEmailNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleApple = async () => {
@@ -80,9 +83,6 @@ export default function AuthScreen() {
     }
   };
 
-  // Hidden rather than shown-and-broken when the build has no Google client id.
-  const googleAvailable = isGoogleSignInConfigured();
-
   const handleGoogle = async () => {
     setLoading(true);
     try {
@@ -98,229 +98,58 @@ export default function AuthScreen() {
     }
   };
 
-  const handleSendOtp = async () => {
-    if (phone.trim().length < 8) return;
-    setLoading(true);
-    try {
-      await sendPhoneOtp(phone.trim());
-      setMode('phone-otp');
-    } catch (error: any) {
-      Alert.alert('Could not send code', error?.message ?? 'Please check the number and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (otp.trim().length < 4) return;
-    setLoading(true);
-    try {
-      await verifyPhoneOtp(phone.trim(), otp.trim());
-      const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding);
-    } catch (error: any) {
-      Alert.alert('Could not verify code', error?.message ?? 'Please check the code and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSubmit = async () => {
-    if (email.trim().length < 5 || password.length < 6) return;
-    setLoading(true);
-    setEmailNotice('');
-    try {
-      if (emailIsSignUp) {
-        await signUpWithEmail(email.trim(), password);
-        // If email confirmations are on, Supabase won't return a session yet —
-        // guide them to confirm and come back to sign in rather than looking stuck.
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) {
-          setEmailNotice('Almost there — check your email to confirm your account, then sign in.');
-          setEmailIsSignUp(false);
-          setLoading(false);
-          return;
-        }
-      } else {
-        await signInWithEmail(email.trim(), password);
-      }
-      const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding);
-    } catch (error: any) {
-      Alert.alert(
-        emailIsSignUp ? 'Could not create your account' : 'Could not sign in',
-        error?.message ?? 'Please check your details and try again.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDemoSignIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/(onboarding)/pairing');
   };
 
-  if (mode === 'phone' || mode === 'phone-otp') {
-    return (
-      <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
-        <StarField />
-        <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }]}>
-          <Pressable
-            onPress={() => setMode(mode === 'phone-otp' ? 'phone' : 'choose')}
-            style={styles.backBtn}
-          >
-            <Ionicons name="arrow-back" size={22} color="#C0B8D4" />
-          </Pressable>
-
-          {mode === 'phone' ? (
-            <Animated.View style={styles.phoneSection}>
-              <Text style={styles.title}>Enter your phone number</Text>
-              <Text style={styles.subtitle}>
-                We'll text you a one-time code to sign in — no password needed.
-              </Text>
-              <TextInput
-                style={styles.phoneInput}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+1 (555) 000-0000"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-                keyboardType="phone-pad"
-                autoFocus
-              />
-              <LunaraButton
-                title="Send code"
-                onPress={handleSendOtp}
-                loading={loading}
-                disabled={phone.trim().length < 8}
-              />
-            </Animated.View>
-          ) : (
-            <Animated.View style={styles.phoneSection}>
-              <Text style={styles.title}>Enter the code</Text>
-              <Text style={styles.subtitle}>We sent a code to {phone}</Text>
-              <TextInput
-                style={[styles.phoneInput, styles.otpInput]}
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="000000"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-                keyboardType="number-pad"
-                maxLength={8}
-                autoFocus
-              />
-              <LunaraButton
-                title="Verify & continue"
-                onPress={handleVerifyOtp}
-                loading={loading}
-                disabled={otp.trim().length < 4}
-              />
-              <Pressable onPress={handleSendOtp} style={styles.resendBtn} disabled={loading}>
-                <Text style={styles.resendText}>Resend code</Text>
-              </Pressable>
-            </Animated.View>
-          )}
-        </View>
-      </LinearGradient>
-    );
-  }
-
-  if (mode === 'email') {
-    return (
-      <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
-        <StarField />
-        <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 40 }]}>
-          <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#C0B8D4" />
-          </Pressable>
-
-          <Animated.View style={styles.phoneSection}>
-            <Text style={styles.title}>{emailIsSignUp ? 'Create your account' : 'Welcome back'}</Text>
-            <Text style={styles.subtitle}>
-              {emailIsSignUp
-                ? 'A place just for the two of you — set a password to keep it yours.'
-                : 'Sign in with the email and password you set up before.'}
-            </Text>
-
-            {!!emailNotice && <Text style={styles.emailNotice}>{emailNotice}</Text>}
-
-            <TextInput
-              style={styles.phoneInput}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="you@example.com"
-              placeholderTextColor="rgba(255,255,255,0.25)"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoFocus
-            />
-            <TextInput
-              style={styles.phoneInput}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password (6+ characters)"
-              placeholderTextColor="rgba(255,255,255,0.25)"
-              secureTextEntry
-              autoCapitalize="none"
-            />
-            <LunaraButton
-              title={emailIsSignUp ? 'Create account' : 'Sign in'}
-              onPress={handleEmailSubmit}
-              loading={loading}
-              disabled={email.trim().length < 5 || password.length < 6}
-            />
-            <Pressable
-              onPress={() => {
-                setEmailIsSignUp((v) => !v);
-                setEmailNotice('');
-              }}
-              style={styles.resendBtn}
-              disabled={loading}
-            >
-              <Text style={styles.resendText}>
-                {emailIsSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </LinearGradient>
-    );
-  }
+  // Hidden rather than shown-and-broken when the build has no Google client id.
+  const googleAvailable = isGoogleSignInConfigured();
+  const appleAvailable = Platform.OS === 'ios';
+  // With phone and email gone this is a dead end rather than a degraded screen,
+  // so it says so instead of rendering an empty box.
+  const noProviders = !googleAvailable && !appleAvailable;
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient
+      colors={gradients.screen}
+      locations={gradients.screenLocations}
+      style={styles.container}
+    >
       <StarField />
-      <View style={[styles.content, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 }]}>
+      <View
+        style={[
+          styles.content,
+          { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 },
+        ]}
+      >
         <Animated.View style={styles.header}>
           <Text style={styles.title}>Welcome to Lunara</Text>
-          <Text style={styles.subtitle}>Sign in to keep your Lunara memories safe and in sync</Text>
+          <Text style={styles.subtitle}>
+            One tap, and everything the two of you share stays in sync.
+          </Text>
         </Animated.View>
 
         <Animated.View style={styles.authOptions}>
-          {Platform.OS === 'ios' && (
+          {appleAvailable && (
             <Pressable style={styles.authButton} onPress={handleApple} disabled={loading}>
-              <Ionicons name="logo-apple" size={22} color="#F5F2FB" />
+              <Ionicons name="logo-apple" size={22} color={palette.content[0]} />
               <Text style={styles.authButtonText}>Continue with Apple</Text>
             </Pressable>
           )}
 
           {googleAvailable && (
             <Pressable style={styles.authButton} onPress={handleGoogle} disabled={loading}>
-              <Ionicons name="logo-google" size={20} color="#F5F2FB" />
+              <Ionicons name="logo-google" size={20} color={palette.content[0]} />
               <Text style={styles.authButtonText}>Continue with Google</Text>
             </Pressable>
           )}
 
-          <Pressable style={styles.authButton} onPress={() => setMode('phone')} disabled={loading}>
-            <Ionicons name="call-outline" size={20} color="#F5F2FB" />
-            <Text style={styles.authButtonText}>Continue with phone</Text>
-          </Pressable>
-
-          <Pressable style={styles.authButton} onPress={() => setMode('email')} disabled={loading}>
-            <Ionicons name="mail-outline" size={20} color="#F5F2FB" />
-            <Text style={styles.authButtonText}>Continue with email</Text>
-          </Pressable>
+          {noProviders && (
+            <Text style={styles.unavailable}>
+              Sign-in isn’t available in this build. Try the demo below.
+            </Text>
+          )}
         </Animated.View>
 
         <Animated.View style={styles.demoSection}>
@@ -330,10 +159,10 @@ export default function AuthScreen() {
             <View style={styles.dividerLine} />
           </View>
           <Pressable onPress={handleDemoSignIn} style={styles.demoBtn}>
-            <Text style={styles.demoBtnText}>Try in demo mode</Text>
+            <Text style={styles.demoBtnText}>Look around first</Text>
           </Pressable>
           <Text style={styles.demoNote}>
-            Explore with a simulated partner — no account needed
+            Explore with a stand-in partner — nothing saved, no account
           </Text>
         </Animated.View>
 
@@ -357,107 +186,45 @@ export default function AuthScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 26, gap: 28 },
-  backBtn: { alignSelf: 'flex-start', padding: 4 },
-  phoneSection: { flex: 1, gap: 16 },
-  header: { gap: 8 },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
-    lineHeight: 38,
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
-    lineHeight: 22,
-  },
-  authOptions: { gap: 12 },
+  content: { flex: 1, paddingHorizontal: 26, gap: space.xl },
+  header: { gap: space.sm },
+  title: { ...text.title, color: palette.content[0] },
+  subtitle: { ...text.callout, color: palette.content[1], lineHeight: 22 },
+
+  authOptions: { gap: space.md },
   authButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#1A1730',
+    gap: space.md,
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    paddingVertical: 16,
+    borderColor: 'rgba(248, 241, 246, 0.12)',
+    paddingVertical: space.lg,
     paddingHorizontal: 20,
   },
-  authButtonText: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F5F2FB',
-  },
-  phoneInput: {
-    backgroundColor: '#121024',
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    fontSize: 22,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#F5F2FB',
-    letterSpacing: 1,
-  },
-  otpInput: {
+  authButtonText: { ...text.label, color: palette.content[0] },
+  unavailable: {
+    ...text.callout,
+    color: palette.content[2],
     textAlign: 'center',
-    fontSize: 28,
-    letterSpacing: 8,
+    lineHeight: 21,
   },
-  resendBtn: { alignItems: 'center', paddingVertical: 8 },
-  resendText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
-  emailNotice: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A8D8A8',
-    lineHeight: 19,
-    backgroundColor: 'rgba(168,216,168,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(168,216,168,0.2)',
-    borderRadius: radius.sm,
-    padding: 12,
-  },
-  demoSection: { gap: 10 },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
-  dividerText: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
-  },
-  demoBtn: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  demoBtnText: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C3B1E1',
-  },
-  demoNote: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
-    textAlign: 'center',
-  },
+
+  demoSection: { gap: space.sm },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(248, 241, 246, 0.08)' },
+  dividerText: { ...text.caption, color: palette.content[2] },
+  demoBtn: { alignItems: 'center', paddingVertical: 10 },
+  demoBtnText: { ...text.label, color: palette.content[1] },
+  demoNote: { ...text.caption, color: palette.content[2], textAlign: 'center' },
+
   legal: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    ...text.caption,
+    color: palette.content[2],
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 17,
   },
-  legalLink: {
-    color: '#C0B8D4',
-    textDecorationLine: 'underline',
-  },
+  legalLink: { color: palette.content[1], textDecorationLine: 'underline' },
 });

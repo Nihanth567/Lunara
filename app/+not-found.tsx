@@ -9,13 +9,13 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <LinearGradient
-        colors={['#0A0817', '#141127', '#221D40', '#141127', '#0A0817']}
+        colors={['#150F19', '#1B1421', '#251B2B', '#1B1421', '#150F19']}
         locations={[0, 0.3, 0.55, 0.8, 1]}
         style={styles.container}
       >
         <StarField />
         <View style={styles.content}>
-          <Ionicons name="moon-outline" size={30} color="#C3B1E1" />
+          <Ionicons name="moon-outline" size={30} color="#CBB9C9" />
           <Text style={styles.title}>This page drifted off somewhere</Text>
           <Text style={styles.body}>
             Whatever you were looking for isn’t here — but Lunara is, right where you left it.
@@ -41,14 +41,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 21,
   },
@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
   },
 });

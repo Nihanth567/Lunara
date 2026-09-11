@@ -46,11 +46,11 @@ export default function WhoPayScreen() {
   const handleContinue = async () => {
     if (!selected) return;
     await setWhoPays(selected);
-    router.push('/(onboarding)/auth');
+    router.push('/(onboarding)/pro-preview');
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -82,7 +82,7 @@ export default function WhoPayScreen() {
                 <Ionicons
                   name={opt.icon}
                   size={20}
-                  color={selected === opt.key ? '#FF9A8B' : '#C0B8D4'}
+                  color={selected === opt.key ? '#E8A0B4' : '#CBB9C9'}
                 />
               </View>
               <View style={styles.optionText}>
@@ -92,7 +92,7 @@ export default function WhoPayScreen() {
                 <Text style={styles.optionSub}>{opt.sub}</Text>
               </View>
               {selected === opt.key && (
-                <Ionicons name="checkmark-circle" size={22} color="#FF9A8B" />
+                <Ionicons name="checkmark-circle" size={22} color="#E8A0B4" />
               )}
             </Pressable>
           ))}
@@ -117,20 +117,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#FF9A8B',
+    color: '#E8A0B4',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 21,
   },
   options: { gap: 12, marginBottom: 32 },
@@ -142,12 +142,12 @@ const styles = StyleSheet.create({
      borderCurve: 'continuous',
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-     backgroundColor: '#1A1730',
+    borderColor: 'rgba(248, 241, 246,0.1)',
+     backgroundColor: '#251B2B',
   },
   optionSelected: {
-    borderColor: 'rgba(255,154,139,0.45)',
-    backgroundColor: 'rgba(255,154,139,0.08)',
+    borderColor: 'rgba(232, 160, 180,0.45)',
+    backgroundColor: 'rgba(232, 160, 180,0.08)',
   },
    optionIcon: {},
    optionIconSelected: {},
@@ -155,13 +155,13 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
   },
-  optionLabelSelected: { color: '#F5F2FB' },
+  optionLabelSelected: { color: '#F8F1F6' },
   optionSub: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
   },
   footer: {},
 });

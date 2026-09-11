@@ -13,7 +13,7 @@ import { useApp } from '@/context/AppContext';
 import { partnerLabel } from '@/lib/partner';
 import { radius } from '@/constants/tokens';
 
-const ACCENTS = ['#FF9A8B', '#C3B1E1', '#A8D8A8', '#F0C07A', '#A5C8FF'];
+const ACCENTS = ['#E8A0B4', '#CBB9C9', '#9BC9A8', '#E8B98A', '#A5C8FF'];
 
 function QuestionCard({
   index,
@@ -83,7 +83,7 @@ function QuestionCard({
             value={draft}
             onChangeText={setDraft}
             placeholder="Take your time..."
-            placeholderTextColor="rgba(255,255,255,0.25)"
+            placeholderTextColor="rgba(248, 241, 246,0.25)"
             multiline
             style={styles.input}
             autoFocus
@@ -118,7 +118,7 @@ function QuestionCard({
             </View>
           ) : (
             <View style={styles.waitingRow}>
-              <Ionicons name="moon-outline" size={14} color="#948BAC" />
+              <Ionicons name="moon-outline" size={14} color="#A492A6" />
               <Text style={styles.waitingText}>
                 Kept safe until {partnerName} answers this one too
               </Text>
@@ -151,11 +151,11 @@ export default function KeepsakesScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
       <StarField />
       {!isIntro && (
         <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color="#C0B8D4" />
+          <Ionicons name="close" size={22} color="#CBB9C9" />
         </Pressable>
       )}
 
@@ -164,7 +164,7 @@ export default function KeepsakesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Ionicons name="heart-outline" size={24} color="#FF9A8B" />
+          <Ionicons name="heart-outline" size={24} color="#E8A0B4" />
           <Text style={styles.title}>Your Keepsake</Text>
           <Text style={styles.subtitle}>
             {isIntro
@@ -227,23 +227,23 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: { paddingHorizontal: 22, gap: 28 },
   header: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F5F2FB' },
+  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6' },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 21,
   },
   questions: { gap: 14 },
   card: {
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
@@ -252,38 +252,38 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardPrompt: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', lineHeight: 21 },
-  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC', lineHeight: 17 },
+  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', lineHeight: 17 },
   answerPrompt: { gap: 6 },
   answerPromptText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium' },
   editArea: { gap: 10 },
   input: {
-    backgroundColor: '#121024',
+    backgroundColor: '#1C1421',
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(248, 241, 246,0.1)',
     padding: 14,
     minHeight: 90,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlignVertical: 'top',
     paddingTop: Platform.OS === 'android' ? 14 : 14,
   },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, alignItems: 'center' },
   cancelBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
   saveBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.lg },
-  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#0A0817' },
+  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#150F19' },
   answersStack: { gap: 12 },
   answerBlock: { gap: 4 },
   answerMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#948BAC', textTransform: 'uppercase', letterSpacing: 0.5 },
+  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#A492A6', textTransform: 'uppercase', letterSpacing: 0.5 },
   editLink: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
-  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#DCD1EF', lineHeight: 21 },
+  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC', flex: 1, lineHeight: 17 },
+  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', flex: 1, lineHeight: 17 },
   footer: { gap: 12, alignItems: 'center' },
-  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
   skipBtn: { paddingVertical: 6 },
-  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#948BAC' },
+  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
 });

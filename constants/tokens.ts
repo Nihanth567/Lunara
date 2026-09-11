@@ -17,18 +17,29 @@ import { Platform, type ViewStyle } from 'react-native';
  */
 export const radius = {
   /** Progress bars, tiny indicators, the stripe down a reveal card. */
-  xs: 3,
+  xs: 2,
   /** Chips, badges, inline tags. */
-  sm: 8,
+  sm: 6,
   /** Inputs, list rows, secondary buttons. */
-  md: 14,
+  md: 10,
   /** Cards and primary buttons — the workhorse. */
-  lg: 20,
+  lg: 14,
   /** Sheets, modals, and the largest hero surfaces. */
-  xl: 28,
+  xl: 20,
   /** Avatars, icon wells, anything genuinely circular. */
   full: 9999,
 } as const;
+
+/*
+ * These were 3 / 8 / 14 / 20 / 28. Every step came down by roughly a third.
+ *
+ * Heavy rounding is soft, friendly and — at 20pt on every card plus full pills
+ * on every button — indistinguishable from every other generated app. A
+ * restrained, type-led interface wants corners that are clearly deliberate and
+ * clearly not the default: enough to avoid looking like a raw rectangle,
+ * not enough to become the thing you notice. Pills are now reserved for
+ * genuinely pill-shaped things (chips, badges), never for primary buttons.
+ */
 
 /**
  * A 4pt rhythm. Macro spacing (`xl` and up) is deliberately generous: the

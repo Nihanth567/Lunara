@@ -51,7 +51,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <LinearGradient colors={['#0A0817', '#141127', '#23203D']} style={styles.container}>
+    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
       <StarField />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -82,7 +82,7 @@ export default function ProfileSetupScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g. Alex, Mia, Sunshine..."
-                placeholderTextColor="rgba(255,255,255,0.22)"
+                placeholderTextColor="rgba(248, 241, 246,0.22)"
                 autoCapitalize="words"
                 autoCorrect={false}
                 maxLength={24}
@@ -98,7 +98,7 @@ export default function ProfileSetupScreen() {
                 value={birthday}
                 onChangeText={setBirthday}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="rgba(255,255,255,0.22)"
+                placeholderTextColor="rgba(248, 241, 246,0.22)"
                 keyboardType="numbers-and-punctuation"
                 maxLength={10}
               />
@@ -152,20 +152,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#FF9A8B',
+    color: '#E8A0B4',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     lineHeight: 22,
   },
   form: { gap: 20 },
@@ -173,30 +173,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
   },
   fieldNote: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     lineHeight: 16,
     marginBottom: 2,
   },
   input: {
-     backgroundColor: '#1A1730',
+     backgroundColor: '#251B2B',
      borderRadius: radius.lg,
      borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(248, 241, 246,0.1)',
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
   inputFilled: {
-    borderColor: 'rgba(255,154,139,0.35)',
-    backgroundColor: 'rgba(255,154,139,0.07)',
+    borderColor: 'rgba(232, 160, 180,0.35)',
+    backgroundColor: 'rgba(232, 160, 180,0.07)',
   },
   pronounsGrid: {
     flexDirection: 'row',
@@ -206,22 +206,22 @@ const styles = StyleSheet.create({
   pronounPill: {
      borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(248, 241, 246,0.12)',
     paddingVertical: 7,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(248, 241, 246,0.05)',
   },
   pronounPillActive: {
-    borderColor: 'rgba(195,177,225,0.5)',
-    backgroundColor: 'rgba(195,177,225,0.12)',
+    borderColor: 'rgba(248, 241, 246,0.5)',
+    backgroundColor: 'rgba(248, 241, 246,0.12)',
   },
   pronounText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
   },
   pronounTextActive: {
-    color: '#C3B1E1',
+    color: '#CBB9C9',
     fontFamily: 'PlusJakartaSans_500Medium',
   },
 });

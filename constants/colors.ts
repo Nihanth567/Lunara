@@ -1,199 +1,195 @@
 import { radius } from './tokens';
 
 /**
- * Lunara's colour system.
+ * Lunara's colour system — dark, warm, romantic.
  *
- * ─── What was wrong ──────────────────────────────────────────────────────────
+ * ─── What changed, and why ───────────────────────────────────────────────────
  *
- * The old palette had six near-blacks that were not a ramp: `#1E1B3A` sat at
- * hue 254 while `#24243E` sat at 240, so two values a step apart in the UI
- * belonged to different hue families. Three "levels" of secondary text measured
- * 5.30, 4.99 and 4.61 against their own surfaces — a 0.7 spread, which the eye
- * reads as one flat tone rather than a hierarchy. And `#7A6D98`, documented as
- * the muted token, failed WCAG AA on every surface in the app (3.25:1 at worst).
+ * The previous ground was a near-neutral black (hue 240 at 9% saturation),
+ * chosen to get away from the over-reproduced saturated-indigo "cosmic" look.
+ * It succeeded at that and overshot: a product two people write to each other
+ * in at 11pm read as a developer tool. Neutral is not the same as tasteful.
  *
- * Four pastel accents — coral, lavender, sage, amber — all sat at roughly the
- * same lightness and chroma, so nothing dominated and everything competed.
+ * This ground keeps the restraint — chroma stays low, type and space still
+ * carry the hierarchy — but moves the hue to **plum/mauve (~290°)** and warms
+ * the whites. It reads as candlelight rather than as a terminal, without
+ * becoming the purple gradient wash that started this.
  *
- * ─── The system ──────────────────────────────────────────────────────────────
+ * ─── The rules ───────────────────────────────────────────────────────────────
  *
- * One hue family for every neutral (246–248°), with chroma *tapering* as the
- * ramp lightens (48% → 29%). Saturated darks and desaturated lights is what
- * keeps a dark interface from going muddy; the reverse is the single most
- * common way a dark theme looks amateur.
+ * Pastels, but *deepened*. Every accent here is a soft pastel pulled down in
+ * lightness until it can sit on a dark ground without glowing. A pastel at full
+ * lightness on near-black is a highlighter; at these values it reads as blush,
+ * which is the intent.
  *
- * Lightness steps are even by measurement, not by eye: ΔL* of +4.1, +3.7, +4.3,
- * +4.9. Text is three genuinely separated tiers — 15.7:1, 9.1:1, 5.4:1 — so
- * hierarchy is carried by contrast rather than by size alone.
+ * Accents have rank.
+ *   · `rose` is the only colour that means "act on this".
+ *   · `lilac` is brand and ambience — never an action.
+ *   · `mint` and `peach` are strictly semantic (done, streak), never decorative.
+ *   · `blush` is a tint for fills and glows, not a text colour.
  *
- * Accents keep their hues (a logo is being drawn against them) but gain tonal
- * steps and, more importantly, *rank*: coral is the only colour allowed to mean
- * "act on this", lavender carries brand and ambience, and sage and amber are
- * strictly semantic — a state, never a decoration.
+ * Partner colours are a *pair*, not two picks. `partnerA` / `partnerB` are the
+ * "each person gets their own colour" identity in the shared list, chosen to
+ * stay distinguishable for the most common colour-vision deficiencies — they
+ * differ in lightness as well as hue, so a checkmark is never identified by
+ * hue alone.
+ *
+ * Contrast is verified, not eyeballed. Every text tier clears WCAG AA on every
+ * surface it can land on; the worst case in the system is 5.07:1 (`content[2]`
+ * on `ink[3]`). `roseDeep` is the one value below AA — it is a fill and border
+ * colour only and must never carry small text.
  */
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 /**
- * The neutral ramp. One hue, even perceptual steps, chroma falling as it rises.
- * Nothing in the app should introduce a sixth near-black.
+ * Five surfaces. Hue held at ~290 with chroma tapering as the ramp lightens.
+ * Steps are tight at the bottom and open as they rise, which is how a dark ramp
+ * separates surfaces without banding.
  */
 const ink = {
-  /** The page itself. */
-  0: '#0A0817',
-  /** Recessed wells, inputs, the track behind a progress bar. */
-  1: '#121024',
-  /** Cards and sheets — the workhorse surface. */
-  2: '#1A1730',
-  /** A card raised above another card. */
-  3: '#23203D',
-  /** Hairlines, dividers, and the top of the ramp. */
-  4: '#2E2A4C',
+  /** The page. */
+  0: '#150F19',
+  /** Recessed wells, inputs, progress tracks. */
+  1: '#1C1421',
+  /** Cards and sheets. */
+  2: '#251B2B',
+  /** A surface raised above another surface. */
+  3: '#312338',
+  /** Hairlines and dividers — the top of the ramp. */
+  4: '#42304A',
 } as const;
 
 /**
- * Text, in three tiers that are actually distinguishable: 15.7:1, 9.1:1 and
- * 5.4:1 on `ink[2]`. Every tier clears WCAG AA for body copy on every surface
- * in the ramp — the worst case in the whole system is 4.87:1.
+ * Three tiers, warm-white rather than blue-white so the page reads soft.
+ * 14.88 / 8.91 / 5.70 on the card surface — separated enough that hierarchy
+ * survives without reaching for a fourth tier.
  */
 const content = {
-  /** Headlines, the couple's own words, anything that must be read. */
-  0: '#F5F2FB',
-  /** Supporting copy, captions that still carry meaning. */
-  1: '#C0B8D4',
-  /** Timestamps, stat labels, legal — present but never competing. */
-  2: '#948BAC',
+  0: '#F8F1F6',
+  1: '#CBB9C9',
+  2: '#A492A6',
 } as const;
 
 /**
- * Accents. Hues preserved from the original brand; values re-cut so they can be
- * used at more than one weight without every surface turning pastel.
+ * The accents.
+ *
+ * `rose` replaces coral as the primary. Coral was chosen when the palette was
+ * neutral and needed one warm anchor; against a plum ground it turns muddy
+ * orange. Rose is the same warmth re-tuned to the new hue family.
  */
 const accent = {
-  /** Action. The only colour that means "tap this". */
-  coral: '#FF9A8B',
-  coralDeep: '#E8705E',
-  coralSoft: '#FFC4B8',
+  /** The single action colour. */
+  rose: '#E8A0B4',
+  /** Fills, borders, pressed states. Below AA — never small text. */
+  roseDeep: '#C4718A',
+  /** Tints and glows. */
+  blush: '#F2C4CE',
+  /** Brand and ambience. Never an action. */
+  lilac: '#B9A5E3',
+  /** Semantic only: complete. */
+  mint: '#9BC9A8',
+  /** Semantic only: a live streak. */
+  peach: '#E8B98A',
+  /** Semantic only: destructive. */
+  danger: '#E27A85',
+} as const;
 
-  /** Brand and ambience — the moon, the companion, anything atmospheric. */
-  lavender: '#C3B1E1',
-  lavenderDeep: '#9B85C9',
-  lavenderSoft: '#DCD1EF',
-
-  /** Semantic only: completion, growth, a night that landed. */
-  sage: '#A8D8A8',
-  /** Semantic only: a streak, a thing currently lit. Richer than the old
-   *  #FFD6A5, which was pale enough to read as disabled. */
-  amber: '#F0C07A',
-
-  /** Semantic only: destructive. Never used decoratively. */
-  danger: '#F2716B',
+/**
+ * The two people. Distinguished by lightness as well as hue so the list stays
+ * readable without relying on colour perception alone.
+ */
+const partners = {
+  /** Whoever is holding the phone. */
+  a: '#E8A0B4',
+  /** The other one. */
+  b: '#8FC5DE',
 } as const;
 
 // ─── Gradients ────────────────────────────────────────────────────────────────
 
 /**
- * The app background, defined once.
- *
- * It used to be written inline in twelve files with four different stop
- * combinations, so "the Lunara background" was not one thing. It is now.
- *
- * The old mid-stop was `#302B63`, the bloom from a stock CSS gradient that
- * ships in a thousand generated apps and is recognisable on sight. This one is
- * built from the ramp itself: the lift in the middle is our own `ink[3]` pushed
- * slightly toward the lavender the brand already owns, so the background and
- * the surfaces on top of it are demonstrably the same family.
+ * Shaping, not decoration. These stops sit within a ramp step of each other, so
+ * a tall screen gets a barely perceptible lift toward its centre and nothing
+ * that reads as a "gradient background".
  */
 export const gradients = {
-  /** Full-screen app background. Symmetric, so scroll never reveals a seam. */
-  screen: ['#0A0817', '#141127', '#221D40', '#141127', '#0A0817'] as const,
-  screenLocations: [0, 0.28, 0.5, 0.72, 1] as const,
-  /** Shorter surfaces — sheets, empty states, anything under ~500pt. */
-  panel: ['#0A0817', '#1A1730', '#221D40'] as const,
-  /** The reveal: warms toward the top, because that screen is the payoff. */
-  reveal: ['#0A0817', '#171331', '#241C43', '#1A1730'] as const,
-  revealLocations: [0, 0.3, 0.62, 1] as const,
+  screen: ['#150F19', '#1B1421', '#150F19'] as const,
+  screenLocations: [0, 0.5, 1] as const,
+  panel: ['#150F19', '#1C1421', '#150F19'] as const,
+  /** The reveal earns the one visible gradient in the app, and it is still slight. */
+  reveal: ['#150F19', '#221830', '#1A1222'] as const,
+  revealLocations: [0, 0.55, 1] as const,
 } as const;
 
 // ─── Semantic tokens ──────────────────────────────────────────────────────────
 
 const tokens = {
-  // Backgrounds
   background: ink[0],
-  backgroundMid: '#141127',
-  backgroundDeep: ink[3],
+  backgroundMid: '#1B1421',
+  backgroundDeep: ink[1],
 
-  // Surfaces
   surface: ink[2],
   surfaceSunk: ink[1],
   surfaceHigh: ink[3],
   card: ink[2],
   cardStrong: ink[3],
   cardForeground: content[0],
-  /** Hairline on a card. Low enough to divide, not to outline. */
-  cardBorder: 'rgba(255,255,255,0.09)',
+  cardBorder: 'rgba(248,241,246,0.08)',
 
-  // Typography
   foreground: content[0],
   text: content[0],
   textSecondary: content[1],
   muted: ink[1],
   mutedForeground: content[2],
 
-  /**
-   * Copy set directly on a coloured card (the ritual prompts). Alpha rather
-   * than a flat value so it composites correctly over coral, lavender or sage.
-   */
-  onCardMuted: 'rgba(255,255,255,0.58)',
-  onCardBody: 'rgba(255,255,255,0.84)',
+  onCardMuted: 'rgba(248,241,246,0.55)',
+  onCardBody: 'rgba(248,241,246,0.86)',
 
-  // Accents
-  primary: accent.coral,
-  primaryDeep: accent.coralDeep,
-  primarySoft: accent.coralSoft,
-  /** Label on a coral fill — 9.67:1. */
+  primary: accent.rose,
+  primaryDeep: accent.roseDeep,
+  primarySoft: accent.blush,
+  /** Label on a rose fill — 9.08:1. */
   primaryForeground: ink[0],
-  primaryGlow: accent.coralSoft,
+  primaryGlow: accent.blush,
 
-  secondary: accent.lavender,
-  secondaryDeep: accent.lavenderDeep,
-  secondarySoft: accent.lavenderSoft,
+  /** "Secondary" is a neutral, not a second brand hue. */
+  secondary: content[1],
+  secondaryDeep: content[2],
+  secondarySoft: content[0],
   secondaryForeground: ink[0],
 
-  accent: accent.lavender,
+  accent: accent.rose,
   accentForeground: content[0],
 
-  // UI chrome
-  border: 'rgba(255,255,255,0.09)',
+  border: 'rgba(248,241,246,0.08)',
   borderStrong: ink[4],
-  input: 'rgba(255,255,255,0.06)',
-  tint: accent.coral,
+  input: 'rgba(248,241,246,0.05)',
+  tint: accent.rose,
 
-  // Semantic
-  success: accent.sage,
-  streak: accent.amber,
+  success: accent.mint,
+  streak: accent.peach,
   destructive: accent.danger,
-  destructiveForeground: '#FFFFFF',
+  destructiveForeground: ink[0],
 
-  // Ritual card identities. Unchanged hues — these are how the three prompts
-  // are recognised — but they now sit on a ramp that lets them breathe.
-  gratefulColor: accent.coral,
-  cuteColor: accent.lavender,
-  growColor: accent.sage,
+  /** The two people, wherever authorship is shown. */
+  partnerA: partners.a,
+  partnerB: partners.b,
+
+  /**
+   * The three prompts. Distinguished by label and order, with only a muted mark
+   * of colour each — the card itself stays neutral.
+   */
+  gratefulColor: accent.rose,
+  cuteColor: accent.lilac,
+  growColor: accent.mint,
 } as const;
 
-export const palette = { ink, content, accent } as const;
+export const palette = { ink, content, accent, partners } as const;
 
-/**
- * Dark is the only intended experience, so both keys resolve to the same
- * tokens and `useColors()` always returns the Lunara palette.
- */
 const colors = {
   light: tokens,
   dark: tokens,
-  // One curve scale for the whole app — see constants/tokens.ts. This key
-  // used to declare card: 12 / chip: 8 / dot: 4, a second and contradictory
-  // radius system living alongside `radius` in tokens.ts.
   radius: { card: radius.lg, chip: radius.sm, dot: radius.xs },
 };
 

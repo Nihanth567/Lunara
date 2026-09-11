@@ -6,8 +6,8 @@ module.exports = (config) => ({
   name: "LunaraWidget",
   displayName: "Lunara",
   colors: {
-    $accent: "#FF9A8B",
-    $widgetBackground: "#0F0C29",
+    $accent: "#E8A0B4",
+    $widgetBackground: "#150F19",
   },
   deploymentTarget: "17.0",
   frameworks: ["SwiftUI", "WidgetKit"],

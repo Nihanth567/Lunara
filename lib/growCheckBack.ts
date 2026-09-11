@@ -22,9 +22,9 @@ export interface GrowFollowUpOption {
 }
 
 export const GROW_FOLLOW_UP_OPTIONS: GrowFollowUpOption[] = [
-  { value: 'yes', label: 'Yes', icon: 'sparkles-outline', color: '#A8D8A8' },
+  { value: 'yes', label: 'Yes', icon: 'sparkles-outline', color: '#9BC9A8' },
   { value: 'a_little', label: 'A little', icon: 'leaf-outline', color: '#FFD6A5' },
-  { value: 'not_yet', label: 'Not yet', icon: 'moon-outline', color: '#C3B1E1' },
+  { value: 'not_yet', label: 'Not yet', icon: 'moon-outline', color: '#B9A5E3' },
 ];
 
 /** Warm, never disappointed — "not yet" has to feel as safe an answer as "yes". */

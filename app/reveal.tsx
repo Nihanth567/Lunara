@@ -152,10 +152,10 @@ function RevealPair({
 // ─── Reaction button ──────────────────────────────────────────────────────────
 
 const REACTIONS = [
-  { icon: 'heart', label: 'Love', color: '#FF9A8B' },
-  { icon: 'hand-right-outline', label: 'Hug', color: '#C3B1E1' },
-  { icon: 'sunny-outline', label: 'Warm', color: '#F0C07A' },
-  { icon: 'star-outline', label: 'Star', color: '#A8D8A8' },
+  { icon: 'heart', label: 'Love', color: '#E8A0B4' },
+  { icon: 'hand-right-outline', label: 'Hug', color: '#CBB9C9' },
+  { icon: 'sunny-outline', label: 'Warm', color: '#E8B98A' },
+  { icon: 'star-outline', label: 'Star', color: '#9BC9A8' },
 ] as const;
 
 // ─── Main reveal screen ───────────────────────────────────────────────────────
@@ -192,12 +192,12 @@ export default function RevealScreen() {
 
   if (!todayEntry) {
     return (
-      <LinearGradient colors={['#0A0817', '#221D40']} style={styles.container}>
+      <LinearGradient colors={['#150F19', '#251B2B']} style={styles.container}>
         <View style={styles.noEntry}>
-          <Ionicons name="moon-outline" size={26} color="#C0B8D4" />
+          <Ionicons name="moon-outline" size={26} color="#CBB9C9" />
           <Text style={styles.noEntryText}>There's nothing to reveal here yet tonight</Text>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="arrow-back" size={20} color="#C0B8D4" />
+            <Ionicons name="arrow-back" size={20} color="#CBB9C9" />
             <Text style={styles.closeBtnText}>Go back</Text>
           </Pressable>
         </View>
@@ -207,7 +207,7 @@ export default function RevealScreen() {
 
   return (
     <LinearGradient
-      colors={['#0A0817', '#141127', '#221D40', '#23203D']}
+      colors={['#150F19', '#1B1421', '#251B2B', '#312338']}
       locations={[0, 0.3, 0.6, 1]}
       style={styles.container}
     >
@@ -218,7 +218,7 @@ export default function RevealScreen() {
         style={[styles.closeButton, { top: topPad + 12 }]}
         onPress={() => router.back()}
       >
-        <Ionicons name="close" size={22} color="#C0B8D4" />
+        <Ionicons name="close" size={22} color="#CBB9C9" />
       </Pressable>
 
       <ScrollView
@@ -243,7 +243,7 @@ export default function RevealScreen() {
           </Text>
           {streak > 0 && (
             <View style={styles.streakChip}>
-              <Ionicons name="moon" size={11} color="#C3B1E1" />
+              <Ionicons name="moon" size={11} color="#CBB9C9" />
               <Text style={styles.streakChipText}>
                 {streak} {streak === 1 ? 'night' : 'nights'} together
               </Text>
@@ -256,7 +256,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grateful"
-          accentColor="#FF9A8B"
+          accentColor="#E8A0B4"
           mine={todayEntry.grateful}
           theirs={todayEntry.partnerGrateful}
           myVoice={todayEntry.voiceGrateful}
@@ -268,7 +268,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Cute"
-          accentColor="#C3B1E1"
+          accentColor="#CBB9C9"
           mine={todayEntry.cute}
           theirs={todayEntry.partnerCute}
           myVoice={todayEntry.voiceCute}
@@ -280,7 +280,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grow"
-          accentColor="#A8D8A8"
+          accentColor="#9BC9A8"
           mine={todayEntry.grow}
           theirs={todayEntry.partnerGrow}
           myVoice={todayEntry.voiceGrow}
@@ -298,13 +298,13 @@ export default function RevealScreen() {
             ) : (
               <Pressable style={styles.aiLockedCard} onPress={() => router.push('/(modals)/paywall')}>
                 <View style={styles.aiLockedIcon}>
-                  <Ionicons name="sparkles" size={16} color="#FF9A8B" />
+                  <Ionicons name="sparkles" size={16} color="#E8A0B4" />
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.aiLockedTitle}>A gentle way forward</Text>
                   <Text style={styles.aiLockedBody}>Lunara Pro turns tonight's Grow notes into one small idea</Text>
                 </View>
-                <Ionicons name="lock-closed" size={16} color="#948BAC" />
+                <Ionicons name="lock-closed" size={16} color="#A492A6" />
               </Pressable>
             )
           ) : null}
@@ -373,23 +373,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,154,139,0.18)',
+    borderColor: 'rgba(232, 160, 180,0.18)',
     padding: 16,
   },
   aiLockedIcon: {
     width: 32,
     height: 32,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(255,154,139,0.12)',
+    backgroundColor: 'rgba(232, 160, 180,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  aiLockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F5F2FB' },
-  aiLockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  aiLockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  aiLockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
   closeButton: {
     position: 'absolute',
     right: 22,
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -417,24 +417,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(195,177,225,0.22)',
-    backgroundColor: 'rgba(195,177,225,0.08)',
+    borderColor: 'rgba(248, 241, 246,0.22)',
+    backgroundColor: 'rgba(248, 241, 246,0.08)',
   },
   streakChipText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
   },
   title: {
     fontSize: 28,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
   },
 
@@ -455,11 +455,11 @@ const styles = StyleSheet.create({
 
   revealCard: {
     flexDirection: 'row',
-    backgroundColor: '#1A1730',
+    backgroundColor: '#251B2B',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(248, 241, 246,0.1)',
     overflow: 'hidden',
   },
   cardStripe: { width: 3, flexShrink: 0 },
@@ -467,13 +467,13 @@ const styles = StyleSheet.create({
   cardOwner: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#948BAC',
+    color: '#A492A6',
     letterSpacing: 0.3,
   },
   cardText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#DCD1EF',
+    color: '#CBB9C9',
     lineHeight: 22,
   },
   cardVoice: { marginTop: 6 },
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   reactionsLabel: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
   },
   reactionRow: {
@@ -505,8 +505,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(248, 241, 246,0.03)',
     minWidth: 72,
     minHeight: 72,
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   afterglowText: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#C3B1E1',
+    color: '#CBB9C9',
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 8,
@@ -532,22 +532,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(248, 241, 246,0.12)',
   },
   doneBtnText: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F5F2FB',
+    color: '#F8F1F6',
   },
   seeYouText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#948BAC',
+    color: '#A492A6',
     textAlign: 'center',
   },
 
   noEntry: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  noEntryText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#C0B8D4' },
+  noEntryText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
   closeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  closeBtnText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#C0B8D4' },
+  closeBtnText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
 });

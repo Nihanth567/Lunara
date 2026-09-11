@@ -61,11 +61,11 @@ const ART_SIZE: Record<CompanionSize, number> = {
  * that gives the first week something to show for itself.
  */
 function companionAccent(streak: number): string {
-  if (streak < 14) return '#C3B1E1';
-  if (streak < 30) return '#F0C07A';
-  if (streak < 60) return '#A8D8A8';
-  if (streak < 100) return '#FF9A8B';
-  return '#F5F2FB';
+  if (streak < 14) return '#B9A5E3';
+  if (streak < 30) return '#E8B98A';
+  if (streak < 60) return '#9BC9A8';
+  if (streak < 100) return '#E8A0B4';
+  return '#F8F1F6';
 }
 
 interface StateVisual {
@@ -97,8 +97,8 @@ interface StateVisual {
  */
 const VISUALS: Record<CompanionState, StateVisual> = {
   nesting: {
-    palette: { fur: '#6E5F92', furDeep: '#54486F', cream: '#C0B8D4', marking: '#C3B1E1', feature: '#2A2340' },
-    halo: '#C3B1E1',
+    palette: { fur: '#6E5F92', furDeep: '#54486F', cream: '#CBB9C9', marking: '#B9A5E3', feature: '#2A2340' },
+    halo: '#B9A5E3',
     haloOpacity: 0.1,
     // Settled in the den, ears half — awake, but nothing has happened yet.
     alertness: 0.55,
@@ -110,8 +110,8 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     tinted: false,
   },
   waiting: {
-    palette: { fur: '#8C79BE', furDeep: '#6B5A94', cream: '#E4DAF6', marking: '#F0C07A', feature: '#1A1730' },
-    halo: '#C3B1E1',
+    palette: { fur: '#8C79BE', furDeep: '#6B5A94', cream: '#E4DAF6', marking: '#E8B98A', feature: '#251B2B' },
+    halo: '#B9A5E3',
     haloOpacity: 0.18,
     // Sitting up. This is the animal's whole job — it waits up for someone.
     alertness: 0.95,
@@ -119,13 +119,13 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     breathTo: 1.03,
     pulses: true,
     // The one detail that makes this state readable without reading anything.
-    light: '#F0C07A',
+    light: '#E8B98A',
     sparkBonus: 0,
     tinted: false,
   },
   ready: {
     palette: { fur: '#C98D8F', furDeep: '#A0656E', cream: '#FFE9CC', marking: '#FFF0DA', feature: '#2B1A22' },
-    halo: '#F0C07A',
+    halo: '#E8B98A',
     haloOpacity: 0.26,
     alertness: 1,
     // The quickest breath of the seven — anticipation, not urgency.
@@ -137,8 +137,8 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     tinted: false,
   },
   glowing: {
-    palette: { fur: '#9C86C8', furDeep: '#7A68A6', cream: '#F5F2FB', marking: '#FFF6EA', feature: '#1A1730' },
-    halo: '#C3B1E1',
+    palette: { fur: '#9C86C8', furDeep: '#7A68A6', cream: '#F8F1F6', marking: '#FFF6EA', feature: '#251B2B' },
+    halo: '#B9A5E3',
     haloOpacity: 0.3,
     alertness: 1,
     breathMs: 2600,
@@ -149,8 +149,8 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     tinted: true,
   },
   streaklit: {
-    palette: { fur: '#7E6CAC', furDeep: '#61537F', cream: '#D8CCF0', marking: '#C3B1E1', feature: '#1A1730' },
-    halo: '#C3B1E1',
+    palette: { fur: '#7E6CAC', furDeep: '#61537F', cream: '#D8CCF0', marking: '#B9A5E3', feature: '#251B2B' },
+    halo: '#B9A5E3',
     haloOpacity: 0.2,
     alertness: 0.85,
     breathMs: 3200,
@@ -161,8 +161,8 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     tinted: true,
   },
   resting: {
-    palette: { fur: '#57496F', furDeep: '#453A5C', cream: '#C0B8D4', marking: '#948BAC', feature: '#121024' },
-    halo: '#C0B8D4',
+    palette: { fur: '#57496F', furDeep: '#453A5C', cream: '#CBB9C9', marking: '#A492A6', feature: '#1C1421' },
+    halo: '#CBB9C9',
     // Dim, never dark. "Resting" has to look like a choice the animal made.
     haloOpacity: 0.09,
     // Lying low, ears down — but the eyes stay open, above the 0.35 threshold.
@@ -176,8 +176,8 @@ const VISUALS: Record<CompanionState, StateVisual> = {
     tinted: false,
   },
   sleeping: {
-    palette: { fur: '#463B5C', furDeep: '#392F4C', cream: '#8478A0', marking: '#948BAC', feature: '#121024' },
-    halo: '#948BAC',
+    palette: { fur: '#463B5C', furDeep: '#392F4C', cream: '#8478A0', marking: '#A492A6', feature: '#1C1421' },
+    halo: '#A492A6',
     haloOpacity: 0.06,
     // Asleep is posture, not opacity: curled nose-to-tail, ears flat, eyes shut.
     alertness: 0.1,
@@ -324,12 +324,12 @@ const styles = StyleSheet.create({
   halo: { position: 'absolute' },
   label: {
     ...type.caption,
-    color: '#C0B8D4',
+    color: '#CBB9C9',
     textAlign: 'center',
   },
   subtitle: {
     ...type.callout,
-    color: '#948BAC',
+    color: '#A492A6',
     textAlign: 'center',
   },
 });
