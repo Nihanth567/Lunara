@@ -10,6 +10,7 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 import {
   requestNotificationPermissions,
   formatReminderTime,
@@ -18,21 +19,21 @@ import {
 const STEPS = [
   {
     icon: 'pencil-outline' as const,
-    color: '#E8A0B4',
+    color: palette.accent.glow,
     title: 'Answer privately',
     body: 'Fill in your three cards — Grateful, Cute, Grow. Your partner won\'t see your answers until you both reveal.',
     example: 'e.g. "You made me laugh at the exact right moment today"',
   },
   {
     icon: 'time-outline' as const,
-    color: '#CBB9C9',
+    color: palette.content[1],
     title: 'Wait for each other',
     body: 'Once you share your answers, you\'ll see when your partner has also shared theirs.',
     example: 'A gentle nudge can be sent if they forget',
   },
   {
     icon: 'sparkles-outline' as const,
-    color: '#E8B98A',
+    color: palette.accent.streak,
     title: 'Reveal together',
     body: 'When you\'re both ready, tap Reveal — and see what your partner wrote just for you.',
     example: 'A quiet, beautiful moment every night',
@@ -95,7 +96,7 @@ export default function TutorialScreen() {
   };
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#150F19']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[0]]} style={styles.container}>
       <StarField />
       <View style={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 28 }]}>
 
@@ -202,10 +203,10 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(248, 241, 246,0.14)',
+    backgroundColor: 'rgba(247, 241, 232,0.14)',
   },
-  dotActive: { backgroundColor: '#E8A0B4', width: 18 },
-  dotPast: { backgroundColor: 'rgba(232, 160, 180,0.35)' },
+  dotActive: { backgroundColor: palette.accent.glow, width: 18 },
+  dotPast: { backgroundColor: 'rgba(255, 184, 107,0.35)' },
 
   block: { gap: 14 },
   eyebrow: {
@@ -213,27 +214,27 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans_600SemiBold',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: '#A492A6',
+    color: palette.content[2],
   },
   title: {
-    fontSize: 40,
+    fontSize: 34,
     lineHeight: 44,
     letterSpacing: -0.8,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
   },
   body: {
     fontSize: 16,
     lineHeight: 25,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     maxWidth: 340,
   },
 
   /* A rule and an indent. No fill, no border box, no radius. */
   quote: {
     borderLeftWidth: 1,
-    borderLeftColor: '#42304A',
+    borderLeftColor: palette.ink[4],
     paddingLeft: 14,
     marginTop: 2,
   },
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     fontFamily: 'Fraunces_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
 
   /* Sections divide with a hairline instead of floating as tinted cards. */
@@ -249,18 +250,18 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 18,
     borderTopWidth: 1,
-    borderTopColor: '#42304A',
+    borderTopColor: palette.ink[4],
   },
   ruleTitle: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
   },
   ruleBody: {
     fontSize: 14,
     lineHeight: 21,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
   },
 
   reminderRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
@@ -270,24 +271,24 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: '#42304A',
+    borderColor: palette.ink[4],
     alignItems: 'center',
   },
   /* Selection reads through the one accent, not a second hue. */
   chipActive: {
-    borderColor: '#E8A0B4',
-    backgroundColor: 'rgba(232, 160, 180,0.10)',
+    borderColor: palette.accent.glow,
+    backgroundColor: 'rgba(255, 184, 107,0.10)',
   },
   chipText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
-  chipTextActive: { color: '#F8F1F6' },
+  chipTextActive: { color: palette.content[0] },
   skip: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     paddingTop: 2,
   },
 

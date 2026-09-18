@@ -2,6 +2,7 @@ import { radius } from '@/constants/tokens';
 import React from 'react';
 import { View, StyleSheet, ViewStyle, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { palette } from '@/constants/colors';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ export function GlassCard({
   children,
   style,
   innerStyle,
-  borderColor = 'rgba(248, 241, 246,0.12)',
+  borderColor = 'rgba(247, 241, 232,0.12)',
   intensity = 18,
 }: GlassCardProps) {
   if (Platform.OS === 'ios') {
@@ -46,10 +47,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   iosOverlay: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     flex: 1,
   },
   androidBase: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
   },
 });

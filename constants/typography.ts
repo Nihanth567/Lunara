@@ -37,7 +37,7 @@ import { Platform, type TextStyle } from 'react-native';
  * ─── Tracking ────────────────────────────────────────────────────────────────
  *
  * Optical, not decorative. Large text sets loose at its default spacing, so the
- * display steps carry negative tracking (-0.8 … -0.2) to close the gaps a
+ * display steps carry negative tracking (-1 … -0.2) to close the gaps a
  * headline opens up. Small caps-y labels get positive tracking (+0.6 … +1.2)
  * because tight uppercase at 11px is unreadable. Body sits at 0 — tracking body
  * copy is a tell.
@@ -66,7 +66,14 @@ export const fonts = {
  *
  * ─── Eight steps, and the gaps are the point ─────────────────────────────────
  *
- * 12 · 14 · 16 · 18 · 22 · 28 · 40 · 52.
+ * 12 · 14 · 16 · 18 · 22 · 26 · 34 · 44.
+ *
+ * The top three steps came down from 28 / 40 / 52. A 52px serif wordmark over a
+ * 40px hero is *stately* — it is the type scale of a masthead, and it was
+ * fighting the thing the product is actually for. At 44 / 34 / 26 the same
+ * hierarchy survives intact while a screen title stops declaiming and a fox
+ * caption sits at conversational size. Warmth in type is mostly a question of
+ * not shouting.
  *
  * The previous version of this file argued that "sizes one pixel apart cannot
  * express hierarchy" and then defined 12, 13, 14, 15, 16 and 17 — six steps
@@ -82,25 +89,25 @@ export const type = {
    */
   display: {
     fontFamily: fonts.display,
-    fontSize: 52,
-    lineHeight: 56,
-    letterSpacing: -1.2,
+    fontSize: 44,
+    lineHeight: 48,
+    letterSpacing: -1,
   } satisfies TextStyle,
 
   /** Reveal moments, the streak count, an empty state. One per screen at most. */
   hero: {
     fontFamily: fonts.display,
-    fontSize: 40,
-    lineHeight: 44,
-    letterSpacing: -0.8,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.6,
   } satisfies TextStyle,
 
   /** Screen titles. */
   title: {
     fontFamily: fonts.display,
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.4,
   } satisfies TextStyle,
 
   /** Section headings, card titles, the name on a reveal card. */

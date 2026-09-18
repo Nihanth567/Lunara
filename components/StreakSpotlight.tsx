@@ -1,7 +1,9 @@
-import { radius } from '@/constants/tokens';
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MoonPhaseIndicator, getMoonColor } from './MoonPhaseIndicator';
+import { radius, space } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
+import { type as text, tabularNumerals } from '@/constants/typography';
 
 const MILESTONES = [7, 14, 30, 60, 100];
 
@@ -33,18 +35,21 @@ function getCaption(
 ): { title: string; sub: string } {
   if (streak === 0 && longestStreak === 0) {
     return {
-      title: 'Tonight, your story begins',
-      sub: 'Complete tonight’s ritual together to light the first night',
+      title: 'Night one is right there',
+      sub: 'Both of you finish tonight, and the fox lights up',
     };
   }
   if (streak === 0) {
     return {
-      title: 'A quiet stretch — and that’s alright',
-      sub: 'Tonight is a fresh start, whenever you’re ready',
+      title: 'A quiet stretch — that’s allowed',
+      sub: 'One shared night brings it all back',
     };
   }
 
-  const title = `${streak} ${streak === 1 ? 'night' : 'nights'} of choosing each other`;
+  // The app says "Day N together" everywhere a streak is named: on the home
+  // chip, on the reveal, in the share sheet. One phrase, so the number never
+  // arrives wearing a different outfit depending on which screen it is on.
+  const title = `Day ${streak} together`;
 
   // A run that's being carried over a missed night says so plainly, once. It's
   // the difference between "you broke it" and "we kept it for you" — and the
@@ -144,66 +149,47 @@ const styles = StyleSheet.create({
   compactContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(37, 27, 43,0.55)',
+    gap: space.md,
+    backgroundColor: tint.cream(0.04),
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.06)',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 20,
+    borderColor: tint.cream(0.06),
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    marginTop: space.lg + 4,
   },
   compactCaption: { flex: 1, gap: 1 },
-  compactTitle: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#CBB9C9',
-  },
-  compactSub: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
-  },
+  compactTitle: { ...text.caption, ...tabularNumerals, color: palette.content[1] },
+  compactSub: { ...text.caption, color: palette.content[2] },
+
   container: {
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#251B2B',
+    gap: space.sm + 2,
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.09)',
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    borderColor: tint.streak(0.14),
+    paddingVertical: space.xl,
+    paddingHorizontal: space.lg + 4,
+    marginBottom: space.xl,
   },
-  captionWrap: {
-    alignItems: 'center',
-    gap: 3,
-  },
+  captionWrap: { alignItems: 'center', gap: space.xs },
   title: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F8F1F6',
+    ...text.heading,
+    ...tabularNumerals,
+    color: palette.content[0],
     textAlign: 'center',
   },
-  sub: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  sub: { ...text.caption, color: palette.content[2], textAlign: 'center', lineHeight: 18 },
   track: {
     width: '100%',
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(248, 241, 246,0.07)',
+    height: 5,
+    borderRadius: radius.xs,
+    backgroundColor: tint.cream(0.07),
     overflow: 'hidden',
-    marginTop: 4,
+    marginTop: space.xs,
   },
-  fill: {
-    height: '100%',
-    borderRadius: 2,
-  },
+  fill: { height: '100%', borderRadius: radius.xs },
 });

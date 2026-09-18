@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +8,14 @@ import * as Haptics from 'expo-haptics';
 import { PACKAGE_TYPE, type PurchasesPackage } from 'react-native-purchases';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { CoupleCompanion } from '@/components/CoupleCompanion';
+import { ThinkingOrb } from '@/components/ThinkingOrb';
 import { getCurrentOffering, isPurchasesConfigured, purchase, restore } from '@/lib/purchases';
 import { PRO_FEATURES, freeTierSummary } from '@/lib/entitlements';
 import { useApp } from '@/context/AppContext';
-import { radius } from '@/constants/tokens';
+import { radius, space } from '@/constants/tokens';
+import { gradients, palette, tint } from '@/constants/colors';
+import { type as text } from '@/constants/typography';
 
 /** Apple's Standard Licensed Application EULA — the licence Lunara ships under. */
 const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
@@ -83,6 +87,9 @@ export default function PaywallScreen() {
   const { source } = useLocalSearchParams<{ source?: string }>();
   const fromOnboarding = source === 'onboarding';
   const { refreshSharedState, refreshEntitlement, canPurchase, couple } = useApp();
+  // The fox on this screen shows the couple's real streak, so the thing being
+  // sold is visibly *theirs* rather than a stock illustration of a product.
+  const streak = couple?.currentStreak ?? 0;
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selected, setSelected] = useState<PurchasesPackage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -198,15 +205,20 @@ export default function PaywallScreen() {
     }
   };
 
+  // Warm, like a finished night — this screen is selling more of those.
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient
+      colors={gradients.warm}
+      locations={gradients.warmLocations}
+      style={styles.container}
+    >
       <StarField />
       <Pressable
         style={[styles.closeButton, { top: insets.top + 12 }]}
         onPress={dismiss}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#CBB9C9" />
+        <Ionicons name="close" size={22} color={palette.content[1]} />
       </Pressable>
 
       <ScrollView
@@ -214,14 +226,21 @@ export default function PaywallScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="sparkles" size={26} color="#E8A0B4" />
-          </View>
-          <Text style={styles.title}>Unlock Your Shared Galaxy with Lunara Pro</Text>
+          {/*
+            The fox, not a sparkle in a circle.
+            "Unlock Your Shared Galaxy with Lunara Pro" was Title Case, it was
+            about a galaxy that does not exist in this product, and the word
+            "unlock" frames the free tier as something withheld. A person who
+            reaches this screen has already had good nights here; the honest
+            pitch is *more of the thing you already like*, said in the same
+            voice as the rest of the app.
+          */}
+          <CoupleCompanion state="glowing" streak={streak} size="lg" />
+          <Text style={styles.title}>Keep your nights together</Text>
           <Text style={styles.subtitle}>{priceSentence(selected)}</Text>
           <View style={styles.coversBadge}>
-            <Ionicons name="people-outline" size={13} color="#CBB9C9" />
-            <Text style={styles.coversBadgeText}>One Subscription Covers Both of You</Text>
+            <Ionicons name="people" size={13} color={palette.accent.heart} />
+            <Text style={styles.coversBadgeText}>One of you pays. Both of you get it.</Text>
           </View>
         </View>
 
@@ -229,7 +248,7 @@ export default function PaywallScreen() {
           {PRO_FEATURES.map((f) => (
             <View key={f.text} style={styles.featureRow}>
               <View style={styles.featureIcon}>
-                <Ionicons name={f.icon as any} size={16} color="#9BC9A8" />
+                <Ionicons name={f.icon as any} size={16} color={palette.accent.glow} />
               </View>
               <Text style={styles.featureText}>{f.text}</Text>
             </View>
@@ -237,7 +256,7 @@ export default function PaywallScreen() {
         </View>
 
         <View style={styles.guaranteeBanner}>
-          <Ionicons name="heart-outline" size={13} color="#A492A6" />
+          <Ionicons name="heart-outline" size={13} color="#9A9084" />
           {/*
             The free tier stated in full, including the archive window — the one
             Pro claim that is also a restriction. Saying "daily prompts and
@@ -248,10 +267,17 @@ export default function PaywallScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#E8A0B4" style={{ marginVertical: 32 }} />
+          <View style={{ alignItems: 'center', marginVertical: 32 }}>
+            <ThinkingOrb
+              state="working"
+              size={64}
+              theme="dark"
+              accessibilityLabel="Loading Lunara Premium"
+            />
+          </View>
         ) : !canPurchase ? (
           <View style={styles.demoNotice}>
-            <Ionicons name="people-outline" size={16} color="#CBB9C9" />
+            <Ionicons name="people-outline" size={16} color="#C9BDB0" />
             <Text style={styles.demoNoticeText}>
               You&apos;re exploring Lunara on your own. Pro is one subscription for two people, so
               it unlocks once your partner has joined you — nothing to pay for until then.
@@ -318,10 +344,10 @@ export default function PaywallScreen() {
             disabled={!selected || !canPurchase}
           />
           <Pressable onPress={dismiss} disabled={purchasing} style={styles.freeBtn}>
-            <Text style={styles.freeText}>Continue with Free Version</Text>
+            <Text style={styles.freeText}>Not now — stay on free</Text>
           </Pressable>
           <Pressable onPress={handleRestore} disabled={purchasing} style={styles.restoreBtn}>
-            <Text style={styles.restoreText}>Restore Purchases</Text>
+            <Text style={styles.restoreText}>Restore purchases</Text>
           </Pressable>
           {/*
             Guideline 3.1.2 requires a subscription screen to link the licence
@@ -353,37 +379,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   closeButton: {
     position: 'absolute',
-    right: 22,
+    right: space.xl,
     zIndex: 10,
-    width: 38,
-    height: 38,
-    borderRadius: radius.sm,
-    backgroundColor: '#251B2B',
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: tint.cream(0.08),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: { paddingHorizontal: 26 },
-  header: { alignItems: 'center', gap: 10, marginBottom: 28 },
-  headerIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.md,
-    borderCurve: 'continuous',
-    backgroundColor: 'rgba(232, 160, 180,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6', textAlign: 'center' },
+  content: { paddingHorizontal: space.xl + 2 },
+  header: { alignItems: 'center', gap: space.sm + 2, marginBottom: space.xxl },
+  title: { ...text.hero, color: palette.content[0], textAlign: 'center' },
   subtitle: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    ...text.callout,
+    color: palette.content[1],
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
   },
   coversBadge: {
     flexDirection: 'row',
@@ -391,24 +403,24 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 6,
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: radius.lg,
+    paddingHorizontal: space.md,
+    borderRadius: radius.full,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(248, 241, 246,0.1)',
+    backgroundColor: tint.heart(0.12),
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: tint.heart(0.24),
   },
-  coversBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
+  coversBadgeText: { ...text.caption, color: palette.accent.heart },
   features: { gap: 14, marginBottom: 18 },
   guaranteeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(248, 241, 246,0.04)',
+    backgroundColor: 'rgba(247, 241, 232,0.04)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.07)',
+    borderColor: 'rgba(247, 241, 232,0.07)',
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 24,
@@ -417,7 +429,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     lineHeight: 17,
   },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -425,15 +437,15 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(155, 201, 168,0.12)',
+    backgroundColor: 'rgba(125, 222, 181,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  featureText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', flex: 1 },
+  featureText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], flex: 1 },
   noOfferings: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     textAlign: 'center',
     lineHeight: 19,
     marginVertical: 24,
@@ -442,9 +454,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     padding: 16,
@@ -454,7 +466,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 19,
   },
   packages: { gap: 12, marginBottom: 8 },
@@ -463,52 +475,52 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
-    backgroundColor: '#251B2B',
+    borderColor: 'rgba(247, 241, 232,0.08)',
+    backgroundColor: palette.ink[2],
   },
   packageOptionSelected: {
-    borderColor: 'rgba(232, 160, 180,0.45)',
-    backgroundColor: 'rgba(232, 160, 180,0.08)',
+    borderColor: 'rgba(255, 184, 107,0.45)',
+    backgroundColor: 'rgba(255, 184, 107,0.08)',
   },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
   trialBadge: {
-    backgroundColor: 'rgba(248, 241, 246,0.16)',
+    backgroundColor: 'rgba(247, 241, 232,0.16)',
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.3)',
+    borderColor: 'rgba(247, 241, 232,0.3)',
   },
-  trialBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
+  trialBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
   valueBadge: {
-    backgroundColor: 'rgba(232, 160, 180,0.16)',
+    backgroundColor: 'rgba(255, 184, 107,0.16)',
     borderRadius: radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.32)',
+    borderColor: 'rgba(255, 184, 107,0.32)',
   },
-  valueBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#E8A0B4' },
+  valueBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.accent.glow },
   packageRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  packageTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
-  packagePrice: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', marginTop: 2 },
+  packageTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
+  packagePrice: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], marginTop: 2 },
   radio: {
     width: 22,
     height: 22,
     borderRadius: radius.sm,
     borderWidth: 1.5,
-    borderColor: 'rgba(248, 241, 246,0.25)',
+    borderColor: 'rgba(247, 241, 232,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioSelected: { borderColor: '#E8A0B4' },
-  radioDot: { width: 11, height: 11, borderRadius: radius.sm, backgroundColor: '#E8A0B4' },
+  radioSelected: { borderColor: palette.accent.glow },
+  radioDot: { width: 11, height: 11, borderRadius: radius.sm, backgroundColor: palette.accent.glow },
   footer: { gap: 4, marginTop: 12 },
   freeBtn: { alignItems: 'center', paddingVertical: 10 },
-  freeText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  freeText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
   restoreBtn: { alignItems: 'center', paddingVertical: 4, marginTop: 6 },
-  restoreText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  restoreText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  legalText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', textDecorationLine: 'underline' },
-  legalDivider: { fontSize: 12, color: '#42304A' },
+  legalText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], textDecorationLine: 'underline' },
+  legalDivider: { fontSize: 12, color: palette.ink[4] },
 });

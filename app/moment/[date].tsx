@@ -10,7 +10,10 @@ import { useApp } from '@/context/AppContext';
 import { partnerLabel } from '@/lib/partner';
 import { formatMomentDate, formatMomentDateLong, momentSections, type MomentSection } from '@/lib/moments';
 import { growFollowUpLabel } from '@/lib/growCheckBack';
-import { radius } from '@/constants/tokens';
+import { resolveReaction } from '@/lib/reactions';
+import { radius, space } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
+import { type as text } from '@/constants/typography';
 
 /**
  * One night, in full: both partners' three answers side by side, with any
@@ -87,13 +90,13 @@ export default function MomentScreen() {
 
   if (!entry) {
     return (
-      <LinearGradient colors={['#150F19', '#251B2B']} style={styles.container}>
+      <LinearGradient colors={[palette.ink[0], palette.ink[2]]} style={styles.container}>
         <StarField />
         <View style={styles.missing}>
-          <Ionicons name="moon-outline" size={26} color="#CBB9C9" />
+          <Ionicons name="moon-outline" size={26} color="#C9BDB0" />
           <Text style={styles.missingText}>That night isn't here anymore</Text>
           <Pressable onPress={() => router.back()} style={styles.backRow}>
-            <Ionicons name="arrow-back" size={18} color="#CBB9C9" />
+            <Ionicons name="arrow-back" size={18} color="#C9BDB0" />
             <Text style={styles.backText}>Back to Moments</Text>
           </Pressable>
         </View>
@@ -103,14 +106,14 @@ export default function MomentScreen() {
 
   return (
     <LinearGradient
-      colors={['#150F19', '#1B1421', '#312338', '#1B1421', '#150F19']}
+      colors={[palette.ink[0], palette.ink[1], palette.ink[3], palette.ink[1], palette.ink[0]]}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
       <StarField />
 
       <Pressable style={[styles.closeButton, { top: topPad + 12 }]} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={22} color="#CBB9C9" />
+        <Ionicons name="chevron-back" size={22} color="#C9BDB0" />
       </Pressable>
 
       <ScrollView
@@ -134,7 +137,7 @@ export default function MomentScreen() {
         {/* The check-back reply, kept beside the Grow note it belongs to */}
         {(entry.growFollowUp || entry.partnerGrowFollowUp) && (
           <View style={styles.followUp}>
-            <Ionicons name="leaf-outline" size={14} color="#9BC9A8" />
+            <Ionicons name="leaf-outline" size={14} color="#7DDEB5" />
             <Text style={styles.followUpText}>
               {entry.growFollowUp
                 ? `You checked back the next day: ${growFollowUpLabel(entry.growFollowUp)}.`
@@ -143,16 +146,33 @@ export default function MomentScreen() {
           </View>
         )}
 
+        {/*
+          How the night landed, as the two chips it was left as.
+
+          This used to build a sentence — "{name} felt {reaction}" — out of the
+          raw stored string, which only worked while every label happened to be
+          an adjective. It now renders the reaction itself, resolved through the
+          same table the reveal writes from, so the words can change without
+          this screen producing grammar nobody wrote.
+        */}
         {(entry.myReaction || entry.partnerReaction) && (
           <View style={styles.reactions}>
-            {entry.myReaction ? (
-              <Text style={styles.reactionText}>{myName} felt {entry.myReaction.toLowerCase()}</Text>
-            ) : null}
-            {entry.partnerReaction ? (
-              <Text style={styles.reactionText}>
-                {partnerName} felt {entry.partnerReaction.toLowerCase()}
-              </Text>
-            ) : null}
+            {([
+              [myName, entry.myReaction],
+              [partnerName, entry.partnerReaction],
+            ] as const).map(([name, stored]) => {
+              const reaction = resolveReaction(stored);
+              if (!reaction) return null;
+              return (
+                <View key={name} style={styles.reactionChip}>
+                  <Ionicons name={reaction.icon as never} size={13} color={reaction.color} />
+                  <Text style={styles.reactionName}>{name}</Text>
+                  <Text style={[styles.reactionLabel, { color: reaction.color }]}>
+                    {reaction.label}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -170,14 +190,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   header: { marginBottom: 28, gap: 4 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6' },
-  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
+  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
 
   section: { marginBottom: 26, gap: 10 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -191,24 +211,24 @@ const styles = StyleSheet.create({
   sectionBody: { gap: 10 },
 
   answer: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     padding: 16,
     gap: 7,
   },
   answerName: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#A492A6',
+    color: palette.content[2],
     letterSpacing: 0.3,
   },
   answerText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 22,
   },
   answerVoice: { marginTop: 2 },
@@ -223,22 +243,37 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(155, 201, 168,0.16)',
-    backgroundColor: 'rgba(155, 201, 168,0.05)',
+    borderColor: 'rgba(125, 222, 181,0.16)',
+    backgroundColor: 'rgba(125, 222, 181,0.05)',
   },
   followUpText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 19,
   },
 
-  reactions: { gap: 4, alignItems: 'center', marginTop: 4 },
-  reactionText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#42304A' },
+  reactions: { gap: space.sm, alignItems: 'center', marginTop: space.xs },
+  reactionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: space.md,
+    borderRadius: radius.full,
+    borderCurve: 'continuous',
+    backgroundColor: tint.cream(0.05),
+    borderWidth: 1,
+    borderColor: tint.cream(0.09),
+  },
+  // Was `#3A3149` — the hairline colour, used as text, at roughly 1.5:1 on the
+  // page. It was not readable; it was invisible.
+  reactionName: { ...text.caption, color: palette.content[2] },
+  reactionLabel: { ...text.caption },
 
   missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
-  missingText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  missingText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  backText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
 });

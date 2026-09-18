@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { fetchGrowGuidance, getGrowGuidance, type GrowSuggestion } from '@/lib/growGuidance';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 interface Props {
   growTexts: string[];
@@ -48,11 +49,11 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
     <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="leaf-outline" size={16} color="#9BC9A8" />
+          <Ionicons name="leaf-outline" size={16} color="#7DDEB5" />
           <Text style={styles.title}>A gentle way forward</Text>
         </View>
         <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.dismissBtn}>
-          <Ionicons name="close" size={16} color="#A492A6" />
+          <Ionicons name="close" size={16} color="#9A9084" />
         </Pressable>
       </View>
       <Text style={styles.intro}>A few small, no-pressure ideas — take what’s useful, leave the rest.</Text>
@@ -70,11 +71,11 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(155, 201, 168,0.18)',
+    borderColor: 'rgba(125, 222, 181,0.18)',
     padding: 18,
     gap: 12,
     marginBottom: 24,
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#9BC9A8',
+    color: palette.accent.success,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   intro: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     lineHeight: 18,
   },
   list: { gap: 10 },
@@ -105,14 +106,14 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#9BC9A8',
+    backgroundColor: palette.accent.success,
     marginTop: 7,
   },
   rowText: {
     flex: 1,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 20,
   },
 });

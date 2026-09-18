@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { palette } from '@/constants/colors';
 
 export default function OnboardingLayout() {
   return (
@@ -6,7 +7,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
-        contentStyle: { backgroundColor: '#150F19' },
+        contentStyle: { backgroundColor: palette.ink[0] },
       }}
     />
   );

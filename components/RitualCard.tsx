@@ -18,7 +18,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { VoiceNoteRecorder } from '@/components/VoiceNoteRecorder';
-import colors from '@/constants/colors';
+import colors, { palette, tint } from '@/constants/colors';
 import { type } from '@/constants/typography';
 import { radius, space, touchTarget } from '@/constants/tokens';
 
@@ -47,36 +47,59 @@ interface RitualCardProps {
   doneLabel?: string;
 }
 
+/**
+ * The three prompts.
+ *
+ * ─── The names stay ──────────────────────────────────────────────────────────
+ *
+ * Grateful / Cute / Grow were considered for renaming to Warm / Spark / Gentle
+ * grow. They kept their names: "Grateful" and "Cute" are already plain, warm,
+ * non-clinical words, and the proposed replacements are *vaguer* — "Spark"
+ * could be anything, "Cute" could only be one thing. Warmth in a product like
+ * this comes from what the prompt asks, not from what the tab is called.
+ *
+ * ─── The helper text did not stay ────────────────────────────────────────────
+ *
+ * "Share something specific you appreciated about your partner" is a worksheet
+ * instruction. It tells someone the shape of an acceptable answer, which is the
+ * fastest way to make a person at 11pm feel graded. Every helper is now an
+ * example or a permission — something that lowers the bar rather than setting
+ * one. Nothing here uses the words "share", "reflect", "practice" or
+ * "connection".
+ *
+ * Colours match the reveal exactly (heart / moon / success) so a prompt is the
+ * same colour on the night you write it and the night you read it back.
+ */
 const CONFIG = {
   grateful: {
     title: 'Grateful',
-    prompt: 'Something I love about you today...',
-    helper: 'Share something specific you appreciated about your partner',
+    prompt: 'Something about you today…',
+    helper: 'Tiny counts. The way they made coffee counts.',
     icon: 'heart-outline' as const,
-    color: '#E8A0B4',
-    borderColor: 'rgba(232, 160, 180,0.35)',
-    bgColor: 'rgba(232, 160, 180,0.07)',
-    inputBg: 'rgba(232, 160, 180,0.05)',
+    color: palette.accent.heart,
+    borderColor: tint.heart(0.32),
+    bgColor: tint.heart(0.07),
+    inputBg: tint.heart(0.05),
   },
   cute: {
     title: 'Cute',
-    prompt: 'A moment that made me smile because of you...',
-    helper: 'A funny, sweet, or soft moment you noticed or shared',
+    prompt: 'A moment that made you smile…',
+    helper: 'Silly is perfect here. Especially silly.',
     icon: 'happy-outline' as const,
-    color: '#CBB9C9',
-    borderColor: 'rgba(248, 241, 246,0.35)',
-    bgColor: 'rgba(248, 241, 246,0.07)',
-    inputBg: 'rgba(248, 241, 246,0.05)',
+    color: palette.accent.moon,
+    borderColor: tint.moon(0.32),
+    bgColor: tint.moon(0.07),
+    inputBg: tint.moon(0.05),
   },
   grow: {
     title: 'Grow',
-    prompt: 'One thing we can grow together...',
-    helper: 'A gentle, positive thing you would love to try or improve',
-    icon: 'trending-up-outline' as const,
-    color: '#9BC9A8',
-    borderColor: 'rgba(155, 201, 168,0.35)',
-    bgColor: 'rgba(155, 201, 168,0.07)',
-    inputBg: 'rgba(155, 201, 168,0.05)',
+    prompt: 'One small thing for the two of you…',
+    helper: 'No pressure — a wish is enough.',
+    icon: 'leaf-outline' as const,
+    color: palette.accent.success,
+    borderColor: tint.success(0.32),
+    bgColor: tint.success(0.07),
+    inputBg: tint.success(0.05),
   },
 } as const;
 
@@ -163,8 +186,8 @@ export function RitualCard({
           style={[
             styles.card,
             {
-              borderColor: isExpanded ? config.borderColor : 'rgba(248, 241, 246,0.08)',
-              backgroundColor: '#251B2B',
+              borderColor: isExpanded ? config.borderColor : 'rgba(247, 241, 232,0.08)',
+              backgroundColor: palette.ink[2],
             },
           ]}
         >
@@ -226,9 +249,9 @@ export function RitualCard({
                 value={value}
                 onChangeText={onChange}
                 placeholder={config.prompt}
-                placeholderTextColor="rgba(248, 241, 246,0.25)"
+                placeholderTextColor="rgba(247, 241, 232,0.25)"
                 multiline
-                style={[styles.input, { color: '#F8F1F6' }]}
+                style={[styles.input, { color: palette.content[0] }]}
                 returnKeyType="done"
                 onSubmitEditing={onDone}
                 blurOnSubmit={false}
@@ -246,7 +269,7 @@ export function RitualCard({
                 />
               ) : onVoiceLocked ? (
                 <Pressable onPress={onVoiceLocked} style={styles.voiceLocked}>
-                  <Ionicons name="lock-closed-outline" size={13} color="#A492A6" />
+                  <Ionicons name="lock-closed-outline" size={13} color="#9A9084" />
                   <Text style={styles.voiceLockedText}>Add a voice note with Lunara Pro</Text>
                 </Pressable>
               ) : null}
@@ -311,7 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     justifyContent: 'center',
-    backgroundColor: 'rgba(248, 241, 246,0.06)',
+    backgroundColor: 'rgba(247, 241, 232,0.06)',
   },
   doneText: {
     ...type.label,
@@ -327,8 +350,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
-    backgroundColor: 'rgba(248, 241, 246,0.03)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
+    backgroundColor: 'rgba(247, 241, 232,0.03)',
   },
-  voiceLockedText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#A492A6' },
+  voiceLockedText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[2] },
 });

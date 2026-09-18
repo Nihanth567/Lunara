@@ -1,107 +1,131 @@
 import { radius } from './tokens';
 
 /**
- * Lunara's colour system — dark, warm, romantic.
+ * Lunara's colour system — "night nursery for two".
  *
  * ─── What changed, and why ───────────────────────────────────────────────────
  *
- * The previous ground was a near-neutral black (hue 240 at 9% saturation),
- * chosen to get away from the over-reproduced saturated-indigo "cosmic" look.
- * It succeeded at that and overshot: a product two people write to each other
- * in at 11pm read as a developer tool. Neutral is not the same as tasteful.
+ * The previous ground was a plum ramp (~290°) with a rose accent: restrained,
+ * correct, and emotionally *cool*. It read as a well-made journalling tool. The
+ * product it is attached to is two people keeping a small creature lit together
+ * at 11pm, and a well-made journalling tool is not what that feels like.
  *
- * This ground keeps the restraint — chroma stays low, type and space still
- * carry the hierarchy — but moves the hue to **plum/mauve (~290°)** and warms
- * the whites. It reads as candlelight rather than as a terminal, without
- * becoming the purple gradient wash that started this.
+ * This ground keeps the discipline — low chroma on the large surfaces, verified
+ * contrast, accents with rank — and moves the temperature. The night gets
+ * *deeper* and slightly bluer (a room with the lights off), and everything warm
+ * is reserved for the moments that earn it: the fox's light, a reveal, a
+ * streak. The contrast between a cool dark room and one warm source is the
+ * whole feeling. A screen that is uniformly warm has no candle in it.
  *
  * ─── The rules ───────────────────────────────────────────────────────────────
  *
- * Pastels, but *deepened*. Every accent here is a soft pastel pulled down in
- * lightness until it can sit on a dark ground without glowing. A pastel at full
- * lightness on near-black is a highlighter; at these values it reads as blush,
- * which is the intent.
+ * **Large surfaces stay night.** The four `ink` steps are the room. Nothing
+ * decorative happens on them. Warmth arrives as a *light* — a glow, a halo, a
+ * fill — never as a wash over the whole page.
  *
- * Accents have rank.
- *   · `rose` is the only colour that means "act on this".
- *   · `lilac` is brand and ambience — never an action.
- *   · `mint` and `peach` are strictly semantic (done, streak), never decorative.
- *   · `blush` is a tint for fills and glows, not a text colour.
+ * **Whites are cream, blacks are violet.** `#F7F1E8` rather than `#FFFFFF`;
+ * `#0E0B14` rather than `#000000`. Pure white on pure black is a terminal.
  *
- * Partner colours are a *pair*, not two picks. `partnerA` / `partnerB` are the
- * "each person gets their own colour" identity in the shared list, chosen to
- * stay distinguishable for the most common colour-vision deficiencies — they
- * differ in lightness as well as hue, so a checkmark is never identified by
- * hue alone.
+ * **Accents have rank, and the rank is the product.**
+ *   · `glow` (apricot) is the fox's light and the only colour that means
+ *     "act on this". Primary CTAs, active states, the thing to tap.
+ *   · `heart` (coral-pink) is love. The reveal, reactions, the person holding
+ *     the phone. Never used for a generic button.
+ *   · `moon` (violet) is secondary actions and ambience. Never an action.
+ *   · `success` and `streak` are strictly semantic. Never decorative.
+ *   · `danger` is soft on purpose — a missed night is not an error, and this
+ *     app never shows a harsh red to a couple.
  *
- * Contrast is verified, not eyeballed. Every text tier clears WCAG AA on every
- * surface it can land on; the worst case in the system is 5.07:1 (`content[2]`
- * on `ink[3]`). `roseDeep` is the one value below AA — it is a fill and border
- * colour only and must never carry small text.
+ * **Partner colours are a pair, not two picks.** `partnerA` / `partnerB` differ
+ * in lightness as well as hue, so authorship survives the common colour-vision
+ * deficiencies and is never carried by hue alone.
+ *
+ * ─── Contrast is verified, not eyeballed ─────────────────────────────────────
+ *
+ * Every text tier clears WCAG AA (4.5:1) on every one of the four surfaces it
+ * can land on. Worst case in the system is `content[2]` on `ink[3]` at 4.80:1.
+ *
+ * `content[2]` is `#9A9084` rather than the `#8F857A` the spec named: that
+ * value measured 4.16:1 on `ink[3]` and 4.55:1 on `ink[2]`, i.e. one failure
+ * and one value a rounding error away from failing. `#9A9084` is the same warm
+ * taupe two steps lighter and clears AA everywhere. Verify a new value with a
+ * contrast check rather than trusting that it looks fine on your display.
+ *
+ * Every accent also clears AA as *text* on all four surfaces (lowest: `moon` at
+ * 5.53:1 on `ink[3]`), and every accent used as a *fill* carries `ink[0]` as
+ * its label at 7:1 or better. There is no value in this file that has to be
+ * handled carefully — that is the point of retuning them all at once.
  */
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 
 /**
- * Five surfaces. Hue held at ~290 with chroma tapering as the ramp lightens.
- * Steps are tight at the bottom and open as they rise, which is how a dark ramp
- * separates surfaces without banding.
+ * The room. Four surfaces plus a hairline, hue held around 265° with chroma
+ * tapering as the ramp lightens.
+ *
+ * Deliberately one step deeper at the bottom than the old ramp: the warm
+ * accents only read as *light* if the thing behind them is properly dark.
  */
 const ink = {
-  /** The page. */
-  0: '#150F19',
-  /** Recessed wells, inputs, progress tracks. */
-  1: '#1C1421',
-  /** Cards and sheets. */
-  2: '#251B2B',
-  /** A surface raised above another surface. */
-  3: '#312338',
+  /** `bg.night` — the page. */
+  0: '#0E0B14',
+  /** `bg.elevated` — recessed wells, inputs, the gradient's middle. */
+  1: '#1A1524',
+  /** `bg.card` — cards and sheets. The workhorse. */
+  2: '#221C30',
+  /** `bg.soft` — a surface raised above another surface. */
+  3: '#2A2338',
   /** Hairlines and dividers — the top of the ramp. */
-  4: '#42304A',
+  4: '#3A3149',
 } as const;
 
 /**
- * Three tiers, warm-white rather than blue-white so the page reads soft.
- * 14.88 / 8.91 / 5.70 on the card surface — separated enough that hierarchy
- * survives without reaching for a fourth tier.
+ * Three tiers, warm cream rather than blue-white, so a dark screen reads as a
+ * lit room rather than as a display that is switched on.
+ * 14.65 / 8.92 / 5.24 on the card surface.
  */
 const content = {
-  0: '#F8F1F6',
-  1: '#CBB9C9',
-  2: '#A492A6',
+  /** `ink.primary` */
+  0: '#F7F1E8',
+  /** `ink.secondary` */
+  1: '#C9BDB0',
+  /** `ink.muted` — see the note above on why this is not `#8F857A`. */
+  2: '#9A9084',
 } as const;
 
 /**
- * The accents.
- *
- * `rose` replaces coral as the primary. Coral was chosen when the palette was
- * neutral and needed one warm anchor; against a plum ground it turns muddy
- * orange. Rose is the same warmth re-tuned to the new hue family.
+ * The accents. Five meanings, and every one of them is a feeling rather than a
+ * severity level — there is no "info blue" here because there is nothing in
+ * this product to be informed about.
  */
 const accent = {
-  /** The single action colour. */
-  rose: '#E8A0B4',
-  /** Fills, borders, pressed states. Below AA — never small text. */
-  roseDeep: '#C4718A',
-  /** Tints and glows. */
-  blush: '#F2C4CE',
-  /** Brand and ambience. Never an action. */
-  lilac: '#B9A5E3',
-  /** Semantic only: complete. */
-  mint: '#9BC9A8',
+  /** The fox's light, and the single action colour. */
+  glow: '#FFB86B',
+  /** Fills, borders, pressed states — a step down from `glow`. */
+  glowDeep: '#E0955A',
+  /** Halos and tints. Not a text colour. */
+  glowSoft: '#FFD4B0',
+  /** Love. Reveal, reactions, the person holding the phone. */
+  heart: '#FF7A9A',
+  /** Heart, a step down — fills and borders. */
+  heartDeep: '#E05A7D',
+  /** Secondary actions and ambience. Never an action. */
+  moon: '#A78BFA',
+  /** Semantic only: both of you finished. */
+  success: '#7DDEB5',
   /** Semantic only: a live streak. */
-  peach: '#E8B98A',
-  /** Semantic only: destructive. */
-  danger: '#E27A85',
+  streak: '#F0C75E',
+  /** Semantic only: destructive. Soft, never harsh — see the note above. */
+  danger: '#E89B9B',
 } as const;
 
 /**
- * The two people. Distinguished by lightness as well as hue so the list stays
- * readable without relying on colour perception alone.
+ * The two people. Distinguished by lightness as well as hue so the shared list
+ * stays readable without relying on colour perception alone.
  */
 const partners = {
   /** Whoever is holding the phone. */
-  a: '#E8A0B4',
+  a: '#FF7A9A',
   /** The other one. */
   b: '#8FC5DE',
 } as const;
@@ -109,24 +133,34 @@ const partners = {
 // ─── Gradients ────────────────────────────────────────────────────────────────
 
 /**
- * Shaping, not decoration. These stops sit within a ramp step of each other, so
- * a tall screen gets a barely perceptible lift toward its centre and nothing
- * that reads as a "gradient background".
+ * Shaping, not decoration.
+ *
+ * `screen` stays within a ramp step of itself: a tall screen gets a barely
+ * perceptible lift toward its centre and nothing that reads as a "gradient
+ * background". `warm` and `reveal` are the exceptions and they are earned —
+ * both are apricot bleeding up from the bottom of a night ground, which is what
+ * a lit room actually looks like, and both are attached to the two moments in
+ * the app worth lighting up for.
  */
 export const gradients = {
-  screen: ['#150F19', '#1B1421', '#150F19'] as const,
+  screen: ['#0E0B14', '#171122', '#0E0B14'] as const,
   screenLocations: [0, 0.5, 1] as const,
-  panel: ['#150F19', '#1C1421', '#150F19'] as const,
-  /** The reveal earns the one visible gradient in the app, and it is still slight. */
-  reveal: ['#150F19', '#221830', '#1A1222'] as const,
+  panel: ['#0E0B14', '#1A1524', '#0E0B14'] as const,
+  /** Tonight, once both of you are in it. Warmth rising from underneath. */
+  warm: ['#0E0B14', '#1C1426', '#2A1C2C'] as const,
+  warmLocations: [0, 0.55, 1] as const,
+  /** The reveal earns the one genuinely visible gradient in the app. */
+  reveal: ['#0E0B14', '#241830', '#33212E'] as const,
   revealLocations: [0, 0.55, 1] as const,
+  /** Behind the fox, wherever it is the hero. Apricot falling off to nothing. */
+  foxHalo: ['rgba(255,184,107,0.20)', 'rgba(255,184,107,0.05)', 'rgba(255,184,107,0)'] as const,
 } as const;
 
 // ─── Semantic tokens ──────────────────────────────────────────────────────────
 
 const tokens = {
   background: ink[0],
-  backgroundMid: '#1B1421',
+  backgroundMid: '#171122',
   backgroundDeep: ink[1],
 
   surface: ink[2],
@@ -135,7 +169,7 @@ const tokens = {
   card: ink[2],
   cardStrong: ink[3],
   cardForeground: content[0],
-  cardBorder: 'rgba(248,241,246,0.08)',
+  cardBorder: 'rgba(247,241,232,0.08)',
 
   foreground: content[0],
   text: content[0],
@@ -143,32 +177,38 @@ const tokens = {
   muted: ink[1],
   mutedForeground: content[2],
 
-  onCardMuted: 'rgba(248,241,246,0.55)',
-  onCardBody: 'rgba(248,241,246,0.86)',
+  onCardMuted: 'rgba(247,241,232,0.55)',
+  onCardBody: 'rgba(247,241,232,0.86)',
 
-  primary: accent.rose,
-  primaryDeep: accent.roseDeep,
-  primarySoft: accent.blush,
-  /** Label on a rose fill — 9.08:1. */
+  /** The thing to tap. Apricot, because it is the same light the fox carries. */
+  primary: accent.glow,
+  primaryDeep: accent.glowDeep,
+  primarySoft: accent.glowSoft,
+  /** Label on a glow fill — 11.44:1. */
   primaryForeground: ink[0],
-  primaryGlow: accent.blush,
+  primaryGlow: accent.glowSoft,
 
-  /** "Secondary" is a neutral, not a second brand hue. */
-  secondary: content[1],
-  secondaryDeep: content[2],
-  secondarySoft: content[0],
+  /** Love, wherever the product is being affectionate rather than useful. */
+  heart: accent.heart,
+  heartDeep: accent.heartDeep,
+  heartForeground: ink[0],
+
+  /** Secondary actions. Violet, and never mistakable for the primary. */
+  secondary: accent.moon,
+  secondaryDeep: '#8B6BE0',
+  secondarySoft: '#C9B8FF',
   secondaryForeground: ink[0],
 
-  accent: accent.rose,
+  accent: accent.glow,
   accentForeground: content[0],
 
-  border: 'rgba(248,241,246,0.08)',
+  border: 'rgba(247,241,232,0.08)',
   borderStrong: ink[4],
-  input: 'rgba(248,241,246,0.05)',
-  tint: accent.rose,
+  input: 'rgba(247,241,232,0.05)',
+  tint: accent.glow,
 
-  success: accent.mint,
-  streak: accent.peach,
+  success: accent.success,
+  streak: accent.streak,
   destructive: accent.danger,
   destructiveForeground: ink[0],
 
@@ -177,15 +217,65 @@ const tokens = {
   partnerB: partners.b,
 
   /**
-   * The three prompts. Distinguished by label and order, with only a muted mark
-   * of colour each — the card itself stays neutral.
+   * The three prompts. One muted mark of colour each; the card itself stays
+   * neutral so three of them in a column read as a set rather than a traffic
+   * light.
    */
-  gratefulColor: accent.rose,
-  cuteColor: accent.lilac,
-  growColor: accent.mint,
+  gratefulColor: accent.heart,
+  cuteColor: accent.moon,
+  growColor: accent.success,
 } as const;
 
 export const palette = { ink, content, accent, partners } as const;
+
+/**
+ * Soft glow shadows, for the things that are supposed to be giving off light —
+ * the primary CTA, the fox's halo, a card at the moment it completes.
+ *
+ * Coloured rather than black: a warm button on a night ground with a black
+ * shadow reads as a sticker sitting on top of the page, and the same button
+ * with an apricot shadow reads as a source. iOS only; Android gets `elevation`
+ * via `constants/tokens.ts` and no colour, which is the correct fallback.
+ */
+export const glow = {
+  /** Under the primary CTA. */
+  primary: {
+    shadowColor: accent.glow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.38,
+    shadowRadius: 18,
+  },
+  /** Under anything affectionate — the reveal button, a reaction. */
+  heart: {
+    shadowColor: accent.heart,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.34,
+    shadowRadius: 18,
+  },
+  /** Under a completed / both-of-you-are-here surface. */
+  success: {
+    shadowColor: accent.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+  },
+} as const;
+
+/**
+ * Translucent tints, for fills that have to sit on an unknown surface. Pulled
+ * out as a table because the same four opacities were being hand-typed as
+ * `rgba(...)` literals in thirty files, and a hand-typed alpha is how a design
+ * system quietly grows a second palette.
+ */
+export const tint = {
+  glow: (a: number) => `rgba(255,184,107,${a})`,
+  heart: (a: number) => `rgba(255,122,154,${a})`,
+  moon: (a: number) => `rgba(167,139,250,${a})`,
+  success: (a: number) => `rgba(125,222,181,${a})`,
+  streak: (a: number) => `rgba(240,199,94,${a})`,
+  cream: (a: number) => `rgba(247,241,232,${a})`,
+  night: (a: number) => `rgba(14,11,20,${a})`,
+} as const;
 
 const colors = {
   light: tokens,

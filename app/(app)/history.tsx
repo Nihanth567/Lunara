@@ -10,6 +10,7 @@ import { useApp, type DailyEntry } from '@/context/AppContext';
 import { isPro, freeHistoryCutoffDate, FREE_HISTORY_DAYS } from '@/lib/entitlements';
 import { formatMomentDate, momentIsComplete, momentVoiceCount } from '@/lib/moments';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 /**
  * Moments — a plain chronological list of the nights a couple completed
@@ -31,22 +32,22 @@ function MomentRow({ entry, onPress }: { entry: DailyEntry; onPress: () => void 
         <View style={styles.rowHeader}>
           <Text style={styles.rowDate}>{formatMomentDate(entry.date)}</Text>
           <View style={styles.rowDots}>
-            {entry.grateful ? <View style={[styles.dot, { backgroundColor: '#E8A0B4' }]} /> : null}
-            {entry.cute ? <View style={[styles.dot, { backgroundColor: '#CBB9C9' }]} /> : null}
-            {entry.grow ? <View style={[styles.dot, { backgroundColor: '#9BC9A8' }]} /> : null}
+            {entry.grateful ? <View style={[styles.dot, { backgroundColor: palette.accent.glow }]} /> : null}
+            {entry.cute ? <View style={[styles.dot, { backgroundColor: palette.content[1] }]} /> : null}
+            {entry.grow ? <View style={[styles.dot, { backgroundColor: palette.accent.success }]} /> : null}
           </View>
         </View>
         <Text style={styles.rowPreview} numberOfLines={1}>{preview}</Text>
         {voiceCount > 0 && (
           <View style={styles.rowVoice}>
-            <Ionicons name="mic" size={11} color="#A492A6" />
+            <Ionicons name="mic" size={11} color="#9A9084" />
             <Text style={styles.rowVoiceText}>
               {voiceCount} voice {voiceCount === 1 ? 'note' : 'notes'}
             </Text>
           </View>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={16} color="#42304A" />
+      <Ionicons name="chevron-forward" size={16} color="#3A3149" />
     </Pressable>
   );
 }
@@ -79,7 +80,7 @@ export default function HistoryScreen() {
 
   return (
     <LinearGradient
-      colors={['#150F19', '#1B1421', '#312338', '#1B1421', '#150F19']}
+      colors={[palette.ink[0], palette.ink[1], palette.ink[3], palette.ink[1], palette.ink[0]]}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -105,7 +106,7 @@ export default function HistoryScreen() {
           </View>
         ) : lockedCount === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="moon-outline" size={36} color="rgba(248, 241, 246,0.4)" />
+            <Ionicons name="moon-outline" size={36} color="rgba(247, 241, 232,0.4)" />
             <Text style={styles.emptyTitle}>Your story starts tonight</Text>
             <Text style={styles.emptyBody}>
               Share tonight's ritual with your partner, and this{'\n'}quiet little archive of your moments together begins
@@ -116,7 +117,7 @@ export default function HistoryScreen() {
         {lockedCount > 0 && (
           <Pressable style={styles.lockedBanner} onPress={() => router.push('/(modals)/paywall')}>
             <View style={styles.lockedIcon}>
-              <Ionicons name="lock-closed" size={16} color="#E8A0B4" />
+              <Ionicons name="lock-closed" size={16} color="#FFB86B" />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.lockedTitle}>
@@ -126,7 +127,7 @@ export default function HistoryScreen() {
                 Free keeps your last {FREE_HISTORY_DAYS} days — Lunara Pro keeps all of them
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#A492A6" />
+            <Ionicons name="chevron-forward" size={16} color="#9A9084" />
           </Pressable>
         )}
       </ScrollView>
@@ -138,38 +139,38 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 22 },
   header: { marginBottom: 22, gap: 4 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6' },
-  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
+  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
 
   list: { gap: 10 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     padding: 16,
   },
   rowMain: { flex: 1, gap: 5 },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowDate: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
+  rowDate: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
   rowDots: { flexDirection: 'row', gap: 4 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
-  rowPreview: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  rowPreview: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
   rowVoice: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  rowVoiceText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  rowVoiceText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
 
   emptyState: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyTitle: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6',
+  emptyTitle: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0],
     letterSpacing: -0.4,
   },
   emptyBody: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     textAlign: 'center',
     lineHeight: 21,
   },
@@ -179,21 +180,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginTop: 16,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.2)',
+    borderColor: 'rgba(255, 184, 107,0.2)',
     padding: 16,
   },
   lockedIcon: {
     width: 34,
     height: 34,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(232, 160, 180,0.12)',
+    backgroundColor: 'rgba(255, 184, 107,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  lockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
-  lockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  lockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
+  lockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
 });

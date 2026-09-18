@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { ThinkingOrb } from '@/components/ThinkingOrb';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 import {
   isWellFormedInviteCode,
   normalizeInviteCode,
@@ -81,7 +83,15 @@ export default function JoinDeepLink() {
   if (outcome === 'working') {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#E8A0B4" size="large" />
+        {/* "Connecting" — a constellation wiring itself together — is a
+            near-literal match for what this screen is actually doing:
+            resolving one partner's invite into a shared couple. */}
+        <ThinkingOrb
+          state="connecting"
+          size={64}
+          theme="dark"
+          accessibilityLabel="Joining your partner"
+        />
       </View>
     );
   }
@@ -90,7 +100,7 @@ export default function JoinDeepLink() {
 
   return (
     <LinearGradient
-      colors={['#150F19', '#1B1421', '#251B2B', '#1B1421', '#150F19']}
+      colors={[palette.ink[0], palette.ink[1], palette.ink[2], palette.ink[1], palette.ink[0]]}
       locations={[0, 0.3, 0.55, 0.8, 1]}
       style={styles.container}
     >
@@ -105,7 +115,7 @@ export default function JoinDeepLink() {
           <Ionicons
             name={malformed ? 'moon-outline' : 'heart-outline'}
             size={26}
-            color={malformed ? '#CBB9C9' : '#E8A0B4'}
+            color={malformed ? palette.content[1] : palette.accent.glow}
           />
         </View>
 
@@ -137,7 +147,7 @@ export default function JoinDeepLink() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#150F19', alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, backgroundColor: palette.ink[0], alignItems: 'center', justifyContent: 'center' },
   container: { flex: 1 },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 14 },
   icon: {
@@ -145,28 +155,28 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: radius.md,
     borderCurve: 'continuous',
-    backgroundColor: 'rgba(248, 241, 246,0.05)',
+    backgroundColor: 'rgba(247, 241, 232,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
     lineHeight: 21,
   },
   actions: { alignSelf: 'stretch', marginTop: 14, gap: 4 },
   secondary: { alignItems: 'center', paddingVertical: 12 },
-  secondaryText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  secondaryText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
 });

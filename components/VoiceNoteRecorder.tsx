@@ -19,6 +19,7 @@ import {
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
 import { formatDuration, VOICE_NOTE_MAX_SECONDS } from '@/lib/voiceNotes';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 interface Props {
   /** Existing recording for this card, if any. */
@@ -125,7 +126,7 @@ export function VoiceNoteRecorder({ value, color, onRecorded, onDelete, disabled
         </View>
         {!disabled && (
           <Pressable onPress={remove} hitSlop={8} style={styles.iconBtn} disabled={busy}>
-            <Ionicons name="trash-outline" size={15} color="#A492A6" />
+            <Ionicons name="trash-outline" size={15} color="#9A9084" />
           </Pressable>
         )}
       </View>
@@ -138,7 +139,7 @@ export function VoiceNoteRecorder({ value, color, onRecorded, onDelete, disabled
       disabled={disabled || busy}
       style={[
         styles.recordBtn,
-        { borderColor: recording ? color + '55' : 'rgba(248, 241, 246,0.10)' },
+        { borderColor: recording ? color + '55' : 'rgba(247, 241, 232,0.10)' },
         recording && { backgroundColor: color + '12' },
       ]}
     >
@@ -147,9 +148,9 @@ export function VoiceNoteRecorder({ value, color, onRecorded, onDelete, disabled
       ) : recording ? (
         <Animated.View style={[styles.recDot, { backgroundColor: color }, dotStyle]} />
       ) : (
-        <Ionicons name="mic-outline" size={15} color={disabled ? '#42304A' : color} />
+        <Ionicons name="mic-outline" size={15} color={disabled ? palette.ink[4] : color} />
       )}
-      <Text style={[styles.recordText, { color: disabled ? '#42304A' : recording ? color : '#CBB9C9' }]}>
+      <Text style={[styles.recordText, { color: disabled ? palette.ink[4] : recording ? color : palette.content[1] }]}>
         {recording
           ? `${formatDuration(seconds)} · tap to stop`
           : busy
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    backgroundColor: 'rgba(248, 241, 246,0.03)',
+    backgroundColor: 'rgba(247, 241, 232,0.03)',
   },
   recDot: { width: 10, height: 10, borderRadius: radius.sm },
   recordText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
@@ -183,6 +184,6 @@ const styles = StyleSheet.create({
     marginLeft: 'auto' as const,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
   },
 });

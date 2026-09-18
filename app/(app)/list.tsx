@@ -175,7 +175,7 @@ function Row({
           <Ionicons
             name={item.needsBoth ? 'people' : 'person-outline'}
             size={16}
-            color={item.needsBoth ? palette.accent.rose : palette.ink[4]}
+            color={item.needsBoth ? palette.accent.glow : palette.ink[4]}
           />
         </Pressable>
       </Pressable>
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246, 0.08)',
+    borderColor: 'rgba(247, 241, 232, 0.08)',
     paddingLeft: space.lg,
     paddingRight: space.sm,
     paddingVertical: space.sm,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: palette.ink[1],
   },
-  composerSharedOn: { backgroundColor: palette.accent.rose },
+  composerSharedOn: { backgroundColor: palette.accent.glow },
   composerAdd: {
     width: 32,
     height: 32,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.accent.rose,
+    backgroundColor: palette.accent.glow,
   },
   composerAddOff: { backgroundColor: palette.ink[3] },
   composerHint: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246, 0.08)',
+    borderColor: 'rgba(247, 241, 232, 0.08)',
     padding: space.lg,
   },
   // Completed items recede rather than disappear — the list is also a record

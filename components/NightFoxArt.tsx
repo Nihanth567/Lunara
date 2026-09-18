@@ -152,7 +152,19 @@ export function NightFoxArt({
           resizeMode="contain"
           accessibilityIgnoresInvertColors
         />
-        {overlay}
+        {/*
+          No speck overlay over commissioned art.
+
+          `SPARKS` holds five positions in the *placeholder's* 100×100 viewBox,
+          chosen to sit along that vector fox's tail and flank. Painted over a
+          photograph-shaped PNG they land wherever those coordinates happen to
+          fall — on screen that put a lone violet dot on the fox's cheek, which
+          reads as a rendering fault rather than as a streak tier.
+
+          The commissioned art carries its own sparkles, and the streak is
+          already legible from the halo colour, the chip and the copy. Specks
+          stay where they were designed to work: on the placeholder.
+        */}
       </View>
     );
   }

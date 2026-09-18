@@ -7,12 +7,17 @@ private let appGroup = "group.com.lunara.app.widget"
 // Mirrors constants/colors.ts — keep in sync. The widget sits on the home
 // screen next to the app icon, so a palette that has drifted from the app's is
 // visible in a way an in-app inconsistency never is.
-private let backgroundTop = Color(red: 0.082, green: 0.059, blue: 0.098)     // ink[0] #150F19
-private let backgroundBottom = Color(red: 0.133, green: 0.094, blue: 0.188)  // #221830
-private let textPrimary = Color(red: 0.973, green: 0.945, blue: 0.965)       // content[0] #F8F1F6
-private let textMuted = Color(red: 0.643, green: 0.573, blue: 0.651)         // content[2] #A492A6
-private let mint = Color(red: 0.608, green: 0.788, blue: 0.659)              // accent.mint #9BC9A8
-private let peach = Color(red: 0.910, green: 0.725, blue: 0.541)             // accent.peach #E8B98A
+// Mirrors `constants/colors.ts`. These are hand-transcribed because a Swift
+// extension cannot import the TS token file — so when the palette moves, this
+// block moves with it, and the hex in each comment is what to diff against.
+private let backgroundTop = Color(red: 0.055, green: 0.043, blue: 0.078)     // ink[0]      #0E0B14
+private let backgroundBottom = Color(red: 0.165, green: 0.110, blue: 0.173)  // warm floor  #2A1C2C
+private let textPrimary = Color(red: 0.969, green: 0.945, blue: 0.910)       // content[0]  #F7F1E8
+private let textMuted = Color(red: 0.604, green: 0.565, blue: 0.518)         // content[2]  #9A9084
+private let mint = Color(red: 0.490, green: 0.871, blue: 0.710)              // success     #7DDEB5
+private let peach = Color(red: 1.000, green: 0.722, blue: 0.420)             // glow        #FFB86B
+private let heart = Color(red: 1.000, green: 0.478, blue: 0.604)             // heart       #FF7A9A
+private let gold = Color(red: 0.941, green: 0.780, blue: 0.369)              // streak      #F0C75E
 
 /// Mirrors `WidgetStatus` in lib/widget.ts.
 enum LunaraStatus: String {
@@ -242,27 +247,27 @@ struct LunaraStreakWidgetView: View {
     /// Status first, streak second — "Ready to reveal" beats any number.
     private var statusText: String {
         switch entry.status {
-        case .unpaired: return "Open Lunara to connect"
-        case .ready:    return "Ready to reveal 🌙"
-        case .waiting:  return "Waiting for your partner…"
-        case .complete: return "Tonight is complete 🌙"
-        case .open:     return entry.atRisk ? "Tonight is still open" : "Tonight's ritual is waiting"
+        case .unpaired: return "Invite your person"
+        case .ready:    return "Both of you showed up"
+        case .waiting:  return "Holding a light for them"
+        case .complete: return "Tonight is shared"
+        case .open:     return "Tonight's still open"
         }
     }
 
     private var statusColor: Color {
         switch entry.status {
-        case .ready:    return peach
+        case .ready:    return heart
         case .complete: return mint
-        case .waiting:  return textPrimary
+        case .waiting:  return peach
         case .open:     return entry.atRisk ? peach : textMuted
-        case .unpaired: return textMuted
+        case .unpaired: return heart
         }
     }
 
     private var streakCaption: String {
         if entry.streakProtected { return "nights held together" }
-        return entry.streak == 1 ? "night together" : "nights together"
+        return entry.streak == 1 ? "day together" : "days together"
     }
 
     var body: some View {
@@ -274,7 +279,7 @@ struct LunaraStreakWidgetView: View {
                     Image(systemName: "moon.stars")
                         .font(.system(size: 20))
                         .foregroundStyle(textPrimary)
-                    Text("Open Lunara to connect with your partner")
+                    Text("Your fox is waiting for the other half")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(textMuted)
                         .multilineTextAlignment(.center)
@@ -292,7 +297,7 @@ struct LunaraStreakWidgetView: View {
                             .tracking(1.4)
                             .foregroundStyle(textPrimary)
                         Spacer(minLength: 4)
-                        CompanionMark(mood: entry.companion, size: 20)
+                        CompanionMark(mood: entry.companion, size: 30)
                     }
 
                     Spacer(minLength: 4)
@@ -300,9 +305,11 @@ struct LunaraStreakWidgetView: View {
                     // A couple with no streak yet gets an invitation instead of a
                     // zero — "0 nights together" is the least inviting number there is.
                     if entry.streak > 0 {
+                        // Gold, matching the streak chip in the app. `.white` was
+                        // the one pure white left anywhere in the product.
                         Text("\(entry.streak)")
                             .font(.system(size: 38, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(gold)
 
                         Text(streakCaption)
                             .font(.system(size: 12, weight: .medium))
@@ -310,7 +317,7 @@ struct LunaraStreakWidgetView: View {
                     } else {
                         Text("Tonight")
                             .font(.system(size: 26, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(textPrimary)
 
                         Text("where it starts")
                             .font(.system(size: 12, weight: .medium))

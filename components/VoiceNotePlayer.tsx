@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    backgroundColor: 'rgba(248, 241, 246,0.04)',
+    backgroundColor: 'rgba(247, 241, 232,0.04)',
   },
   pillCompact: { paddingVertical: 7, paddingHorizontal: 10 },
   text: {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: 'rgba(248, 241, 246,0.08)',
+    backgroundColor: 'rgba(247, 241, 232,0.08)',
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: 1.5 },

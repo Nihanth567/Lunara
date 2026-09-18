@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import type { GrowthTip } from '@/lib/growth';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 interface Props {
   tip: GrowthTip;
@@ -17,7 +18,7 @@ export function GrowthTipCard({ tip }: Props) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="bulb-outline" size={16} color="#E8B98A" />
+        <Ionicons name="bulb-outline" size={16} color="#F0C75E" />
         <Text style={styles.title}>Growth Tip</Text>
         <View style={styles.topicPill}>
           <Text style={styles.topicText}>{tip.topic}</Text>
@@ -30,11 +31,11 @@ export function GrowthTipCard({ tip }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     padding: 18,
     gap: 10,
     marginBottom: 16,
@@ -43,7 +44,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#E8B98A',
+    color: palette.accent.streak,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     flex: 1,
@@ -53,19 +54,19 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
-    backgroundColor: 'rgba(248, 241, 246,0.04)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
+    backgroundColor: 'rgba(247, 241, 232,0.04)',
   },
   topicText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
     letterSpacing: 0.3,
   },
   body: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 21,
   },
 });

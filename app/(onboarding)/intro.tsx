@@ -16,99 +16,91 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
-import { gradients, palette } from '@/constants/colors';
+import { CoupleCompanion } from '@/components/CoupleCompanion';
+import { gradients, palette, tint } from '@/constants/colors';
 import { radius, space, hitSlopFor } from '@/constants/tokens';
 import { type as text } from '@/constants/typography';
 
 /**
- * The intro — four panels, swipeable, skippable.
+ * The intro — three panels, swipeable, skippable.
  *
- * Deliberately shown *before* the sign-in screen. Asking someone to
- * authenticate before they know what the app is is the most reliable way to
- * lose them on the first launch; four screens of what this is costs nothing and
- * the Skip button is always there.
+ * ─── Three, not four ─────────────────────────────────────────────────────────
  *
- * Each panel carries its own small piece of interface rather than an icon in a
- * circle. Panel two in particular has to *show* the two-colour mechanic — it is
- * the whole reason this is a couples app rather than a shared notes file, and a
- * paragraph describing it does not land the way a drawn checkbox does.
+ * It was four: the invite code, the two-colour list mechanic, a placeholder
+ * "designed to make you smile" panel, and a summary. Two of those were about
+ * the shared *list*, which is the half of the product that explains itself the
+ * moment you see it, and one was a panel about the app being nice — the most
+ * skippable screen it is possible to write.
+ *
+ * What is left is the three things a person cannot work out for themselves:
+ * there is a creature and it belongs to both of you; it only lights up when
+ * *both* of you show up; and the thing you show up to is three small questions.
+ * In that order, because the fox is the reason to care about the other two.
+ *
+ * ─── Shown before sign-in, on purpose ────────────────────────────────────────
+ *
+ * Asking someone to authenticate before they know what the app is is the most
+ * reliable way to lose them on first launch. Three panels costs nothing and
+ * Skip is always on screen.
+ *
+ * Every panel is art-first and text-light: one illustration, one line of title,
+ * two lines of body at most. If a panel needs a paragraph, the panel is wrong.
  */
 
 // ─── Panel illustrations ─────────────────────────────────────────────────────
 
-/** The six-letter code, drawn as the boxes it is actually typed into. */
-function CodeArt() {
+/**
+ * The fox itself, at hero size, in its `nesting` state — settled, awake, and
+ * waiting for something that hasn't happened yet, which is exactly what is true
+ * of a couple who has not signed up. Using the real component rather than a
+ * drawing of one means the first fox someone ever sees is the same animal, at
+ * the same size, that will be at the top of their home screen tonight.
+ */
+function FoxArt() {
+  return <CoupleCompanion state="nesting" streak={0} size="hero" />;
+}
+
+/**
+ * The mutual-reveal mechanic, drawn.
+ *
+ * Two sealed cards and a lock between them. This is the one rule that makes the
+ * product a couples app rather than a shared notes file, and a sentence
+ * describing it does not land the way two closed envelopes do.
+ */
+function BothOfYouArt() {
   return (
-    <View style={styles.codeRow}>
-      {['K', 'M', '7', 'R', 'Q', '4'].map((char, i) => (
-        <View key={i} style={styles.codeBox}>
-          <Text style={styles.codeChar}>{char}</Text>
-        </View>
-      ))}
+    <View style={styles.bothRow}>
+      <View style={[styles.sealedCard, { borderColor: tint.heart(0.35) }]}>
+        <Ionicons name="lock-closed" size={18} color={palette.partners.a} />
+        <Text style={[styles.sealedName, { color: palette.partners.a }]}>You</Text>
+      </View>
+      <View style={styles.bothLink}>
+        <Ionicons name="heart" size={16} color={palette.accent.heart} />
+      </View>
+      <View style={[styles.sealedCard, { borderColor: tint.moon(0.35) }]}>
+        <Ionicons name="lock-closed" size={18} color={palette.partners.b} />
+        <Text style={[styles.sealedName, { color: palette.partners.b }]}>Them</Text>
+      </View>
     </View>
   );
 }
 
-/**
- * Two rows: one either of you can finish, one neither of you can finish alone.
- * The second row is drawn mid-state — ticked on one side only — because the
- * waiting is the part that needs explaining.
- */
-function TwoColourArt() {
+/** The three prompts, as the three cards they actually are. */
+function RitualArt() {
+  const rows = [
+    { label: 'Grateful', color: palette.accent.heart, icon: 'heart-outline' as const },
+    { label: 'Cute', color: palette.accent.moon, icon: 'happy-outline' as const },
+    { label: 'Grow', color: palette.accent.success, icon: 'leaf-outline' as const },
+  ];
   return (
     <View style={styles.artList}>
-      <View style={styles.artRow}>
-        <View style={[styles.artCheck, { backgroundColor: palette.partners.a, borderColor: palette.partners.a }]}>
-          <Ionicons name="checkmark" size={13} color={palette.ink[0]} />
+      {rows.map((row) => (
+        <View key={row.label} style={styles.artRow}>
+          <Ionicons name={row.icon} size={18} color={row.color} />
+          <Text style={[styles.artRowText, { color: row.color }]}>{row.label}</Text>
+          <View style={[styles.artDot, { backgroundColor: row.color }]} />
         </View>
-        <Text style={[styles.artRowText, styles.artRowTextDone]}>Pick up the parcel</Text>
-      </View>
-
-      <View style={styles.artRow}>
-        <View style={[styles.artCheck, { borderColor: palette.ink[4] }]} />
-        <Text style={styles.artRowText}>Decide on March</Text>
-        <View style={styles.artBoth}>
-          <View style={[styles.artDot, { backgroundColor: palette.ink[4] }]} />
-          <View style={[styles.artDot, { backgroundColor: palette.partners.b }]} />
-        </View>
-      </View>
-
-      <Text style={styles.artCaption}>
-        <Text style={{ color: palette.partners.b }}>●</Text> them ·{' '}
-        <Text style={{ color: palette.partners.a }}>●</Text> you
-      </Text>
-    </View>
-  );
-}
-
-/**
- * Placeholder for the illustration that is coming.
- *
- * Drawn as a real shape rather than left blank so the panel's rhythm is already
- * correct when the artwork lands — swapping it in is a one-component change,
- * not a re-layout.
- */
-function CharacterArt() {
-  return (
-    <View style={styles.characterSlot}>
-      <View style={styles.characterGlow} />
-      <Ionicons name="heart" size={40} color={palette.accent.blush} />
-    </View>
-  );
-}
-
-/** The two halves of the product, side by side. */
-function TogetherArt() {
-  return (
-    <View style={styles.togetherRow}>
-      <View style={styles.togetherCard}>
-        <Ionicons name="checkmark-circle" size={22} color={palette.accent.rose} />
-        <Text style={styles.togetherLabel}>The everyday</Text>
-      </View>
-      <View style={styles.togetherCard}>
-        <Ionicons name="moon" size={22} color={palette.accent.lilac} />
-        <Text style={styles.togetherLabel}>The every night</Text>
-      </View>
+      ))}
     </View>
   );
 }
@@ -117,28 +109,22 @@ function TogetherArt() {
 
 const PANELS = [
   {
-    key: 'code',
-    art: CodeArt,
-    title: 'One code, and they’re in',
-    body: 'Share your six-letter code and your partner joins in seconds. Nothing to configure, no invites to chase — just your list, ready to go.',
+    key: 'fox',
+    art: FoxArt,
+    title: 'Meet your fox',
+    body: 'Not yours. Not theirs. Yours together — and it brightens on the nights you both turn up.',
   },
   {
-    key: 'two',
-    art: TwoColourArt,
-    title: 'Built for two, not just one',
-    body: 'Each of you gets your own colour. Check things off solo, or wait for each other — some things are only done when you both tick them. You’ll see who did what as it happens.',
+    key: 'both',
+    art: BothOfYouArt,
+    title: 'It takes both of you',
+    body: 'What you write stays sealed until your person writes theirs. Then it opens at the same time, for both of you.',
   },
   {
-    key: 'character',
-    art: CharacterArt,
-    title: 'Designed to make you smile',
-    body: 'Soft colours, gentle motion, and a little weight behind every tick. A couples app you enjoy opening is one you’ll actually keep open.',
-  },
-  {
-    key: 'together',
-    art: TogetherArt,
-    title: 'The big moments are easy to remember',
-    body: 'Lunara helps you handle everything else. A shared list for the day, and three quiet questions at night — together.',
+    key: 'ritual',
+    art: RitualArt,
+    title: 'Three small questions',
+    body: 'Something grateful, something cute, something to grow. Two minutes, once a night.',
   },
 ] as const;
 
@@ -165,7 +151,13 @@ export default function IntroScreen() {
       router.push('/(onboarding)/auth');
       return;
     }
-    scrollRef.current?.scrollTo({ x: (page + 1) * width, animated: true });
+    // Set the page as well as scrolling to it. `onMomentumScrollEnd` fires for
+    // a finger, but not reliably for a programmatic `scrollTo` — so driving the
+    // pager with the button alone left the dots stuck on panel one while the
+    // content moved underneath them.
+    const next = page + 1;
+    setPage(next);
+    scrollRef.current?.scrollTo({ x: next * width, animated: true });
   };
 
   return (
@@ -236,10 +228,10 @@ const styles = StyleSheet.create({
   skipText: { ...text.callout, color: palette.content[2] },
 
   pager: { flex: 1 },
-  panel: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  artWrap: { minHeight: 190, alignItems: 'center', justifyContent: 'center' },
-  copy: { gap: space.md, marginTop: space.xxxl },
-  panelTitle: { ...text.title, color: palette.content[0], textAlign: 'center' },
+  panel: { flex: 1, justifyContent: 'center', paddingHorizontal: space.xxl },
+  artWrap: { minHeight: 230, alignItems: 'center', justifyContent: 'center' },
+  copy: { gap: space.md, marginTop: space.xxl },
+  panelTitle: { ...text.hero, color: palette.content[0], textAlign: 'center' },
   panelBody: {
     ...text.body,
     color: palette.content[1],
@@ -247,23 +239,31 @@ const styles = StyleSheet.create({
     lineHeight: 25,
   },
 
-  // ── Code panel ──
-  codeRow: { flexDirection: 'row', gap: space.sm },
-  codeBox: {
-    width: 42,
-    height: 52,
-    borderRadius: radius.md,
+  // ── "It takes both of you" ────────────────────────────────────────────────
+  bothRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  sealedCard: {
+    width: 104,
+    height: 116,
+    borderRadius: radius.lg,
     borderCurve: 'continuous',
     backgroundColor: palette.ink[2],
     borderWidth: 1,
-    borderColor: palette.ink[4],
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+  },
+  sealedName: { ...text.caption },
+  bothLink: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.full,
+    backgroundColor: tint.heart(0.14),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  codeChar: { ...text.heading, color: palette.content[0] },
 
-  // ── Two-colour panel ──
-  artList: { gap: space.sm, width: '100%', maxWidth: 300 },
+  // ── The three prompts ─────────────────────────────────────────────────────
+  artList: { gap: space.sm, width: '100%', maxWidth: 260 },
   artRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,64 +272,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246, 0.08)',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-  },
-  artCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    borderCurve: 'continuous',
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  artRowText: { ...text.callout, color: palette.content[0], flex: 1 },
-  artRowTextDone: { textDecorationLine: 'line-through', color: palette.content[2] },
-  artBoth: { flexDirection: 'row', gap: space.xs },
-  artDot: { width: 7, height: 7, borderRadius: radius.full },
-  artCaption: {
-    ...text.caption,
-    color: palette.content[2],
-    textAlign: 'center',
-    marginTop: space.xs,
-  },
-
-  // ── Character panel ──
-  characterSlot: {
-    width: 132,
-    height: 132,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.ink[2],
-    borderWidth: 1,
     borderColor: palette.ink[4],
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md + 2,
   },
-  characterGlow: {
-    position: 'absolute',
-    width: 132,
-    height: 132,
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(232, 160, 180, 0.10)',
-  },
+  artRowText: { ...text.label, flex: 1 },
+  artDot: { width: 8, height: 8, borderRadius: radius.full },
 
-  // ── Together panel ──
-  togetherRow: { flexDirection: 'row', gap: space.md },
-  togetherCard: {
-    width: 128,
-    gap: space.sm,
-    backgroundColor: palette.ink[2],
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246, 0.08)',
-    padding: space.lg,
-  },
-  togetherLabel: { ...text.callout, color: palette.content[1] },
-
-  footer: { paddingHorizontal: 32, gap: space.xl, alignItems: 'center' },
+  footer: { paddingHorizontal: space.xxl, gap: space.xl, alignItems: 'center' },
   dots: { flexDirection: 'row', gap: space.sm },
   dot: {
     width: 6,
@@ -337,5 +287,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: palette.ink[4],
   },
-  dotActive: { backgroundColor: palette.accent.rose, width: 20 },
+  dotActive: { backgroundColor: palette.accent.glow, width: 22 },
 });

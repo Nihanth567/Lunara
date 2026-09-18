@@ -18,8 +18,10 @@ import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
+import { maybeAskForNotifications } from '@/services/notifications';
 import { toDateKey } from '@/lib/streak';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 import {
   INVITE_CODE_LENGTH,
   clearPendingInvite,
@@ -31,6 +33,31 @@ import {
 
 type Mode = 'choose' | 'create' | 'join';
 
+/**
+ * The end of onboarding — every path out of this screen goes through here.
+ *
+ * ─── Why pairing is the last screen ──────────────────────────────────────────
+ *
+ * It used to be followed by a tutorial, a "who pays" explainer and a Premium
+ * preview: three screens between someone finishing setup and seeing the thing
+ * they signed up for. Every one of them was a screen about the app rather than
+ * the app, and the last of them pushed a paywall at a person who had not yet
+ * had a single good night in the product. Nothing sells a couples app like the
+ * first mutual reveal, and nothing kills one like being charged before it.
+ *
+ * So the chain is now promise → fox → both of you → auth → invite, and this is
+ * the door. The three cut screens still exist and are still routable; they are
+ * simply no longer in the way. Premium is introduced later, from inside the
+ * product, once there is something to be premium *about*.
+ */
+async function finishOnboarding(
+  registerPushToken: () => Promise<void>,
+  completeOnboarding: () => Promise<void>,
+): Promise<void> {
+  await maybeAskForNotifications(registerPushToken);
+  await completeOnboarding();
+}
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -38,7 +65,7 @@ function generateId(): string {
 export default function PairingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { createCouple, joinCouple, setCouple } = useApp();
+  const { createCouple, joinCouple, setCouple, completeOnboarding, registerPushToken } = useApp();
   // Arrives from an invite link (lunara://join/<code> → app/join/[code].tsx).
   const { code: invitedCode } = useLocalSearchParams<{ code?: string }>();
   const prefilled = normalizeInviteCode(invitedCode);
@@ -83,7 +110,8 @@ export default function PairingScreen() {
   };
 
   const handleCreateCouple = async () => {
-    router.push('/(onboarding)/tutorial');
+    await finishOnboarding(registerPushToken, completeOnboarding);
+    router.replace('/(app)/' as never);
   };
 
   /**
@@ -102,7 +130,8 @@ export default function PairingScreen() {
       await joinCouple(code);
       await clearPendingInvite();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.push('/(onboarding)/tutorial');
+      await finishOnboarding(registerPushToken, completeOnboarding);
+      router.replace('/(app)/' as never);
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setJoinError(
@@ -141,14 +170,15 @@ export default function PairingScreen() {
     });
     setLoading(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.push('/(onboarding)/tutorial');
+    await finishOnboarding(registerPushToken, completeOnboarding);
+    router.replace('/(app)/' as never);
   };
 
   // ─── Create mode ───────────────────────────────────────────────────────────
 
   if (mode === 'create') {
     return (
-      <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+      <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
         <StarField />
         <ScrollView
           contentContainerStyle={[
@@ -158,7 +188,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#CBB9C9" />
+            <Ionicons name="arrow-back" size={22} color="#C9BDB0" />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -172,13 +202,13 @@ export default function PairingScreen() {
             <Text style={styles.codeLabel}>Your invite code</Text>
             <Text style={styles.code}>{inviteCode}</Text>
             <Pressable style={styles.shareButton} onPress={handleShareCode}>
-              <Ionicons name="share-outline" size={18} color="#E8A0B4" />
+              <Ionicons name="share-outline" size={18} color="#FFB86B" />
               <Text style={styles.shareText}>Share invite link</Text>
             </Pressable>
           </Animated.View>
 
            <Animated.View style={styles.waitingNote}>
-            <Ionicons name="time-outline" size={16} color="#CBB9C9" />
+            <Ionicons name="time-outline" size={16} color="#C9BDB0" />
             <Text style={styles.waitingText}>
               You can keep using Lunara while you wait for your partner to join
             </Text>
@@ -196,7 +226,7 @@ export default function PairingScreen() {
 
   if (mode === 'join') {
     return (
-      <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+      <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
         <StarField />
         <ScrollView
           contentContainerStyle={[
@@ -207,7 +237,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#CBB9C9" />
+            <Ionicons name="arrow-back" size={22} color="#C9BDB0" />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -227,7 +257,7 @@ export default function PairingScreen() {
                 if (joinError) setJoinError(null);
               }}
               placeholder="XXXXXX"
-              placeholderTextColor="rgba(248, 241, 246,0.2)"
+              placeholderTextColor="rgba(247, 241, 232,0.2)"
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={INVITE_CODE_LENGTH}
@@ -235,7 +265,7 @@ export default function PairingScreen() {
             />
             {joinError && (
               <View style={styles.joinErrorRow}>
-                <Ionicons name="moon-outline" size={15} color="#E8B98A" />
+                <Ionicons name="moon-outline" size={15} color="#F0C75E" />
                 <Text style={styles.joinErrorText}>{joinError}</Text>
               </View>
             )}
@@ -257,7 +287,7 @@ export default function PairingScreen() {
   // ─── Choose mode ───────────────────────────────────────────────────────────
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -277,24 +307,24 @@ export default function PairingScreen() {
          <Animated.View style={styles.options}>
           <Pressable style={styles.bigOption} onPress={handleStartNewCouple} disabled={loading}>
             <View style={styles.bigOptionIcon}>
-              <Ionicons name="sparkles-outline" size={28} color="#E8A0B4" />
+              <Ionicons name="sparkles-outline" size={28} color="#FFB86B" />
             </View>
             <View style={styles.bigOptionText}>
               <Text style={styles.bigOptionTitle}>Start a new couple</Text>
               <Text style={styles.bigOptionSub}>Generate an invite code to share</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#A492A6" />
+            <Ionicons name="chevron-forward" size={20} color="#9A9084" />
           </Pressable>
 
           <Pressable style={styles.bigOption} onPress={() => setMode('join')}>
             <View style={[styles.bigOptionIcon, styles.iconLavender]}>
-              <Ionicons name="enter-outline" size={28} color="#CBB9C9" />
+              <Ionicons name="enter-outline" size={28} color="#C9BDB0" />
             </View>
             <View style={styles.bigOptionText}>
               <Text style={styles.bigOptionTitle}>Join an existing couple</Text>
               <Text style={styles.bigOptionSub}>Enter the code from your partner</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#A492A6" />
+            <Ionicons name="chevron-forward" size={20} color="#9A9084" />
           </Pressable>
         </Animated.View>
 
@@ -326,20 +356,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#E8A0B4',
+    color: palette.accent.glow,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 22,
   },
   options: { gap: 14 },
@@ -347,11 +377,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-     backgroundColor: '#251B2B',
+     backgroundColor: palette.ink[2],
      borderRadius: radius.lg,
      borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.1)',
+    borderColor: 'rgba(247, 241, 232,0.1)',
     padding: 20,
   },
    bigOptionIcon: { width: 28, alignItems: 'center' },
@@ -360,19 +390,19 @@ const styles = StyleSheet.create({
   bigOptionTitle: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
   },
   bigOptionSub: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
   codeCard: {
-    backgroundColor: 'rgba(248, 241, 246,0.05)',
+    backgroundColor: 'rgba(247, 241, 232,0.05)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.2)',
+    borderColor: 'rgba(247, 241, 232,0.2)',
     padding: 28,
     alignItems: 'center',
     gap: 12,
@@ -380,76 +410,76 @@ const styles = StyleSheet.create({
   codeLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   code: {
-    fontSize: 40,
+    fontSize: 34,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     letterSpacing: 8,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: 'rgba(232, 160, 180,0.12)',
+    backgroundColor: 'rgba(255, 184, 107,0.12)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.25)',
+    borderColor: 'rgba(255, 184, 107,0.25)',
   },
   shareText: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#E8A0B4',
+    color: palette.accent.glow,
   },
   waitingNote: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: 'rgba(248, 241, 246,0.04)',
+    backgroundColor: 'rgba(247, 241, 232,0.04)',
     borderRadius: radius.md,
     borderCurve: 'continuous',
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
   },
   waitingText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 19,
   },
   joinInput: { alignItems: 'center', gap: 14 },
   codeInput: {
-    fontSize: 40,
+    fontSize: 34,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     letterSpacing: 10,
     textAlign: 'center',
-     backgroundColor: '#251B2B',
+     backgroundColor: palette.ink[2],
      borderRadius: radius.lg,
      borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.3)',
+    borderColor: 'rgba(247, 241, 232,0.3)',
     paddingVertical: 18,
     paddingHorizontal: 24,
     width: '100%',
   },
-  codeInputError: { borderColor: 'rgba(232, 185, 138,0.45)' },
+  codeInputError: { borderColor: 'rgba(240, 199, 94,0.45)' },
   joinErrorRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 9,
-    backgroundColor: 'rgba(232, 185, 138,0.08)',
+    backgroundColor: 'rgba(240, 199, 94,0.08)',
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(232, 185, 138,0.22)',
+    borderColor: 'rgba(240, 199, 94,0.22)',
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
@@ -457,19 +487,19 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#E8B98A',
+    color: palette.accent.streak,
     lineHeight: 19,
   },
   demoRow: { gap: 12, alignItems: 'center' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' },
-  divLine: { flex: 1, height: 1, backgroundColor: 'rgba(248, 241, 246,0.07)' },
-  divText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  divLine: { flex: 1, height: 1, backgroundColor: 'rgba(247, 241, 232,0.07)' },
+  divText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
   demoBtn: { paddingVertical: 8 },
-  demoBtnText: { fontSize: 16, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  demoBtnText: { fontSize: 16, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
   demoNote: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     textAlign: 'center',
     lineHeight: 17,
   },

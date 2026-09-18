@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
+import { palette } from '@/constants/colors';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -84,6 +85,6 @@ export function StarField() {
 const styles = StyleSheet.create({
   star: {
     position: 'absolute',
-    backgroundColor: '#F8F1F6',
+    backgroundColor: palette.content[0],
   },
 });

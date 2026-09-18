@@ -24,6 +24,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import * as Notifications from 'expo-notifications';
 import { AppProvider } from '@/context/AppContext';
+import { palette } from '@/constants/colors';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -111,7 +112,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    SystemUI.setBackgroundColorAsync('#150F19');
+    SystemUI.setBackgroundColorAsync(palette.ink[0]);
   }, []);
 
   useEffect(() => {
@@ -126,7 +127,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#150F19' }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.ink[0] }}>
             <KeyboardProvider>
               <AppProvider>
                 <RootLayoutNav />

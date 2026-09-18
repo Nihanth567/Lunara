@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { palette } from '@/constants/colors';
 import Animated, {
   Easing,
   runOnJS,
@@ -15,7 +16,7 @@ interface Props {
   onDone?: () => void;
 }
 
-const COLORS = ['#E8A0B4', '#CBB9C9', '#9BC9A8', '#E8B98A', '#F8F1F6'];
+const COLORS = [palette.accent.glow, palette.content[1], palette.accent.success, palette.accent.streak, palette.content[0]];
 const PIECES = 16;
 
 function Piece({ index, trigger, onLast }: { index: number; trigger: number; onLast?: () => void }) {

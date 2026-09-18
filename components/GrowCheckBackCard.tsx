@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { palette } from '@/constants/colors';
 import {
   GROW_CHECK_BACK_QUESTION,
   GROW_FOLLOW_UP_OPTIONS,
@@ -47,7 +48,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
       {answer === null ? (
         <>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={15} color="#9BC9A8" />
+            <Ionicons name="leaf-outline" size={15} color="#7DDEB5" />
             <Text style={styles.eyebrow}>Yesterday’s Grow note</Text>
           </View>
           <Text style={styles.question}>{GROW_CHECK_BACK_QUESTION}</Text>
@@ -67,7 +68,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
         </>
       ) : (
         <View style={styles.resultRow}>
-          <Ionicons name="leaf" size={16} color="#9BC9A8" />
+          <Ionicons name="leaf" size={16} color="#7DDEB5" />
           <Text style={styles.resultText}>{growFollowUpAcknowledgement(answer)}</Text>
         </View>
       )}
@@ -77,11 +78,11 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(155, 201, 168,0.18)',
+    borderColor: 'rgba(125, 222, 181,0.18)',
     padding: 18,
     gap: 9,
     marginBottom: 16,
@@ -90,20 +91,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#A492A6',
+    color: palette.content[2],
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   question: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     lineHeight: 21,
   },
   quote: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 19,
     fontStyle: 'italic',
   },
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    backgroundColor: 'rgba(248, 241, 246,0.04)',
+    backgroundColor: 'rgba(247, 241, 232,0.04)',
   },
   pillText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 19,
   },
 });

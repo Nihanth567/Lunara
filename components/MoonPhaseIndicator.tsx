@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { type as text, tabularNumerals } from '@/constants/typography';
+import { palette, tint } from '@/constants/colors';
 
 interface Props {
   streak: number;
@@ -10,19 +12,38 @@ interface Props {
 }
 
 /**
- * Streak color deepens through the same tier journey as the milestones
- * themselves — lavender through the first week, gold at two weeks, a soft
- * green as the month turns, coral through the two-month stretch, and a
- * near-white full moon once a hundred nights have gathered.
+ * The streak's colour, and the single source of it.
+ *
+ * ─── The first fortnight is no longer grey ───────────────────────────────────
+ *
+ * This used to return translucent cream below 7 nights and a neutral below 14 —
+ * so a couple's first two weeks, the stretch where encouragement matters most
+ * and the habit is least established, rendered as a grey moon over a grey
+ * number. Next to the warm card above it on the Tonight screen it did not read
+ * as "early", it read as *disabled*. Night one now has a colour.
+ *
+ * The tiers still deepen as a journey — violet through the first week, gold at
+ * one, apricot at two, a soft green as the month turns, pink through the
+ * two-month stretch, and a near-white full moon once a hundred nights have
+ * gathered — but every step of it is a colour rather than an absence of one.
+ *
+ * ─── Why this function is exported ───────────────────────────────────────────
+ *
+ * `CoupleCompanion` tints the fox's halo from the same streak. Its comment has
+ * always claimed to follow this function "exactly, thresholds and all", and at
+ * one point it did — then both were edited separately and they silently
+ * diverged, which is how you end up with a violet fox above a gold moon
+ * describing the same number on the same screen. It now calls this rather than
+ * restating it, so the drift cannot happen again.
  */
 export function getMoonColor(streak: number): string {
-  if (streak === 0) return 'rgba(248, 241, 246,0.3)';
-  if (streak < 7) return 'rgba(248, 241, 246,0.55)';
-  if (streak < 14) return '#CBB9C9';
-  if (streak < 30) return '#E8B98A';
-  if (streak < 60) return '#9BC9A8';
-  if (streak < 100) return '#E8A0B4';
-  return '#F8F1F6'; // full moon, a hundred nights and beyond
+  if (streak === 0) return tint.cream(0.3);
+  if (streak < 7) return palette.accent.moon;
+  if (streak < 14) return palette.accent.streak;
+  if (streak < 30) return palette.accent.glow;
+  if (streak < 60) return palette.accent.success;
+  if (streak < 100) return palette.accent.heart;
+  return palette.content[0]; // full moon, a hundred nights and beyond
 }
 
 function getMoonIcon(streak: number): 'moon-outline' | 'moon' {
@@ -122,19 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: 4,
   },
-  count: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#CBB9C9',
-  },
-  countLarge: {
-    fontSize: 40,
-    fontFamily: 'Fraunces_600SemiBold',
-    lineHeight: 44,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
-  },
+  count: { ...text.caption, ...tabularNumerals, color: palette.content[1] },
+  countLarge: { ...text.hero, ...tabularNumerals },
+  label: { ...text.callout, color: palette.content[2] },
 });

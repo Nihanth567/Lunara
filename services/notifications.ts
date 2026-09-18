@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 // Configure how notifications appear when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -455,4 +455,53 @@ export function formatReminderTime(hour: number, minute: number): string {
   const h = hour % 12 === 0 ? 12 : hour % 12;
   const m = minute.toString().padStart(2, '0');
   return `${h}:${m} ${period}`;
+}
+
+/**
+ * The one time Lunara asks for notification permission.
+ *
+ * ─── Where it is asked from, and why that moved ──────────────────────────────
+ *
+ * This used to live inside the onboarding screen that came last. When the
+ * onboarding chain was cut back to five steps (promise → fox → both of you →
+ * auth → invite) that screen stopped being on the path, so the prompt moved
+ * here and is now called from whichever screen actually ends onboarding.
+ *
+ * ─── Asking is itself a design decision ──────────────────────────────────────
+ *
+ * The OS dialog can only be shown once per install, and a denial is permanent
+ * from the app's side. So this puts a *soft* ask in front of it: a plain alert
+ * that says exactly what will be sent and how often, where "Not now" costs
+ * nothing and leaves the real permission undetermined for a later, better
+ * moment. Firing the system prompt cold is how apps burn their one chance.
+ *
+ * Returns once the person has answered, so a caller can await it before
+ * navigating. Never throws — a permission failure must not strand someone
+ * mid-onboarding.
+ */
+export async function maybeAskForNotifications(
+  onGranted: () => Promise<void>,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const status = await getNotificationPermissionStatus().catch(() => 'denied' as const);
+  if (status !== 'undetermined') return;
+  await new Promise<void>((resolve) => {
+    Alert.alert(
+      'One quiet reminder a night?',
+      'If the night is slipping by and you haven’t written yours yet, we’ll send one gentle nudge — never more than that.',
+      [
+        { text: 'Not now', style: 'cancel', onPress: () => resolve() },
+        {
+          text: 'Sounds good',
+          onPress: async () => {
+            const granted = await requestNotificationPermissions().catch(() => false);
+            // A grant with no token stored is a permission nobody can use — the
+            // remote pushes address a device, not an account.
+            if (granted) await onGranted().catch(() => {});
+            resolve();
+          },
+        },
+      ],
+    );
+  });
 }

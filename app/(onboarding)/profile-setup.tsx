@@ -18,6 +18,7 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 const PRONOUNS = ['he/him', 'she/her', 'they/them', 'he/they', 'she/they', 'prefer not to say'];
 
@@ -51,7 +52,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -82,7 +83,7 @@ export default function ProfileSetupScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g. Alex, Mia, Sunshine..."
-                placeholderTextColor="rgba(248, 241, 246,0.22)"
+                placeholderTextColor="rgba(247, 241, 232,0.22)"
                 autoCapitalize="words"
                 autoCorrect={false}
                 maxLength={24}
@@ -98,7 +99,7 @@ export default function ProfileSetupScreen() {
                 value={birthday}
                 onChangeText={setBirthday}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="rgba(248, 241, 246,0.22)"
+                placeholderTextColor="rgba(247, 241, 232,0.22)"
                 keyboardType="numbers-and-punctuation"
                 maxLength={10}
               />
@@ -152,20 +153,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#E8A0B4',
+    color: palette.accent.glow,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 22,
   },
   form: { gap: 20 },
@@ -173,30 +174,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
   fieldNote: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     lineHeight: 16,
     marginBottom: 2,
   },
   input: {
-     backgroundColor: '#251B2B',
+     backgroundColor: palette.ink[2],
      borderRadius: radius.lg,
      borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.1)',
+    borderColor: 'rgba(247, 241, 232,0.1)',
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#F8F1F6',
+    color: palette.content[0],
   },
   inputFilled: {
-    borderColor: 'rgba(232, 160, 180,0.35)',
-    backgroundColor: 'rgba(232, 160, 180,0.07)',
+    borderColor: 'rgba(255, 184, 107,0.35)',
+    backgroundColor: 'rgba(255, 184, 107,0.07)',
   },
   pronounsGrid: {
     flexDirection: 'row',
@@ -206,22 +207,22 @@ const styles = StyleSheet.create({
   pronounPill: {
      borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.12)',
+    borderColor: 'rgba(247, 241, 232,0.12)',
     paddingVertical: 7,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(248, 241, 246,0.05)',
+    backgroundColor: 'rgba(247, 241, 232,0.05)',
   },
   pronounPillActive: {
-    borderColor: 'rgba(248, 241, 246,0.5)',
-    backgroundColor: 'rgba(248, 241, 246,0.12)',
+    borderColor: 'rgba(247, 241, 232,0.5)',
+    backgroundColor: 'rgba(247, 241, 232,0.12)',
   },
   pronounText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
   pronounTextActive: {
-    color: '#CBB9C9',
+    color: palette.content[1],
     fontFamily: 'PlusJakartaSans_500Medium',
   },
 });

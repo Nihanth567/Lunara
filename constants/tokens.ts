@@ -17,28 +17,41 @@ import { Platform, type ViewStyle } from 'react-native';
  */
 export const radius = {
   /** Progress bars, tiny indicators, the stripe down a reveal card. */
-  xs: 2,
+  xs: 3,
   /** Chips, badges, inline tags. */
-  sm: 6,
+  sm: 10,
   /** Inputs, list rows, secondary buttons. */
-  md: 10,
-  /** Cards and primary buttons — the workhorse. */
-  lg: 14,
+  md: 16,
+  /** Cards — the workhorse. */
+  lg: 22,
   /** Sheets, modals, and the largest hero surfaces. */
-  xl: 20,
-  /** Avatars, icon wells, anything genuinely circular. */
+  xl: 28,
+  /** Avatars, icon wells, pill CTAs, anything genuinely circular. */
   full: 9999,
 } as const;
 
 /*
- * These were 3 / 8 / 14 / 20 / 28. Every step came down by roughly a third.
+ * These were 2 / 6 / 10 / 14 / 20, and before that 3 / 8 / 14 / 20 / 28. The
+ * ramp has now been round the loop once, so it is worth writing down why it
+ * landed where it did rather than leaving the next person to reverse it again.
  *
- * Heavy rounding is soft, friendly and — at 20pt on every card plus full pills
- * on every button — indistinguishable from every other generated app. A
- * restrained, type-led interface wants corners that are clearly deliberate and
- * clearly not the default: enough to avoid looking like a raw rectangle,
- * not enough to become the thing you notice. Pills are now reserved for
- * genuinely pill-shaped things (chips, badges), never for primary buttons.
+ * The tight ramp was right for the problem it was solving: one radius (12) on
+ * forty-four different elements, which is the signature of an interface nobody
+ * drew. Scaling radius with surface size fixed that. But it was tuned for a
+ * restrained, type-led product, and at 14pt a card corner is *crisp* — it reads
+ * as a document. The product is two people keeping a small creature lit, and
+ * crisp is the wrong adjective for it.
+ *
+ * So: the scaling rule survives (pick the step whose surface size matches, never
+ * the one that looks about right in isolation) and the values come back up. A
+ * 22pt card corner is soft without being a blob; `full` is now legitimately for
+ * primary CTAs, because a pill is what a friendly button looks like and this
+ * product has earned one. What must NOT come back is a single radius sprayed
+ * everywhere — that, not the number itself, was the actual fault.
+ *
+ * Always pair a radius with `borderCurve: 'continuous'`. At 22pt the difference
+ * between a circular corner and an iOS squircle is the difference between a
+ * bubble and something drawn.
  */
 
 /**
@@ -151,6 +164,14 @@ export const duration = {
   base: 260,
   /** Exit counterpart to `base`. */
   exit: 170,
+  /**
+   * The one transition allowed to exceed the responsive band: the reveal
+   * lighting up. It is not a state change, it is the payoff, and it is the only
+   * animation in the app a couple is actually watching rather than waiting out.
+   * Held to 560ms — long enough to feel like something happening, short enough
+   * that nobody taps through it twice.
+   */
+  reveal: 560,
 } as const;
 
 /**
@@ -158,4 +179,4 @@ export const duration = {
  * background this dark a weak scrim leaves the page competing with the sheet
  * instead of receding behind it.
  */
-export const scrim = 'rgba(6, 4, 20, 0.6)';
+export const scrim = 'rgba(14, 11, 20, 0.66)';

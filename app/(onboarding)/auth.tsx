@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246, 0.12)',
+    borderColor: 'rgba(247, 241, 232, 0.12)',
     paddingVertical: space.lg,
     paddingHorizontal: 20,
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
 
   demoSection: { gap: space.sm },
   divider: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(248, 241, 246, 0.08)' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(247, 241, 232, 0.08)' },
   dividerText: { ...text.caption, color: palette.content[2] },
   demoBtn: { alignItems: 'center', paddingVertical: 10 },
   demoBtnText: { ...text.label, color: palette.content[1] },

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 const SECTIONS: { heading: string; body?: string; bullets?: { label: string; text: string }[] }[] = [
   {
@@ -45,14 +46,14 @@ export default function PrivacyScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       <Pressable
         style={[styles.closeButton, { top: insets.top + 12 }]}
         onPress={() => router.back()}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#CBB9C9" />
+        <Ionicons name="close" size={22} color="#C9BDB0" />
       </Pressable>
 
       <ScrollView
@@ -105,26 +106,26 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: { paddingHorizontal: 26 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6', marginBottom: 4 },
-  effectiveDate: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: '#A492A6', marginBottom: 24 },
+  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0], marginBottom: 4 },
+  effectiveDate: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[2], marginBottom: 24 },
   section: { marginBottom: 22, gap: 8 },
-  heading: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
-  body: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
+  heading: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
+  body: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
   bulletList: { gap: 10, marginTop: 2 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bulletDot: {
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#CBB9C9',
+    backgroundColor: palette.content[1],
     marginTop: 7,
   },
-  bulletText: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
-  bulletLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', color: '#CBB9C9' },
-  link: { color: '#CBB9C9', textDecorationLine: 'underline' },
+  bulletText: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
+  bulletLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
+  link: { color: palette.content[1], textDecorationLine: 'underline' },
 });

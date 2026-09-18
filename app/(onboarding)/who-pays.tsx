@@ -10,6 +10,7 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 const OPTIONS = [
   {
@@ -50,7 +51,7 @@ export default function WhoPayScreen() {
   };
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       <ScrollView
         contentContainerStyle={[
@@ -82,7 +83,7 @@ export default function WhoPayScreen() {
                 <Ionicons
                   name={opt.icon}
                   size={20}
-                  color={selected === opt.key ? '#E8A0B4' : '#CBB9C9'}
+                  color={selected === opt.key ? palette.accent.glow : palette.content[1]}
                 />
               </View>
               <View style={styles.optionText}>
@@ -92,7 +93,7 @@ export default function WhoPayScreen() {
                 <Text style={styles.optionSub}>{opt.sub}</Text>
               </View>
               {selected === opt.key && (
-                <Ionicons name="checkmark-circle" size={22} color="#E8A0B4" />
+                <Ionicons name="checkmark-circle" size={22} color="#FFB86B" />
               )}
             </Pressable>
           ))}
@@ -117,20 +118,20 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#E8A0B4',
+    color: palette.accent.glow,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 21,
   },
   options: { gap: 12, marginBottom: 32 },
@@ -142,12 +143,12 @@ const styles = StyleSheet.create({
      borderCurve: 'continuous',
     padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.1)',
-     backgroundColor: '#251B2B',
+    borderColor: 'rgba(247, 241, 232,0.1)',
+     backgroundColor: palette.ink[2],
   },
   optionSelected: {
-    borderColor: 'rgba(232, 160, 180,0.45)',
-    backgroundColor: 'rgba(232, 160, 180,0.08)',
+    borderColor: 'rgba(255, 184, 107,0.45)',
+    backgroundColor: 'rgba(255, 184, 107,0.08)',
   },
    optionIcon: {},
    optionIconSelected: {},
@@ -155,13 +156,13 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 16,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
-  optionLabelSelected: { color: '#F8F1F6' },
+  optionLabelSelected: { color: palette.content[0] },
   optionSub: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
   },
   footer: {},
 });

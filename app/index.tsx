@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '@/context/AppContext';
+import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { palette } from '@/constants/colors';
 
 /**
  * The entry gate.
@@ -38,12 +40,16 @@ export default function Index() {
     <View
       style={{
         flex: 1,
-        backgroundColor: '#150F19',
+        backgroundColor: palette.ink[0],
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <ActivityIndicator color="#E8A0B4" size="large" />
+      {/* "Breathing" — a slow morphing ring — for the one moment nobody has
+          asked the app to do anything yet; it's just working out where they
+          go. The other three spots below pick a state that matches what's
+          actually happening; this one is ambient on purpose. */}
+      <ThinkingOrb state="breathing" size={64} theme="dark" accessibilityLabel="Loading Lunara" />
     </View>
   );
 }

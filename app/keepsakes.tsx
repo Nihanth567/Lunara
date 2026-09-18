@@ -12,8 +12,20 @@ import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
 import { useApp } from '@/context/AppContext';
 import { partnerLabel } from '@/lib/partner';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
-const ACCENTS = ['#E8A0B4', '#CBB9C9', '#9BC9A8', '#E8B98A', '#A5C8FF'];
+/**
+ * The colour a keepsake question is tagged with, by index. Every value is a
+ * palette token — the list used to end on a stray `#A5C8FF`, a blue that
+ * existed nowhere else in the app and so read as a bug rather than a category.
+ */
+const ACCENTS = [
+  palette.accent.heart,
+  palette.accent.moon,
+  palette.accent.success,
+  palette.accent.streak,
+  palette.partners.b,
+];
 
 function QuestionCard({
   index,
@@ -83,7 +95,7 @@ function QuestionCard({
             value={draft}
             onChangeText={setDraft}
             placeholder="Take your time..."
-            placeholderTextColor="rgba(248, 241, 246,0.25)"
+            placeholderTextColor="rgba(247, 241, 232,0.25)"
             multiline
             style={styles.input}
             autoFocus
@@ -118,7 +130,7 @@ function QuestionCard({
             </View>
           ) : (
             <View style={styles.waitingRow}>
-              <Ionicons name="moon-outline" size={14} color="#A492A6" />
+              <Ionicons name="moon-outline" size={14} color="#9A9084" />
               <Text style={styles.waitingText}>
                 Kept safe until {partnerName} answers this one too
               </Text>
@@ -151,11 +163,11 @@ export default function KeepsakesScreen() {
   };
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#312338']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       {!isIntro && (
         <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color="#CBB9C9" />
+          <Ionicons name="close" size={22} color="#C9BDB0" />
         </Pressable>
       )}
 
@@ -164,7 +176,7 @@ export default function KeepsakesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Ionicons name="heart-outline" size={24} color="#E8A0B4" />
+          <Ionicons name="heart-outline" size={24} color="#FFB86B" />
           <Text style={styles.title}>Your Keepsake</Text>
           <Text style={styles.subtitle}>
             {isIntro
@@ -227,23 +239,23 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.sm,
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: { paddingHorizontal: 22, gap: 28 },
   header: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
-  title: { fontSize: 28, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6' },
+  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
     lineHeight: 21,
   },
   questions: { gap: 14 },
   card: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
@@ -252,38 +264,38 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardPrompt: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', lineHeight: 21 },
-  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', lineHeight: 17 },
+  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], lineHeight: 17 },
   answerPrompt: { gap: 6 },
   answerPromptText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium' },
   editArea: { gap: 10 },
   input: {
-    backgroundColor: '#1C1421',
+    backgroundColor: palette.ink[1],
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.1)',
+    borderColor: 'rgba(247, 241, 232,0.1)',
     padding: 14,
     minHeight: 90,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#F8F1F6',
+    color: palette.content[0],
     textAlignVertical: 'top',
     paddingTop: Platform.OS === 'android' ? 14 : 14,
   },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, alignItems: 'center' },
   cancelBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
   saveBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.lg },
-  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#150F19' },
+  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.ink[0] },
   answersStack: { gap: 12 },
   answerBlock: { gap: 4 },
   answerMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#A492A6', textTransform: 'uppercase', letterSpacing: 0.5 },
+  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[2], textTransform: 'uppercase', letterSpacing: 0.5 },
   editLink: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
-  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9', lineHeight: 21 },
+  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6', flex: 1, lineHeight: 17 },
+  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], flex: 1, lineHeight: 17 },
   footer: { gap: 12, alignItems: 'center' },
-  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
   skipBtn: { paddingVertical: 6 },
-  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#A492A6' },
+  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
 });

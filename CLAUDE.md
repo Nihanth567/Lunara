@@ -31,6 +31,7 @@ never has to be. Dark-mode-only, warm plum "candlelight" aesthetic.
 ```bash
 npx expo start            # dev server
 npm run typecheck         # tsc --noEmit — run this before finishing any change
+npm test                  # all three suites (streak, companion, paywall moment)
 npm run test:streak       # node --test lib/streak.test.ts — the streak rules
 npm run ios / android / web
 npx expo prebuild -p ios --clean   # regenerate native projects (needed for widget work)
@@ -44,9 +45,10 @@ Removing it fails the build with "Build input file cannot be found". It is
 untracked by git, so "no tracked files" is not a safe check. Recover with
 `cd ios && pod install`, which re-runs codegen.
 
-There is no ESLint script wired up, and no test framework — `lib/streak.test.ts`
-runs on Node's built-in `node --test` and is the only test file. `npm run
-typecheck` is the gate. Note: `supabase/functions/**` (Deno edge functions) always report `tsc`
+There is no ESLint script wired up, and no test framework — the three test
+files (`lib/streak.test.ts`, `lib/companion.test.ts`,
+`lib/paywallMoment.test.ts`) run on Node's built-in `node --test`. `npm run
+typecheck` plus `npm test` is the gate. Note: `supabase/functions/**` (Deno edge functions) always report `tsc`
 errors (remote URL imports, `Deno` global) — those are **pre-existing and
 expected**; ignore them and only care about errors in app code.
 
@@ -55,7 +57,11 @@ expected**; ignore them and only care about errors in app code.
 ```
 app/                 Expo Router routes
   index.tsx          entry gate → redirects to onboarding or (app)
-  (onboarding)/      intro, auth, profile setup, pairing, tutorial, paywall preview
+  (onboarding)/      welcome → intro → auth → profile-setup → pairing (5 steps).
+                     `pairing` is the last one and calls `completeOnboarding()`.
+                     `tutorial` / `who-pays` / `pro-preview` still exist and are
+                     routable but are deliberately NOT on the path — Premium is
+                     introduced later, from inside the product.
   (app)/             the 4 native tabs:
     index.tsx          "Tonight"  — the nightly ritual
     list.tsx           "List"     — the shared list
@@ -70,7 +76,10 @@ context/AppContext.tsx   the single source of truth for auth/couple/entries/keep
 hooks/               useColors, useGrowth, useGrowCheckBack
 lib/                 supabase client, entitlements, purchases, widget, growth data,
                      voiceNotes (Storage upload/signed URLs), moments helpers,
-                     list.ts (shared-list rules — completion, ordering)
+                     list.ts (shared-list rules — completion, ordering),
+                     companion.ts (fox state machine), reactions.ts (the shared
+                     reaction table — reveal writes it, moment reads it),
+                     paywallMoment.ts (when Premium may be offered)
 constants/           colors.ts (design tokens), keepsakeQuestions.ts
 services/            notifications.ts (local + push scheduling)
 supabase/functions/  Deno edge functions (send-nudge, grow-guidance, webhooks)
@@ -107,6 +116,15 @@ targets/widget/      SwiftUI WidgetKit extension
 - **Entitlements**: `isPro(couple)` (`lib/entitlements.ts`) is the single gate.
   One subscription unlocks Premium for both partners. Route locked features to
   `/(modals)/paywall`.
+- **When Premium may be *offered*** is a separate question from what it gates,
+  and it has its own rule: `shouldOfferPremium()` in `lib/paywallMoment.ts`
+  (with `usePaywallMoment()` for the per-device "already asked" flag). One
+  proactive prompt, in the afterglow of a *finished* night, only after three
+  shared nights, only once. Never before the first mutual reveal and never
+  mid-ritual. Locked features still route to the paywall on tap — that is the
+  person asking, not us. The rules are tested in `lib/paywallMoment.test.ts`;
+  if one starts failing, ask whether you are about to sell to someone who
+  hasn't seen the product yet.
 - **Widget sync**: any change to streak / ritual-complete state should flow
   through `updateWidgetData()` in `lib/widget.ts` (already wired in an
   `AppContext` effect).
@@ -115,31 +133,49 @@ targets/widget/      SwiftUI WidgetKit extension
 
 - **Imports**: use the `@/` alias (maps to repo root), never long relative paths.
 - **Styling**: `StyleSheet.create` at the bottom of each file. Dark theme only.
-  Cards: `backgroundColor: '#251B2B'` (`ink[2]`), `borderRadius: radius.lg`
-  plus `borderCurve: 'continuous'` — iOS squircles, never circular corners.
-  **Neutrals come from the ink ramp, not from taste**: `#150F19` page ·
-  `#1C1421` sunk · `#251B2B` surface · `#312338` raised · `#42304A` line.
-  One hue family (~290°, plum) with chroma tapering as it lightens; do not
-  introduce a sixth near-black. The ground reads as candlelight, not as a
-  purple gradient wash — keep the chroma low.
-  Text is three separated tiers — `#F8F1F6` / `#CBB9C9` / `#A492A6`
-  (14.9:1, 8.9:1, 5.7:1 on surface). Every tier clears WCAG AA on every
-  surface; verify a new value rather than eyeballing it.
-  Accents have *rank*: rose `#E8A0B4` is the only colour that means "act on
-  this"; lilac `#B9A5E3` is brand/ambience; mint `#9BC9A8` and peach `#E8B98A`
-  are strictly semantic, never decorative. `roseDeep` `#C4718A` is a fill and
-  border colour only — it is below AA and must never carry small text.
-  The two people have fixed colours — `partnerA` `#E8A0B4` (you) and
+  **Import tokens; do not paste hex.** `palette`, `gradients`, `tint`, `glow`
+  from `constants/colors.ts`; `type`, `tabularNumerals` from
+  `constants/typography.ts`; `radius`, `space`, `elevation` from
+  `constants/tokens.ts`. Roughly 315 one-off hexes were converted to tokens in
+  one pass — do not start the pile again.
+  Cards: `backgroundColor: palette.ink[2]`, `borderRadius: radius.lg` plus
+  `borderCurve: 'continuous'` — iOS squircles, never circular corners. Primary
+  CTAs are pills (`radius.full`); nothing else is.
+  **The mood is "night nursery for two"**: a cool dark room with one warm
+  light in it. Large surfaces stay night; warmth arrives as a *glow* on the
+  thing that earned it, never as a wash over the page.
+  **Neutrals come from the ink ramp, not from taste**: `#0E0B14` page ·
+  `#1A1524` elevated · `#221C30` card · `#2A2338` soft · `#3A3149` line.
+  One hue family (~265°) with chroma tapering as it lightens; do not introduce
+  a sixth near-black.
+  Text is three warm-cream tiers — `#F7F1E8` / `#C9BDB0` / `#9A9084`
+  (14.7:1, 8.9:1, 5.2:1 on card). Every tier clears WCAG AA on all four
+  surfaces; verify a new value with a contrast check rather than eyeballing it.
+  Never pure `#FFF` or `#000`.
+  Accents have *rank*: apricot `glow` `#FFB86B` is the fox's light and the only
+  colour that means "act on this"; coral `heart` `#FF7A9A` is love (reveal,
+  reactions, partner A) and never a generic button; violet `moon` `#A78BFA` is
+  secondary and ambience, never an action; `success` `#7DDEB5` and `streak`
+  `#F0C75E` are strictly semantic; `danger` `#E89B9B` is soft on purpose — this
+  app never shows a couple a harsh red.
+  The two people have fixed colours — `partnerA` `#FF7A9A` (you) and
   `partnerB` `#8FC5DE` (them) — which differ in lightness as well as hue, so
   authorship is never conveyed by hue alone.
-  The app background is `gradients.screen` from `constants/colors.ts` — one
-  definition, not an inline stop array per screen.
-  Prefer importing `palette` / `gradients` over pasting a hex; most older
-  screens still hardcode, and new code should not add to that.
+  Backgrounds come from `gradients` — `screen` normally, `warm` once both
+  partners are in a night, `reveal` on the reveal. One definition, not an
+  inline stop array per screen.
   Type is **Fraunces** (display/serif, the couple's own words) + **Plus Jakarta
   Sans** (all chrome) — *not* Inter, which `constants/typography.ts` rejects by
-  name. Use the 8-step scale in that file (12·14·16·18·22·28·40·52) and never
+  name. Use the 8-step scale in that file (12·14·16·18·22·26·34·44) and never
   invent a size between steps; `label` and `overline` are styles, not sizes.
+  The three documented exceptions are the tab-bar labels (iOS convention), the
+  welcome wordmark, and `WidgetHomeScreenPreview` (a scale model).
+- **The fox is the product, not an illustration of it.** On any screen where it
+  appears at `hero`, it is the subject and nothing else competes above the fold.
+  State comes from `lib/companion.ts` (pure, derived, never stored) via
+  `useCompanion()`; art comes from `assets/companion/fox/index.ts`, where seven
+  states currently share three on-character poses grouped by energy. Never wire
+  in art that is a different animal — read the note in that file first.
 - **Copy voice**: gentle, warm, never prescriptive or gamified-pushy. Match the
   existing microcopy tone ("A gentle way forward", "No pressure — …").
 - **Haptics**: `Haptics.selectionAsync()` on tab/segment changes,

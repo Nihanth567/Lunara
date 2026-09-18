@@ -27,21 +27,38 @@ Two things it does *not* reverse:
 
 | File | State | The moment | Status |
 |---|---|---|---|
-| `nesting.png` | Nesting | Just paired, no shared night yet. Curled in the den, unhurried. | Falls back to `fox.png` |
+| `nesting.png` | Nesting | Just paired, no shared night yet. Curled in the den, unhurried. | **Live** — reprocessed from `fox_nesting.png`. Reads close to `sleeping` — see caveat below |
 | `waiting.png` | Waiting | One of them has shared, the other hasn't. Sitting up, keeping a small light. | **Live** — reprocessed from `fox_patient.png` |
-| `ready.png` | Ready | Both shared, nothing opened. Alert, ears forward, about to move. | Falls back to `fox.png` |
+| `ready.png` | Ready | Both shared, nothing opened. Alert, ears forward, about to move. | **Live**, but off-character — see caveat below |
 | `glowing.png` | Glowing | Tonight is open and done. The warmest pose of the seven. | Falls back to `fox.png` |
-| `streaklit.png` | Streak-lit | Tonight still open, but a live run carries it. Settled and lit. | Falls back to `fox.png` |
+| `streaklit.png` | Streak-lit | Tonight still open, but a live run carries it. Settled and lit. | **Live**, but off-character — see caveat below |
 | `resting.png` | Resting | A night or few missed. Lying down, eyes open, still watching. | Falls back to `fox.png` |
 | `sleeping.png` | Sleeping | A longer quiet stretch. Curled nose-to-tail, asleep. | **Live** — reprocessed from `fox_sleeping.png` |
 
-`fox.png` is the generic single image every fallback state above points at —
-posture doesn't change with state there, only on `waiting` and `sleeping`.
+`fox.png` is the generic single image the two remaining fallback states point
+at — posture doesn't change with state there.
 
-Both delivered "poses" (`fox_patient.png` → `waiting.png`, `fox_sleeping.png` →
-`sleeping.png`) arrived as opaque exports — solid background, no alpha channel
-— with a "Made with AI" badge baked into a top-right corner. Neither was usable
-as-is. Both were reprocessed:
+**`ready.png` and `streaklit.png` break the "same fox, seven moods" rule.**
+`ready` arrived in a completely different color family (fiery gold/orange
+instead of indigo-plum) and a more painterly rendering style — it reads as a
+different animal, not a mood on this one. `streaklit` is closer in palette but
+still visibly off: a leaner build, a sharper/longer muzzle, and a more dynamic
+rendering technique than the character established by `fox.png` / `waiting` /
+`sleeping` / `nesting`. Both are wired in because they were asked for, not
+because they clear the bar this file sets for itself. Regenerate both against
+the character-lock prompt in "Generation prompts" below before treating them as
+finished — ideally img2img from `fox.png` at low strength, per that section's
+own advice, rather than a fresh text-to-image run.
+
+**`nesting.png` is on-character but under-differentiated from `sleeping`.**
+Same palette and style, correctly curled — but the eyes read closed rather
+than the "half-open, settled, not sleepy" the brief calls for, so the two
+poses are close to indistinguishable at 44pt. Lower priority than the two
+above; it's the same animal, just not yet a distinct mood.
+
+All five delivered poses arrived as opaque exports — solid background, no
+alpha channel — with a "Made with AI" badge baked into a top-right corner.
+None were usable as-is. Each was reprocessed:
 
 1. **Flood-filled to transparency from the border**, never a global color-key —
    an internal fox pixel that happens to share the background color is never

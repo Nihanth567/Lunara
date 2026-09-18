@@ -13,8 +13,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
-import { gradients } from '@/constants/colors';
-import { radius } from '@/constants/tokens';
+import { CoupleCompanion } from '@/components/CoupleCompanion';
+import { gradients, glow, palette, tint } from '@/constants/colors';
+import { type as text } from '@/constants/typography';
+import { radius, space } from '@/constants/tokens';
 
 /**
  * The first screen.
@@ -87,36 +89,33 @@ export default function WelcomeScreen() {
           { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28 },
         ]}
       >
+        {/*
+          The fox, before the wordmark. The empty upper half of this screen was
+          described in an earlier pass as "deliberate negative space", which was
+          true and is no longer what this screen is for: the first thing anyone
+          should see is the animal, because the animal is the promise. The type
+          below it now has something to be the caption of.
+        */}
+        <Animated.View style={[styles.foxSlot, enterStyle]}>
+          <CoupleCompanion state="nesting" streak={0} size="hero" />
+        </Animated.View>
+
         <Animated.View style={[styles.masthead, enterStyle]}>
-          <Text style={styles.eyebrow}>A nightly ritual for two</Text>
           <Text style={styles.wordmark}>Lunara</Text>
           <Text style={styles.tagline}>
-            Three questions each night. Answered apart, opened together.
+            A little fox you keep lit together. Three questions a night — written
+            apart, opened at the same time.
           </Text>
         </Animated.View>
 
-        {/* The one element here that could not belong to another app. */}
-        <Animated.View style={[styles.prompts, enterStyle]}>
-          <View style={styles.promptRule} />
-          <View style={styles.promptRow}>
-            <Text style={styles.prompt}>Grateful</Text>
-            <Text style={styles.promptSep}>/</Text>
-            <Text style={styles.prompt}>Cute</Text>
-            <Text style={styles.promptSep}>/</Text>
-            <Text style={styles.prompt}>Grow</Text>
-          </View>
-        </Animated.View>
-
         <Animated.View style={[styles.actions, actionsStyle]}>
-          {/* Hugs its label instead of spanning the screen. A full-bleed pill
-              is the default; a button sized to its content is a decision. */}
           <Pressable
             style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
             onPress={() => router.push('/(onboarding)/intro' as never)}
             accessibilityRole="button"
           >
-            <Text style={styles.ctaText}>Begin tonight</Text>
-            <Ionicons name="arrow-forward" size={17} color="#150F19" />
+            <Text style={styles.ctaText}>Start tonight</Text>
+            <Ionicons name="arrow-forward" size={17} color={palette.ink[0]} />
           </Pressable>
 
           <Pressable
@@ -137,82 +136,50 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  /* Bottom-anchored and set on one left margin. The space above is intentional
-     and empty; it is not slack distributed between centred objects. */
+  /* Bottom-weighted: the fox takes the room above, the words and the way in sit
+     under it on one left margin. */
   content: {
     flex: 1,
     justifyContent: 'flex-end',
     paddingHorizontal: 30,
-    gap: 34,
+    gap: space.xxl,
   },
 
-  masthead: { gap: 12 },
-  eyebrow: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: '#A492A6',
-  },
+  foxSlot: { alignItems: 'center', marginBottom: space.sm },
+
+  masthead: { gap: space.md },
   wordmark: {
-    fontSize: 64,
-    lineHeight: 66,
-    fontFamily: 'Fraunces_600SemiBold',
-    /* Negative. Large display type closes up; the old +3 spread it apart. */
-    letterSpacing: -2,
-    color: '#F8F1F6',
+    ...text.display,
+    fontSize: 58,
+    lineHeight: 62,
+    letterSpacing: -1.8,
+    color: palette.content[0],
   },
-  tagline: {
-    fontSize: 17,
-    lineHeight: 27,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
-    maxWidth: 300,
-  },
+  tagline: { ...text.body, lineHeight: 26, color: palette.content[1], maxWidth: 320 },
 
-  prompts: { gap: 14 },
-  promptRule: { height: 1, width: 44, backgroundColor: '#42304A' },
-  promptRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  prompt: {
-    fontSize: 15,
-    fontFamily: 'Fraunces_400Regular',
-    color: '#CBB9C9',
-  },
-  promptSep: {
-    fontSize: 13,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#42304A',
-  },
-
-  actions: { gap: 20, paddingTop: 6 },
+  actions: { gap: space.lg + 4, paddingTop: space.xs + 2 },
+  /* Hugs its label instead of spanning the screen, and it is a pill — the same
+     shape as every other primary action in the app. */
   cta: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    backgroundColor: '#E8A0B4',
-    paddingVertical: 15,
-    paddingHorizontal: 26,
-    borderRadius: radius.md,
+    gap: space.sm + 1,
+    backgroundColor: palette.accent.glow,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xl + space.xs,
+    borderRadius: radius.full,
     borderCurve: 'continuous',
+    ...glow.primary,
   },
   ctaPressed: { opacity: 0.86 },
-  ctaText: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#150F19',
-    letterSpacing: 0.1,
-  },
+  ctaText: { ...text.label, color: palette.ink[0] },
 
   signInRow: { flexDirection: 'row' },
-  signInText: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
-  },
+  signInText: { ...text.callout, color: palette.content[2] },
   signInAction: {
-    fontSize: 14,
+    ...text.callout,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#CBB9C9',
+    color: palette.accent.glow,
   },
 });

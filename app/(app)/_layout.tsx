@@ -7,6 +7,7 @@ import { Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
+import { palette } from '@/constants/colors';
 
 /**
  * iOS 26 renders this as the system Liquid Glass tab bar, which brings its own
@@ -20,19 +21,19 @@ function NativeTabLayout() {
     <NativeTabs
       // Rose is the app's action colour everywhere else; the tab bar was the
       // only surface still selecting in blue.
-      tintColor="#E8A0B4"
-      iconColor={{ default: 'rgba(248, 241, 246,0.45)', selected: '#E8A0B4' }}
-      indicatorColor="rgba(232, 160, 180,0.14)"
+      tintColor="#FFB86B"
+      iconColor={{ default: 'rgba(247, 241, 232,0.45)', selected: palette.accent.glow }}
+      indicatorColor="rgba(255, 184, 107,0.14)"
       labelStyle={{
         default: {
           fontFamily: 'PlusJakartaSans_500Medium',
           fontSize: 11,
-          color: 'rgba(248, 241, 246,0.45)',
+          color: 'rgba(247, 241, 232,0.45)',
         },
         selected: {
           fontFamily: 'PlusJakartaSans_600SemiBold',
           fontSize: 11,
-          color: '#E8A0B4',
+          color: palette.accent.glow,
         },
       }}
       // Lets the ritual breathe: the bar tucks away as you read down a screen
@@ -72,13 +73,13 @@ function ClassicTabLayout() {
       }}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E8A0B4',
-        tabBarInactiveTintColor: 'rgba(248, 241, 246,0.45)',
+        tabBarActiveTintColor: palette.accent.glow,
+        tabBarInactiveTintColor: 'rgba(247, 241, 232,0.45)',
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : 'rgba(21, 15, 25,0.97)',
+          backgroundColor: isIOS ? 'transparent' : 'rgba(14, 11, 20,0.97)',
           borderTopWidth: 1,
-          borderTopColor: 'rgba(248, 241, 246,0.08)',
+          borderTopColor: 'rgba(247, 241, 232,0.08)',
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
@@ -93,7 +94,7 @@ function ClassicTabLayout() {
             <View
               style={[
                 StyleSheet.absoluteFill,
-                { backgroundColor: 'rgba(21, 15, 25,0.97)' },
+                { backgroundColor: 'rgba(14, 11, 20,0.97)' },
               ]}
             />
           ) : null,

@@ -13,6 +13,7 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import { radius, elevation } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -40,14 +41,14 @@ const WIDGET_SIZE = ICON * 2 + GAP;
 
 /** The muted wallpaper icons. Hue only — no marks, no letters. */
 const ICON_TINTS = [
-  'rgba(248, 241, 246,0.16)',
-  'rgba(232, 160, 180,0.14)',
-  'rgba(155, 201, 168,0.13)',
-  'rgba(232, 185, 138,0.13)',
-  'rgba(248, 241, 246,0.10)',
-  'rgba(248, 241, 246,0.11)',
-  'rgba(232, 160, 180,0.10)',
-  'rgba(248, 241, 246,0.13)',
+  'rgba(247, 241, 232,0.16)',
+  'rgba(255, 184, 107,0.14)',
+  'rgba(125, 222, 181,0.13)',
+  'rgba(240, 199, 94,0.13)',
+  'rgba(247, 241, 232,0.10)',
+  'rgba(247, 241, 232,0.11)',
+  'rgba(255, 184, 107,0.10)',
+  'rgba(247, 241, 232,0.13)',
 ];
 
 function AppIcon({ tint }: { tint: string }) {
@@ -63,13 +64,14 @@ function AppIcon({ tint }: { tint: string }) {
 function LunaraWidget() {
   return (
     <LinearGradient
-      colors={['#0F0D29', '#29174D']}
+      // 1:1 with `backgroundTop`/`backgroundBottom` in targets/widget/index.swift.
+      colors={[palette.ink[0], '#2A1C2C']}
       start={{ x: 0.5, y: 0 }}
       end={{ x: 0.5, y: 1 }}
       style={styles.widget}
     >
       <View style={styles.widgetHeader}>
-        <Ionicons name="moon" size={13} color="#CBB9C9" />
+        <Ionicons name="moon" size={13} color="#C9BDB0" />
         <Text style={styles.widgetBrand}>LUNARA</Text>
       </View>
 
@@ -119,7 +121,8 @@ export function WidgetHomeScreenPreview() {
     >
       <View style={styles.frame}>
         <LinearGradient
-          colors={['#241B4D', '#3A2A6B', '#1B1421']}
+          // The wallpaper behind the widget — a night sky, not the old indigo.
+          colors={['#17121F', '#241A2E', palette.ink[1]]}
           style={StyleSheet.absoluteFill}
         />
 
@@ -127,9 +130,9 @@ export function WidgetHomeScreenPreview() {
         <View style={styles.statusBar}>
           <Text style={styles.statusTime}>9:41</Text>
           <View style={styles.statusIcons}>
-            <Ionicons name="cellular" size={9} color="rgba(248, 241, 246,0.75)" />
-            <Ionicons name="wifi" size={9} color="rgba(248, 241, 246,0.75)" />
-            <Ionicons name="battery-full" size={11} color="rgba(248, 241, 246,0.75)" />
+            <Ionicons name="cellular" size={9} color="rgba(247, 241, 232,0.75)" />
+            <Ionicons name="wifi" size={9} color="rgba(247, 241, 232,0.75)" />
+            <Ionicons name="battery-full" size={11} color="rgba(247, 241, 232,0.75)" />
           </View>
         </View>
 
@@ -154,7 +157,7 @@ export function WidgetHomeScreenPreview() {
 
         {/* The home screen carries on past the crop */}
         <LinearGradient
-          colors={['transparent', 'rgba(21, 15, 25,0.85)', '#150F19']}
+          colors={['transparent', 'rgba(14, 11, 20,0.85)', palette.ink[0]]}
           style={styles.fade}
           pointerEvents="none"
         />
@@ -172,10 +175,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 34,
     borderWidth: 3,
     borderBottomWidth: 0,
-    borderColor: 'rgba(248, 241, 246,0.16)',
+    borderColor: 'rgba(247, 241, 232,0.16)',
     overflow: 'hidden',
     paddingHorizontal: PAD,
-    backgroundColor: '#1B1421',
+    backgroundColor: palette.ink[1],
     ...elevation.overlay,
   },
   statusBar: {
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
   statusTime: {
     fontSize: 10,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: 'rgba(248, 241, 246,0.85)',
+    color: 'rgba(247, 241, 232,0.85)',
   },
   statusIcons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
@@ -209,13 +212,13 @@ const styles = StyleSheet.create({
     height: ICON,
     borderRadius: ICON * 0.28,
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.07)',
+    borderColor: 'rgba(247, 241, 232,0.07)',
   },
   iconLabel: {
     width: ICON * 0.66,
     height: 3,
     borderRadius: radius.xs,
-    backgroundColor: 'rgba(248, 241, 246,0.16)',
+    backgroundColor: 'rgba(247, 241, 232,0.16)',
   },
 
   widgetGlow: {
@@ -226,8 +229,8 @@ const styles = StyleSheet.create({
     bottom: -10,
     borderRadius: radius.xl,
     borderCurve: 'continuous',
-    backgroundColor: '#E8A0B4',
-    shadowColor: '#E8A0B4',
+    backgroundColor: palette.accent.glow,
+    shadowColor: palette.accent.glow,
     shadowOpacity: 1,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 0 },
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     padding: 11,
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.10)',
+    borderColor: 'rgba(247, 241, 232,0.10)',
     overflow: 'hidden',
   },
   widgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -248,24 +251,24 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontFamily: 'PlusJakartaSans_600SemiBold',
     letterSpacing: 1.1,
-    color: '#CBB9C9',
+    color: palette.content[1],
   },
   widgetStreak: { gap: 1 },
   widgetNumber: {
     fontSize: 30,
     lineHeight: 34,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#FFFFFF',
+    color: palette.content[0],
   },
   widgetCaption: {
     fontSize: 9,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#A492A6',
+    color: palette.content[2],
   },
   widgetStatus: {
     fontSize: 9,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#E8B98A',
+    color: palette.accent.streak,
   },
   fade: {
     position: 'absolute',

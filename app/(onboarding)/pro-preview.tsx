@@ -17,39 +17,15 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
 import { proFeatureSummary } from '@/lib/entitlements';
-import { requestNotificationPermissions, getNotificationPermissionStatus } from '@/services/notifications';
+import { maybeAskForNotifications } from '@/services/notifications';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 const { width } = Dimensions.get('window');
 const PHONE_WIDTH = Math.min(width - 96, 240);
 const PHONE_HEIGHT = PHONE_WIDTH * 2.05;
 
 /** Mirrors the pre-ask used at the end of the tutorial step this screen replaced. */
-async function maybeAskForNotifications(onGranted: () => Promise<void>): Promise<void> {
-  if (Platform.OS === 'web') return;
-  const status = await getNotificationPermissionStatus();
-  if (status !== 'undetermined') return;
-  await new Promise<void>((resolve) => {
-    Alert.alert(
-      'One quiet reminder a night?',
-      'If the night is slipping by and you haven’t shared with your partner yet, we’ll send one gentle nudge — never more than that.',
-      [
-        { text: 'Not now', style: 'cancel', onPress: () => resolve() },
-        {
-          text: 'Sounds good',
-          onPress: async () => {
-            const granted = await requestNotificationPermissions().catch(() => false);
-            // A grant with no token stored is a permission nobody can use — the
-            // remote pushes address a device, not an account.
-            if (granted) await onGranted().catch(() => {});
-            resolve();
-          },
-        },
-      ],
-    );
-  });
-}
-
 function PhonePreview() {
   const float = useSharedValue(0);
   const glow = useSharedValue(0.35);
@@ -87,7 +63,7 @@ function PhonePreview() {
           resizeMode="cover"
         />
         <LinearGradient
-          colors={['rgba(21, 15, 25,0.55)', 'transparent', 'rgba(21, 15, 25,0.75)']}
+          colors={['rgba(14, 11, 20,0.55)', 'transparent', 'rgba(14, 11, 20,0.75)']}
           locations={[0, 0.35, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -97,7 +73,7 @@ function PhonePreview() {
         <Animated.View entering={FadeIn.delay(400).duration(600)} style={styles.widgetCard}>
           <View style={styles.widgetHeader}>
             <View style={styles.widgetIcon}>
-              <Ionicons name="moon" size={11} color="#F8F1F6" />
+              <Ionicons name="moon" size={11} color="#F7F1E8" />
             </View>
             <Text style={styles.widgetLabel}>Lunara</Text>
           </View>
@@ -138,7 +114,7 @@ export default function ProPreviewScreen() {
   };
 
   return (
-    <LinearGradient colors={['#150F19', '#1B1421', '#251B2B', '#150F19']} style={styles.container}>
+    <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[2], palette.ink[0]]} style={styles.container}>
       <StarField />
       <View style={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}>
         <PhonePreview />
@@ -179,10 +155,10 @@ const styles = StyleSheet.create({
     width: PHONE_WIDTH * 1.3,
     height: PHONE_WIDTH * 1.3,
     borderRadius: PHONE_WIDTH,
-    backgroundColor: '#E8A0B4',
+    backgroundColor: palette.accent.glow,
     opacity: 0.35,
     // Soft radial-style glow behind the phone frame.
-    shadowColor: '#E8A0B4',
+    shadowColor: palette.accent.glow,
     shadowRadius: 60,
     shadowOpacity: 1,
   },
@@ -193,8 +169,8 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: 'rgba(248, 241, 246,0.18)',
-    backgroundColor: '#150F19',
+    borderColor: 'rgba(247, 241, 232,0.18)',
+    backgroundColor: palette.ink[0],
   },
   phoneScreen: { ...StyleSheet.absoluteFillObject },
   notch: {
@@ -210,9 +186,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 38,
     alignSelf: 'center',
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#FFFFFF',
+    color: palette.content[0],
   },
   widgetCard: {
     position: 'absolute',
@@ -222,9 +198,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     padding: 10,
-    backgroundColor: 'rgba(21, 15, 25,0.55)',
+    backgroundColor: 'rgba(14, 11, 20,0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.16)',
+    borderColor: 'rgba(247, 241, 232,0.16)',
     gap: 5,
   },
   widgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -232,35 +208,35 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(232, 160, 180,0.4)',
+    backgroundColor: 'rgba(255, 184, 107,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   widgetLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   widgetMessage: {
     fontSize: 12.5,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F8F1F6',
+    color: palette.content[0],
     lineHeight: 17,
   },
   copy: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
+    color: palette.content[0],
     textAlign: 'center',
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -268,7 +244,7 @@ const styles = StyleSheet.create({
   covers: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
   },
 });

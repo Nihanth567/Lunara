@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ViewStyle,
-  ActivityIndicator,
   View,
 } from 'react-native';
 import Animated, {
@@ -17,6 +16,8 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { type, maxFontScale } from '@/constants/typography';
 import { radius, elevation, space, duration, touchTarget } from '@/constants/tokens';
+import { glow, palette, tint } from '@/constants/colors';
+import { ThinkingOrb } from '@/components/ThinkingOrb';
 
 interface LunaraButtonProps {
   title: string;
@@ -34,26 +35,36 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 /**
  * The one button in Lunara.
  *
- * What changed and why, since each of these was a small tell:
+ * ─── It is a pill now, and that is a reversal ────────────────────────────────
  *
- * - **Radius 12 → 20.** A 12pt corner on a 56pt-tall full-width button is the
- *   default every generated UI reaches for, and it reads stiff: corner radius
- *   has to scale with the surface it belongs to. 20 is soft enough to match a
- *   product about tenderness without becoming a pill, which on a full-width
- *   button reads generic-consumer.
- * - **A shadow.** The primary action was a flat coral rectangle. On a near-black
- *   ground a wide, soft, low-opacity black shadow is the only thing that makes
- *   an element look liftable rather than painted on.
- * - **One type step.** Primary was 16px and secondary 17px, for no reason. Both
- *   are `type.label` now.
- * - **Spring, not timing, on press.** `withTiming(0.97)` is a linear squash;
- *   a spring settles the way a physical control does. 0.96 is the floor before
- *   the press starts to read as a glitch.
+ * A previous pass moved this off a pill on the grounds that a full-width pill
+ * is "generic-consumer". True, and beside the point: the reason to avoid a
+ * default is that it says nothing, not that it is popular. This product is two
+ * people keeping a small creature lit, the button is the warmest object on a
+ * dark screen, and a rectangle with 20pt corners is a *dialog* button. The pill
+ * is the friendlier shape and friendly is the brief, so it wins. What still
+ * holds from that pass: nothing else in the app becomes a pill by default —
+ * cards stay on the `radius` ramp.
+ *
+ * ─── The shadow is apricot, not black ────────────────────────────────────────
+ *
+ * A warm fill on a night ground with a black shadow reads as a sticker lying on
+ * the page. The same fill with a shadow *in its own colour* reads as a source
+ * of light, which is the entire visual thesis of the app — the fox's halo does
+ * the same thing a hundred points above it. Android has no coloured shadow, so
+ * it falls back to `elevation` and loses only the tint.
+ *
+ * ─── Still true from before ──────────────────────────────────────────────────
+ *
+ * - **One type step.** Primary and secondary are both `type.label`.
+ * - **Spring, not timing, on release.** A spring settles the way a physical
+ *   control does. 0.97 is the press floor — deep enough to feel, shallow enough
+ *   that a big pill does not appear to flinch.
  *
  * Accessibility: every variant declares `accessibilityRole="button"` and its
- * busy/disabled state, so the loading spinner is announced rather than being a
- * silent dead control. The ghost variant carries a minimum height because it has
- * no background to give it one — it was landing just under the 48pt floor.
+ * busy/disabled state, so the loading indicator is announced rather than being
+ * a silent dead control. The ghost variant carries a minimum height because it
+ * has no background to give it one — it was landing just under the 48pt floor.
  */
 export function LunaraButton({
   title,
@@ -77,7 +88,7 @@ export function LunaraButton({
 
   const handlePressIn = () => {
     if (reduceMotion || inactive) return;
-    scale.value = withTiming(0.96, { duration: duration.instant });
+    scale.value = withTiming(0.97, { duration: duration.instant });
   };
 
   const handlePressOut = () => {
@@ -125,7 +136,7 @@ export function LunaraButton({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={inactive}
-      style={[animStyle, styles.wrapper, isPrimary && !disabled && elevation.lifted, style]}
+      style={[animStyle, styles.wrapper, isPrimary && !disabled && styles.primaryLift, style]}
       {...a11y}
     >
       <View
@@ -136,7 +147,15 @@ export function LunaraButton({
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={isPrimary ? '#150F19' : '#E8A0B4'} size="small" />
+          // `theme` maps directly onto the ink this button already used:
+          // dark dots on the apricot primary fill, light dots on the dark
+          // secondary fill — same contrast rule, no color prop needed.
+          <ThinkingOrb
+            state="working"
+            size={20}
+            theme={isPrimary ? 'light' : 'dark'}
+            accessibilityLabel={`${title}, loading`}
+          />
         ) : (
           <Text
             maxFontSizeMultiplier={maxFontScale}
@@ -156,30 +175,47 @@ export function LunaraButton({
 
 const styles = StyleSheet.create({
   wrapper: { width: '100%' },
+  /**
+   * Apricot glow on iOS, plain elevation on Android.
+   *
+   * The radius is repeated here on purpose. This style sits on the Pressable
+   * wrapper while the fill and its corners live on the inner `base` View, and a
+   * shadow is cast from the bounds of the view that declares it — so without a
+   * matching radius the glow draws a *square* halo behind a pill. It is not
+   * decoration duplicated by accident; delete it and the button grows corners
+   * made of light.
+   */
+  primaryLift: {
+    ...elevation.lifted,
+    ...glow.primary,
+    borderRadius: radius.full,
+    borderCurve: 'continuous' as const,
+  },
   base: {
-    height: 56,
-    borderRadius: radius.lg,
+    height: 58,
+    borderRadius: radius.full,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: space.xl,
   },
-  primary: { backgroundColor: '#E8A0B4' },
+  primary: { backgroundColor: palette.accent.glow },
   secondary: {
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.55)',
+    borderColor: tint.glow(0.45),
     // A faint wash rather than fully transparent, so the outline reads as a
     // control and not as a stray rule across the page.
-    backgroundColor: 'rgba(232, 160, 180,0.08)',
+    backgroundColor: tint.glow(0.08),
   },
   label: type.label,
-  primaryLabel: { color: '#150F19' },
-  secondaryLabel: { color: '#E8A0B4' },
+  /** 11.44:1 on the apricot fill. */
+  primaryLabel: { color: palette.ink[0] },
+  secondaryLabel: { color: palette.accent.glow },
 
-  // Disabled primary keeps the coral identity at low emphasis. The old pairing
-  // put #CBB9C9 text on a 16%-coral fill, which measured under 3:1.
-  primaryDisabled: { backgroundColor: 'rgba(232, 160, 180,0.20)' },
-  primaryDisabledLabel: { color: 'rgba(248, 241, 246,0.55)' },
+  // Disabled primary keeps the apricot identity at low emphasis rather than
+  // going grey — a button that is not ready yet is still the same button.
+  primaryDisabled: { backgroundColor: tint.glow(0.18) },
+  primaryDisabledLabel: { color: tint.cream(0.55) },
 
   ghost: {
     minHeight: touchTarget,
@@ -188,7 +224,7 @@ const styles = StyleSheet.create({
   },
   ghostText: {
     ...type.label,
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
   },
   dimmed: { opacity: 0.4 },

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   withTiming,
   withDelay,
   withSpring,
@@ -31,9 +32,58 @@ import { NotSignedInError, useApp } from '@/context/AppContext';
 import { useGrowCheckBack } from '@/hooks/useGrowCheckBack';
 import { isPro } from '@/lib/entitlements';
 import { partnerLabel } from '@/lib/partner';
-import { radius } from '@/constants/tokens';
+import { REACTIONS } from '@/lib/reactions';
+import { radius, space, elevation, duration, touchTarget } from '@/constants/tokens';
+import { gradients, glow, palette, tint } from '@/constants/colors';
+import { type as text, maxFontScale } from '@/constants/typography';
 
 const { width } = Dimensions.get('window');
+
+// ─── The lights coming up ─────────────────────────────────────────────────────
+
+/**
+ * The warm wash that fades in behind the whole reveal.
+ *
+ * ─── Why this and not a bigger animation ─────────────────────────────────────
+ *
+ * The brief for this moment is "short lights-up, not a long cinematic". The
+ * temptation on a payoff screen is a sequence — a curtain, a shimmer, a
+ * particle field — and every one of those is something the couple has to wait
+ * out before they can read what their partner wrote. That is exactly backwards:
+ * the words are the reward, the animation is the frame.
+ *
+ * So it is one property (opacity) on one layer, over `duration.reveal`. Nothing
+ * blocks, nothing sequences, and the cards underneath start their own stagger
+ * immediately. What it buys is the impression that the room got warmer when the
+ * screen opened — which is the feeling — for one interpolated value.
+ *
+ * Reduce Motion gets the end state immediately rather than losing the warmth:
+ * the wash is colour, not movement, and removing it would change what the
+ * screen *means* rather than how it arrives.
+ */
+function WarmWash() {
+  const reduceMotion = useReducedMotion();
+  const lit = useSharedValue(reduceMotion ? 1 : 0);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    lit.value = withTiming(1, { duration: duration.reveal });
+  }, [lit, reduceMotion]);
+
+  const style = useAnimatedStyle(() => ({ opacity: lit.value }));
+
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, style]} pointerEvents="none">
+      <LinearGradient
+        colors={gradients.foxHalo}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.5, y: 0.1 }}
+        end={{ x: 0.5, y: 0.85 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
 
 // ─── Animated reveal card ─────────────────────────────────────────────────────
 
@@ -151,13 +201,6 @@ function RevealPair({
 
 // ─── Reaction button ──────────────────────────────────────────────────────────
 
-const REACTIONS = [
-  { icon: 'heart', label: 'Love', color: '#E8A0B4' },
-  { icon: 'hand-right-outline', label: 'Hug', color: '#CBB9C9' },
-  { icon: 'sunny-outline', label: 'Warm', color: '#E8B98A' },
-  { icon: 'star-outline', label: 'Star', color: '#9BC9A8' },
-] as const;
-
 // ─── Main reveal screen ───────────────────────────────────────────────────────
 
 export default function RevealScreen() {
@@ -192,12 +235,12 @@ export default function RevealScreen() {
 
   if (!todayEntry) {
     return (
-      <LinearGradient colors={['#150F19', '#251B2B']} style={styles.container}>
+      <LinearGradient colors={gradients.screen} style={styles.container}>
         <View style={styles.noEntry}>
-          <Ionicons name="moon-outline" size={26} color="#CBB9C9" />
-          <Text style={styles.noEntryText}>There's nothing to reveal here yet tonight</Text>
+          <Ionicons name="moon-outline" size={26} color={palette.content[1]} />
+          <Text style={styles.noEntryText}>Nothing to open here yet tonight</Text>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="arrow-back" size={20} color="#CBB9C9" />
+            <Ionicons name="arrow-back" size={20} color="#C9BDB0" />
             <Text style={styles.closeBtnText}>Go back</Text>
           </Pressable>
         </View>
@@ -207,18 +250,26 @@ export default function RevealScreen() {
 
   return (
     <LinearGradient
-      colors={['#150F19', '#1B1421', '#251B2B', '#312338']}
-      locations={[0, 0.3, 0.6, 1]}
+      colors={gradients.reveal}
+      locations={gradients.revealLocations}
       style={styles.container}
     >
       <StarField />
+      {/*
+        The lights coming up. A warm apricot wash that fades in over the night
+        ground across `duration.reveal` — the one transition in the app allowed
+        to exceed the responsive band, because it is the payoff rather than a
+        state change. Absolutely positioned and non-interactive, so it costs the
+        scroll view nothing.
+      */}
+      <WarmWash />
 
       {/* Close button */}
       <Pressable
         style={[styles.closeButton, { top: topPad + 12 }]}
         onPress={() => router.back()}
       >
-        <Ionicons name="close" size={22} color="#CBB9C9" />
+        <Ionicons name="close" size={22} color="#C9BDB0" />
       </Pressable>
 
       <ScrollView
@@ -236,17 +287,15 @@ export default function RevealScreen() {
             in the app that is different tonight because of something the two of
             them did tonight.
           */}
-          <CoupleCompanion state="glowing" streak={streak} size="lg" />
-          <Text style={styles.title}>Tonight's Reveal</Text>
+          <CoupleCompanion state="glowing" streak={streak} size="hero" />
+          <Text style={styles.title}>Both of you showed up</Text>
           <Text style={styles.subtitle}>
-            The words you both kept just for each other — now shared
+            Everything you each kept sealed tonight, open at the same time
           </Text>
           {streak > 0 && (
             <View style={styles.streakChip}>
-              <Ionicons name="moon" size={11} color="#CBB9C9" />
-              <Text style={styles.streakChipText}>
-                {streak} {streak === 1 ? 'night' : 'nights'} together
-              </Text>
+              <Ionicons name="flame" size={12} color={palette.accent.streak} />
+              <Text style={styles.streakChipText}>Day {streak} together</Text>
             </View>
           )}
           <ConfettiBurst trigger={confetti} />
@@ -256,7 +305,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grateful"
-          accentColor="#E8A0B4"
+          accentColor={palette.accent.heart}
           mine={todayEntry.grateful}
           theirs={todayEntry.partnerGrateful}
           myVoice={todayEntry.voiceGrateful}
@@ -268,7 +317,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Cute"
-          accentColor="#CBB9C9"
+          accentColor={palette.accent.moon}
           mine={todayEntry.cute}
           theirs={todayEntry.partnerCute}
           myVoice={todayEntry.voiceCute}
@@ -280,7 +329,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grow"
-          accentColor="#9BC9A8"
+          accentColor={palette.accent.success}
           mine={todayEntry.grow}
           theirs={todayEntry.partnerGrow}
           myVoice={todayEntry.voiceGrow}
@@ -298,13 +347,13 @@ export default function RevealScreen() {
             ) : (
               <Pressable style={styles.aiLockedCard} onPress={() => router.push('/(modals)/paywall')}>
                 <View style={styles.aiLockedIcon}>
-                  <Ionicons name="sparkles" size={16} color="#E8A0B4" />
+                  <Ionicons name="sparkles" size={16} color="#FFB86B" />
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.aiLockedTitle}>A gentle way forward</Text>
-                  <Text style={styles.aiLockedBody}>Lunara Pro turns tonight's Grow notes into one small idea</Text>
+                  <Text style={styles.aiLockedBody}>Premium turns tonight&apos;s Grow notes into one small idea</Text>
                 </View>
-                <Ionicons name="lock-closed" size={16} color="#A492A6" />
+                <Ionicons name="lock-closed" size={16} color="#9A9084" />
               </Pressable>
             )
           ) : null}
@@ -312,7 +361,7 @@ export default function RevealScreen() {
 
         {/* Reactions */}
         <Animated.View style={styles.reactions}>
-          <Text style={styles.reactionsLabel}>How does this land for you tonight?</Text>
+          <Text style={styles.reactionsLabel}>How did that land?</Text>
           <View style={styles.reactionRow}>
             {REACTIONS.map((r) => (
               <Pressable
@@ -354,13 +403,13 @@ export default function RevealScreen() {
         <View style={styles.backSection}>
           <Text style={styles.afterglowText}>
             {streak > 1
-              ? `That's ${streak} nights you've both shown up. Sleep well.`
+              ? `Day ${streak} together. Your fox is lit till morning.`
               : `${partnerName} is on the other side of tonight. Sleep well.`}
           </Text>
           <Pressable style={styles.doneBtn} onPress={() => router.back()} hitSlop={8}>
             <Text style={styles.doneBtnText}>Close this moment</Text>
           </Pressable>
-          <Text style={styles.seeYouText}>Three new cards tomorrow night.</Text>
+          <Text style={styles.seeYouText}>Three new ones tomorrow night.</Text>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -369,185 +418,153 @@ export default function RevealScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // ── Locked Grow guidance ──────────────────────────────────────────────────
   aiLockedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#251B2B',
+    gap: space.md,
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.18)',
-    padding: 16,
+    borderColor: tint.glow(0.18),
+    padding: space.lg,
   },
   aiLockedIcon: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: radius.sm,
-    backgroundColor: 'rgba(232, 160, 180,0.12)',
+    borderCurve: 'continuous',
+    backgroundColor: tint.glow(0.12),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  aiLockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: '#F8F1F6' },
-  aiLockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
+  aiLockedTitle: { ...text.caption, color: palette.content[0] },
+  aiLockedBody: { ...text.caption, color: palette.content[2] },
+
   closeButton: {
     position: 'absolute',
-    right: 22,
+    right: space.xl,
     zIndex: 10,
-    width: 38,
-    height: 38,
-    borderRadius: radius.sm,
-    backgroundColor: '#251B2B',
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: tint.cream(0.08),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scroll: { paddingHorizontal: 22 },
+  scroll: { paddingHorizontal: space.xl },
 
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 36,
-    gap: 10,
-  },
+  // ── Title ─────────────────────────────────────────────────────────────────
+  titleSection: { alignItems: 'center', marginBottom: space.xxl, gap: space.sm + 2 },
   streakChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 2,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    marginTop: space.xxs,
+    paddingVertical: 6,
+    paddingHorizontal: space.md,
+    borderRadius: radius.full,
+    borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.22)',
-    backgroundColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: tint.streak(0.26),
+    backgroundColor: tint.streak(0.12),
   },
-  streakChipText: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#CBB9C9',
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Fraunces_600SemiBold',
-    color: '#F8F1F6',
-    textAlign: 'center',
-  },
+  streakChipText: { ...text.caption, color: palette.accent.streak },
+  title: { ...text.hero, color: palette.content[0], textAlign: 'center' },
   subtitle: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    ...text.callout,
+    color: palette.content[1],
     textAlign: 'center',
+    paddingHorizontal: space.md,
   },
 
-  cardPair: { gap: 10, marginBottom: 24 },
+  // ── One prompt, both answers ──────────────────────────────────────────────
+  cardPair: { gap: space.sm + 2, marginBottom: space.xl },
   pairLabel: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    marginBottom: 2,
+    marginBottom: space.xxs,
   },
-  pairDot: { width: 7, height: 7, borderRadius: 3.5 },
-  pairTitle: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
+  pairDot: { width: 7, height: 7, borderRadius: radius.full },
+  pairTitle: { ...text.overline, textTransform: 'uppercase' },
 
+  /**
+   * A reveal card is a gift, not a form result.
+   *
+   * Three things carry that, and none of them is an illustration: the surface
+   * is *raised* rather than outlined (a hairline box is a field, a lifted one is
+   * an object); the corners are the widest on the ramp; and the words inside are
+   * set in the serif at reading size. What their partner wrote should not be
+   * typeset like a settings row, which is what 14px Plus Jakarta made it.
+   */
   revealCard: {
     flexDirection: 'row',
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.1)',
+    borderWidth: 0,
     overflow: 'hidden',
+    ...elevation.raised,
   },
-  cardStripe: { width: 3, flexShrink: 0 },
-  cardContent: { flex: 1, padding: 16, gap: 6 },
-  cardOwner: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#A492A6',
-    letterSpacing: 0.3,
-  },
-  cardText: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
-    lineHeight: 22,
-  },
+  cardStripe: { width: 4, flexShrink: 0 },
+  cardContent: { flex: 1, paddingVertical: space.lg + 2, paddingHorizontal: space.lg, gap: space.sm },
+  cardOwner: { ...text.overline, color: palette.content[2], textTransform: 'uppercase' },
+  cardText: { ...text.prose, color: palette.content[0] },
   cardVoice: { marginTop: 6 },
 
-  reactions: {
-    marginTop: 8,
-    marginBottom: 24,
-    gap: 16,
-    alignItems: 'center',
-  },
-  reactionsLabel: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
-    textAlign: 'center',
-  },
+  // ── Reactions ─────────────────────────────────────────────────────────────
+  // Big, round and few. A reaction row that looks like a toolbar gets used like
+  // one; this one is meant to feel like reaching over and squeezing a hand.
+  reactions: { marginTop: space.sm, marginBottom: space.xl, gap: space.lg, alignItems: 'center' },
+  reactionsLabel: { ...text.callout, color: palette.content[1], textAlign: 'center' },
   reactionRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space.md,
     justifyContent: 'center',
     flexWrap: 'wrap',
   },
   reactionBtn: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: radius.md,
+    gap: 7,
+    paddingVertical: space.md + 2,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.xl,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
-    backgroundColor: 'rgba(248, 241, 246,0.03)',
-    minWidth: 72,
-    minHeight: 72,
+    borderColor: tint.cream(0.09),
+    backgroundColor: tint.cream(0.04),
+    minWidth: 92,
+    minHeight: 84,
   },
-  reactionLabel: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
-  },
+  reactionLabel: { ...text.caption },
 
-  backSection: { alignItems: 'center', marginBottom: 16, gap: 14 },
+  // ── Afterglow ─────────────────────────────────────────────────────────────
+  backSection: { alignItems: 'center', marginBottom: space.lg, gap: space.md + 2 },
   afterglowText: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    ...text.prose,
+    color: palette.content[1],
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
   },
   doneBtn: {
-    minHeight: 48,
+    minHeight: touchTarget,
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: radius.lg,
+    paddingVertical: space.md + 2,
+    paddingHorizontal: space.xxl,
+    borderRadius: radius.full,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.12)',
+    borderColor: tint.cream(0.14),
   },
-  doneBtnText: {
-    fontSize: 16,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: '#F8F1F6',
-  },
-  seeYouText: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
-    textAlign: 'center',
-  },
+  doneBtnText: { ...text.label, color: palette.content[0] },
+  seeYouText: { ...text.caption, color: palette.content[2], textAlign: 'center' },
 
-  noEntry: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  noEntryText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: '#CBB9C9' },
-  closeBtn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  closeBtnText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: '#CBB9C9' },
+  noEntry: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },
+  noEntryText: { ...text.body, color: palette.content[1] },
+  closeBtn: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  closeBtnText: { ...text.callout, color: palette.content[1] },
 });

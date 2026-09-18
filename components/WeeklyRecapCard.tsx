@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { WeeklyRecap } from '@/lib/growth';
 import { radius } from '@/constants/tokens';
+import { palette } from '@/constants/colors';
 
 interface Props {
   recap: WeeklyRecap;
@@ -25,7 +26,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="calendar-outline" size={16} color="#E8B98A" />
+        <Ionicons name="calendar-outline" size={16} color="#F0C75E" />
         <Text style={styles.title}>Sunday Recap</Text>
       </View>
 
@@ -47,7 +48,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
               onUnlock();
             }}
           >
-            <Ionicons name="sparkles" size={15} color="#150F19" />
+            <Ionicons name="sparkles" size={15} color="#0E0B14" />
             <Text style={styles.unlockText}>See full insights with Lunara Pro</Text>
           </Pressable>
         </>
@@ -69,11 +70,11 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#251B2B',
+    backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(248, 241, 246,0.08)',
+    borderColor: 'rgba(247, 241, 232,0.08)',
     padding: 18,
     gap: 14,
     marginBottom: 20,
@@ -82,28 +83,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#E8B98A',
+    color: palette.accent.streak,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   stat: { alignItems: 'center', gap: 3, flex: 1 },
   statNumber: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: 'PlusJakartaSans_700Bold',
-    color: '#F8F1F6',
+    color: palette.content[0],
   },
   statLabel: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#A492A6',
+    color: palette.content[2],
     textAlign: 'center',
   },
-  statDivider: { width: 1, height: 32, backgroundColor: 'rgba(248, 241, 246,0.08)' },
+  statDivider: { width: 1, height: 32, backgroundColor: 'rgba(247, 241, 232,0.08)' },
   teaser: {
     fontSize: 14,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 21,
   },
   unlockBtn: {
@@ -111,17 +112,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#E8A0B4',
+    backgroundColor: palette.accent.glow,
     borderRadius: radius.md,
     borderCurve: 'continuous',
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(232, 160, 180,0.35)',
+    borderColor: 'rgba(255, 184, 107,0.35)',
   },
   unlockText: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_600SemiBold',
-    color: '#150F19',
+    color: palette.ink[0],
   },
   insights: { gap: 10 },
   insightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -129,14 +130,14 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#E8B98A',
+    backgroundColor: palette.accent.streak,
     marginTop: 7,
   },
   insightText: {
     flex: 1,
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     lineHeight: 20,
   },
 });

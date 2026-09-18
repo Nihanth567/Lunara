@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { palette } from '@/constants/colors';
 
 const MILESTONE_COPY: Record<number, { title: string; body: string }> = {
   7: {
@@ -62,7 +63,7 @@ export function MilestoneBanner({ milestone }: MilestoneBannerProps) {
           <View key={i} style={[styles.dot, { opacity: 0.25 + (i / 4) * 0.75 }]} />
         ))}
       </View>
-      <Ionicons name="sparkles" size={22} color="#E8B98A" />
+      <Ionicons name="sparkles" size={22} color="#F0C75E" />
       <Text style={styles.title}>{copy.title}</Text>
       <Text style={styles.body}>{copy.body}</Text>
     </Animated.View>
@@ -73,23 +74,23 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(232, 185, 138,0.06)',
+    backgroundColor: 'rgba(240, 199, 94,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(232, 185, 138,0.25)',
+    borderColor: 'rgba(240, 199, 94,0.25)',
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     padding: 22,
     marginBottom: 20,
   },
   dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 2 },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#E8B98A' },
-  title: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: '#F8F1F6', textAlign: 'center',
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: palette.accent.streak },
+  title: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0], textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 12,
     fontFamily: 'PlusJakartaSans_400Regular',
-    color: '#CBB9C9',
+    color: palette.content[1],
     textAlign: 'center',
     lineHeight: 19,
     paddingHorizontal: 6,
