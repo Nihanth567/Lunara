@@ -269,7 +269,7 @@ export function RitualCard({
                 />
               ) : onVoiceLocked ? (
                 <Pressable onPress={onVoiceLocked} style={styles.voiceLocked}>
-                  <Ionicons name="lock-closed-outline" size={13} color="#9A9084" />
+                  <Ionicons name="lock-closed-outline" size={13} color={palette.content[2]} />
                   <Text style={styles.voiceLockedText}>Add a voice note with Lunara Pro</Text>
                 </Pressable>
               ) : null}

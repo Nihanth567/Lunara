@@ -56,7 +56,7 @@ export interface WidgetData {
  * Deliberately carries no entitlement. This used to write an `isPro` key
  * described here as gating "a Lunara Pro perk", but nothing was ever gated:
  * `targets/widget/` never reads the key, there is no locked state to render,
- * and `PRO_FEATURES` (lib/entitlements.ts) does not sell the widget — so the
+ * and `PREMIUM_FEATURES` (lib/entitlements.ts) does not sell the widget — so the
  * comment claimed a paid feature the app gives away. It also cost a real
  * WidgetKit reload every time an entitlement changed, spending the daily budget
  * on a value with no reader. The widget is free for everyone, and says so by

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Linking } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +10,17 @@ import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
 import { ThinkingOrb } from '@/components/ThinkingOrb';
-import { getCurrentOffering, isPurchasesConfigured, purchase, restore } from '@/lib/purchases';
-import { PRO_FEATURES, freeTierSummary } from '@/lib/entitlements';
+import {
+  defaultPackage,
+  getCurrentOffering,
+  isPurchasesConfigured,
+  orderPackages,
+  purchase,
+  restore,
+} from '@/lib/purchases';
+import { PREMIUM_FEATURES, coupleCoverageSummary } from '@/lib/entitlements';
 import { useApp } from '@/context/AppContext';
+import { track } from '@/lib/analytics';
 import { radius, space } from '@/constants/tokens';
 import { gradients, palette, tint } from '@/constants/colors';
 import { type as text } from '@/constants/typography';
@@ -38,6 +46,9 @@ function trialLabel(pkg: PurchasesPackage): string | null {
 function periodSuffix(pkg: PurchasesPackage): string {
   if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return '/year';
   if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return '/month';
+  // Weekly is the default plan now, so the one package whose price used to
+  // render bare — "$4.99" with no period at all — is the one most people see.
+  if (pkg.packageType === PACKAGE_TYPE.WEEKLY) return '/week';
   return '';
 }
 
@@ -47,9 +58,26 @@ function periodSuffix(pkg: PurchasesPackage): string {
  * text — wrong the moment pricing, currency, region, or the trial changed, and
  * it was shown even when RevenueCat had returned no products at all.
  */
+/** Coarse plan shape for analytics. Never a price. */
+function planLabel(pkg: PurchasesPackage | null): string {
+  if (!pkg) return 'none';
+  if (pkg.packageType === PACKAGE_TYPE.WEEKLY) return 'weekly';
+  if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return 'annual';
+  if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return 'monthly';
+  return 'other';
+}
+
+function trialDaysOf(pkg: PurchasesPackage | null): number | undefined {
+  const intro = pkg?.product.introPrice;
+  if (!intro || intro.price !== 0) return undefined;
+  const per = intro.periodUnit === 'WEEK' ? 7 : intro.periodUnit === 'MONTH' ? 30 : 1;
+  return intro.periodNumberOfUnits * per;
+}
+
 function periodNoun(pkg: PurchasesPackage): string {
   if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return 'year';
   if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return 'month';
+  if (pkg.packageType === PACKAGE_TYPE.WEEKLY) return 'week';
   return 'period';
 }
 
@@ -77,19 +105,32 @@ function priceSentence(pkg: PurchasesPackage | null): string {
   const trial = trialLabel(pkg);
   const renewal = `Automatically renews every ${noun} at ${pkg.product.priceString} until you cancel. Cancel anytime in your Apple ID settings.`;
   return trial
-    ? `Lunara Pro — one subscription covers both of you. ${trial}, then ${price}. ${renewal}`
-    : `Lunara Pro — one subscription covers both of you. ${price}. ${renewal}`;
+    ? `Lunara Premium — one subscription covers both of you. ${trial}, then ${price}. ${renewal}`
+    : `Lunara Premium — one subscription covers both of you. ${price}. ${renewal}`;
 }
 
 export default function PaywallScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { source } = useLocalSearchParams<{ source?: string }>();
+  const { source, gate } = useLocalSearchParams<{ source?: string; gate?: string }>();
   const fromOnboarding = source === 'onboarding';
-  const { refreshSharedState, refreshEntitlement, canPurchase, couple } = useApp();
+  /**
+   * Gate mode: this screen is the front door, not an upsell.
+   *
+   * `app/index.tsx` sends people here when they have no entitlement, and in
+   * that mode there is nothing behind the paywall to go back to — so the close
+   * button, the swipe-down gesture and the "not now" escape are all removed
+   * rather than left pointing at a screen the person is not allowed to see.
+   * Restore stays, because App Review requires it and because a returning
+   * subscriber's only way back in is through it.
+   */
+  const isGate = gate === '1';
+  const { refreshSharedState, refreshEntitlement, canPurchase, couple, signOut } = useApp();
   // The fox on this screen shows the couple's real streak, so the thing being
   // sold is visibly *theirs* rather than a stock illustration of a product.
   const streak = couple?.currentStreak ?? 0;
+  /** Have these two ever finished a night together? Drives the pitch. */
+  const hasHistory = (couple?.longestStreak ?? 0) > 0;
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selected, setSelected] = useState<PurchasesPackage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +140,13 @@ export default function PaywallScreen() {
   // there, so closing or finishing here should land in the app, not pop back
   // into the (now-stale) onboarding stack.
   const dismiss = () => {
+    if (isGate) {
+      // Nothing to dismiss to. Recorded rather than silently ignored, because
+      // "how many people try to leave" is the number that says whether the
+      // gate is set at the right place.
+      track('paywall_dismiss_blocked', { plan: planLabel(selected), paired: canPurchase });
+      return;
+    }
     if (fromOnboarding) {
       router.replace('/(app)/' as never);
       if (couple) {
@@ -110,6 +158,10 @@ export default function PaywallScreen() {
   };
 
   useEffect(() => {
+    track('paywall_view', { source: isGate ? 'gate' : fromOnboarding ? 'onboarding' : 'modal', paired: canPurchase });
+  }, [isGate, fromOnboarding, canPurchase]);
+
+  useEffect(() => {
     (async () => {
       if (!isPurchasesConfigured()) {
         setLoading(false);
@@ -119,18 +171,15 @@ export default function PaywallScreen() {
         const offering = await getCurrentOffering();
         const available = offering?.availablePackages ?? [];
         setPackages(available);
-        const annual = available.find((p) => p.packageType === PACKAGE_TYPE.ANNUAL);
-        setSelected(annual ?? available[0] ?? null);
+        // Weekly, not annual — see `packageRank` in lib/purchases.ts.
+        setSelected(defaultPackage(available));
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const orderedPackages = useMemo(() => {
-    const rank = (p: PurchasesPackage) => (p.packageType === PACKAGE_TYPE.ANNUAL ? 0 : p.packageType === PACKAGE_TYPE.MONTHLY ? 1 : 2);
-    return [...packages].sort((a, b) => rank(a) - rank(b));
-  }, [packages]);
+  const orderedPackages = useMemo(() => orderPackages(packages), [packages]);
 
   // The button never promises a trial the store isn't offering on the plan the
   // user actually has selected.
@@ -153,17 +202,33 @@ export default function PaywallScreen() {
       );
       return;
     }
+    track(
+      selected.packageType === PACKAGE_TYPE.ANNUAL ? 'paywall_cta_yearly' : 'paywall_cta_weekly_trial',
+      { plan: planLabel(selected), trialDays: trialDaysOf(selected), source: isGate ? 'gate' : 'modal' },
+    );
     setPurchasing(true);
     try {
       const entitled = await purchase(selected);
       if (entitled) {
+        const inTrial = (trialDaysOf(selected) ?? 0) > 0;
+        track(inTrial ? 'trial_started' : 'purchase_completed', {
+          plan: planLabel(selected),
+          trialDays: trialDaysOf(selected),
+        });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // Unlock from RevenueCat's own answer, right now. `refreshSharedState`
         // only reads the server mirror, which the webhook hasn't written yet —
         // relying on it alone left a paying customer looking at a paywall.
         await refreshEntitlement().catch(() => {});
         await refreshSharedState().catch(() => {});
-        dismiss();
+        track('couple_premium_granted', { plan: planLabel(selected), paired: canPurchase });
+        // In gate mode there is no screen underneath to return to, so this is
+        // the moment the app actually opens.
+        if (isGate) {
+          router.replace('/(app)/' as never);
+        } else {
+          dismiss();
+        }
       } else {
         Alert.alert(
           'Almost there',
@@ -190,8 +255,15 @@ export default function PaywallScreen() {
         // is the line that makes Restore Purchases actually restore anything.
         await refreshEntitlement().catch(() => {});
         await refreshSharedState().catch(() => {});
+        // Only once it actually found something — firing on entry counted every
+        // tap of the button as a successful restore.
+        track('restore_completed', { source: isGate ? 'gate' : 'modal' });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        dismiss();
+        if (isGate) {
+          router.replace('/(app)/' as never);
+        } else {
+          dismiss();
+        }
       } else {
         Alert.alert(
           'No active subscription found',
@@ -212,14 +284,23 @@ export default function PaywallScreen() {
       locations={gradients.warmLocations}
       style={styles.container}
     >
+      {/*
+        In gate mode the screen must not be swipe-dismissible either. Setting it
+        here rather than in `(modals)/_layout.tsx` because the layout options are
+        static per route and this one route is both a modal upsell and the front
+        door depending on how it was opened.
+      */}
+      <Stack.Screen options={{ gestureEnabled: !isGate }} />
       <StarField />
-      <Pressable
-        style={[styles.closeButton, { top: insets.top + 12 }]}
-        onPress={dismiss}
-        hitSlop={10}
-      >
-        <Ionicons name="close" size={22} color={palette.content[1]} />
-      </Pressable>
+      {!isGate && (
+        <Pressable
+          style={[styles.closeButton, { top: insets.top + 12 }]}
+          onPress={dismiss}
+          hitSlop={10}
+        >
+          <Ionicons name="close" size={22} color={palette.content[1]} />
+        </Pressable>
+      )}
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 24 }]}
@@ -236,7 +317,21 @@ export default function PaywallScreen() {
             voice as the rest of the app.
           */}
           <CoupleCompanion state="glowing" streak={streak} size="lg" />
-          <Text style={styles.title}>Keep your nights together</Text>
+          {/*
+            "Keep your nights together" is the right line for somebody with
+            nights to keep. On the front gate it is usually said to a couple who
+            has had none — they paired ninety seconds ago — and a promise about
+            continuity is incoherent before there is anything continuous. The
+            copy follows the couple's actual history rather than assuming it.
+          */}
+          <Text style={styles.title}>
+            {hasHistory ? 'Keep your nights together' : 'Start tonight, together'}
+          </Text>
+          <Text style={styles.lede}>
+            {hasHistory
+              ? `One of you unlocks Lunara for both. ${trialDaysOf(selected) ?? 21} days free.`
+              : `One of you unlocks Lunara for both. Free for ${trialDaysOf(selected) ?? 21} days — long enough to find out if it's yours.`}
+          </Text>
           <Text style={styles.subtitle}>{priceSentence(selected)}</Text>
           <View style={styles.coversBadge}>
             <Ionicons name="people" size={13} color={palette.accent.heart} />
@@ -245,7 +340,7 @@ export default function PaywallScreen() {
         </View>
 
         <View style={styles.features}>
-          {PRO_FEATURES.map((f) => (
+          {PREMIUM_FEATURES.map((f) => (
             <View key={f.text} style={styles.featureRow}>
               <View style={styles.featureIcon}>
                 <Ionicons name={f.icon as any} size={16} color={palette.accent.glow} />
@@ -256,14 +351,14 @@ export default function PaywallScreen() {
         </View>
 
         <View style={styles.guaranteeBanner}>
-          <Ionicons name="heart-outline" size={13} color="#9A9084" />
+          <Ionicons name="heart-outline" size={13} color={palette.content[2]} />
           {/*
             The free tier stated in full, including the archive window — the one
             Pro claim that is also a restriction. Saying "daily prompts and
             partner sync are free" while the first bullet above sells the
             archive told two different stories about the same product.
           */}
-          <Text style={styles.guaranteeText}>{freeTierSummary()}</Text>
+          <Text style={styles.guaranteeText}>{coupleCoverageSummary()}</Text>
         </View>
 
         {loading ? (
@@ -277,7 +372,7 @@ export default function PaywallScreen() {
           </View>
         ) : !canPurchase ? (
           <View style={styles.demoNotice}>
-            <Ionicons name="people-outline" size={16} color="#C9BDB0" />
+            <Ionicons name="people-outline" size={16} color={palette.content[1]} />
             <Text style={styles.demoNoticeText}>
               You&apos;re exploring Lunara on your own. Pro is one subscription for two people, so
               it unlocks once your partner has joined you — nothing to pay for until then.
@@ -292,6 +387,7 @@ export default function PaywallScreen() {
             {orderedPackages.map((pkg) => {
               const isSelected = selected?.identifier === pkg.identifier;
               const isAnnual = pkg.packageType === PACKAGE_TYPE.ANNUAL;
+              const isWeekly = pkg.packageType === PACKAGE_TYPE.WEEKLY;
               const trial = trialLabel(pkg);
               const perMonth = pkg.product.pricePerMonthString;
 
@@ -304,23 +400,28 @@ export default function PaywallScreen() {
                     setSelected(pkg);
                   }}
                 >
-                  {isAnnual && (
+                  {(isWeekly || isAnnual) && (
                     <View style={styles.badgeRow}>
                       {trial && (
                         <View style={styles.trialBadge}>
                           <Text style={styles.trialBadgeText}>{trial}</Text>
                         </View>
                       )}
-                      <View style={styles.valueBadge}>
-                        <Text style={styles.valueBadgeText}>
-                          Best Value{perMonth ? ` • ${perMonth}/mo` : ''}
-                        </Text>
-                      </View>
+                      {isAnnual && (
+                        <View style={styles.valueBadge}>
+                          <Text style={styles.valueBadgeText}>
+                            Best if you&apos;re in it for the long run
+                            {perMonth ? ` • ${perMonth}/mo` : ''}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
                   <View style={styles.packageRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.packageTitle}>{isAnnual ? 'Annual' : pkg.product.title || pkg.identifier}</Text>
+                      <Text style={styles.packageTitle}>
+                        {isAnnual ? 'Yearly' : isWeekly ? 'Weekly' : pkg.product.title || pkg.identifier}
+                      </Text>
                       <Text style={styles.packagePrice}>
                         {pkg.product.priceString}
                         {periodSuffix(pkg)}
@@ -343,9 +444,48 @@ export default function PaywallScreen() {
             loading={purchasing}
             disabled={!selected || !canPurchase}
           />
-          <Pressable onPress={dismiss} disabled={purchasing} style={styles.freeBtn}>
-            <Text style={styles.freeText}>Not now — stay on free</Text>
-          </Pressable>
+          {!isGate ? (
+            <Pressable onPress={dismiss} disabled={purchasing} style={styles.freeBtn}>
+              <Text style={styles.freeText}>Not now</Text>
+            </Pressable>
+          ) : (
+            /*
+              The gate has no close button, which means somebody who signed in
+              with the wrong Apple ID has no way off this screen at all — their
+              subscription is on the other account and Restore will never find
+              it. That is a trap, and App Review treats a screen with no exit as
+              one. Sign-out is the exit; it is deliberately the quietest control
+              here.
+            */
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  'Use a different account?',
+                  'This signs you out of Lunara on this device. Nothing you have written is deleted, and signing back in brings it all with you.',
+                  [
+                    { text: 'Stay', style: 'cancel' },
+                    {
+                      text: 'Sign out',
+                      style: 'destructive',
+                      onPress: () => {
+                        // Back to the entry gate, which re-resolves from
+                        // scratch. Without this the sign-out succeeds and the
+                        // person is left sitting on the paywall they just tried
+                        // to leave — this route does not re-route itself.
+                        signOut()
+                          .then(() => router.replace('/' as never))
+                          .catch(() => {});
+                      },
+                    },
+                  ],
+                );
+              }}
+              disabled={purchasing}
+              style={styles.freeBtn}
+            >
+              <Text style={styles.freeText}>Use a different account</Text>
+            </Pressable>
+          )}
           <Pressable onPress={handleRestore} disabled={purchasing} style={styles.restoreBtn}>
             <Text style={styles.restoreText}>Restore purchases</Text>
           </Pressable>
@@ -391,6 +531,18 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space.xl + 2 },
   header: { alignItems: 'center', gap: space.sm + 2, marginBottom: space.xxl },
   title: { ...text.hero, color: palette.content[0], textAlign: 'center' },
+  /**
+   * The one warm line under the headline. Above the auto-renewal sentence,
+   * which is legally required and reads like it — this is the line a person
+   * actually takes in, so it says the two things that matter: one of you pays,
+   * and the first three weeks are free.
+   */
+  lede: {
+    ...text.body,
+    color: palette.content[1],
+    textAlign: 'center',
+    marginTop: space.xs,
+  },
   subtitle: {
     ...text.callout,
     color: palette.content[1],

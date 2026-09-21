@@ -3,7 +3,13 @@ import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RealtimeChannel, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { configurePurchases, logOutPurchases, checkIsPro, onEntitlementChange } from '@/lib/purchases';
+import {
+  configurePurchases,
+  logOutPurchases,
+  checkIsPro,
+  getTrialInfo,
+  onEntitlementChange,
+} from '@/lib/purchases';
 import { updateWidgetData, type WidgetStatus } from '@/lib/widget';
 import { isPartnerJoined } from '@/lib/partner';
 import { getCompanionState, lastCompletedDate } from '@/lib/companion';
@@ -34,6 +40,8 @@ import {
   refreshStreakProtection,
   cancelStreakProtection,
   registerForPushNotificationsAsync,
+  scheduleTrialEndingReminder,
+  cancelTrialEndingReminder,
 } from '@/services/notifications';
 
 /** What a signed-in account already has on the server. */
@@ -255,6 +263,18 @@ interface KeepsakeRow {
 
 interface AppContextType {
   isLoading: boolean;
+  /**
+   * Whether RevenueCat has been configured and the first entitlement read has
+   * been attempted.
+   *
+   * The front gate in `app/index.tsx` must wait on this. `isLoading` goes false
+   * as soon as the profile and couple have loaded, but `configurePurchases` is
+   * kicked off without being awaited — so between those two moments a paying
+   * customer reads as unentitled. Gating on `isLoading` alone would bounce them
+   * to the paywall they have already bought their way past, and a restore emits
+   * no webhook at all, so the server flag cannot cover for it.
+   */
+  purchasesReady: boolean;
   onboardingComplete: boolean;
   /**
    * The night the app is currently working on (YYYY-MM-DD), pinned for the
@@ -898,12 +918,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Entitlement has to wait for `configurePurchases` — `checkIsPro()` returns
     // false while RevenueCat is unconfigured, which would read as "not Pro".
+    /**
+     * `purchasesReady` must become true on every path, including the failing
+     * ones.
+     *
+     * It used to mean "RevenueCat answered"; since the front gate started
+     * waiting on it, it means "we are allowed to stop waiting". Those are the
+     * same thing right up until `configurePurchases` rejects — a bad key, a
+     * store outage, a simulator without StoreKit — and then the old code
+     * swallowed the error and left the flag false forever. That used to cost a
+     * user nothing more than reading as un-subscribed. Now it holds
+     * `resolveGate` at `loading` for the life of the process, which renders as
+     * a permanently blank app.
+     *
+     * A failure is an answer: we asked, nobody said yes. The timeout covers the
+     * remaining case where the call neither resolves nor rejects, because a
+     * front gate that can hang is a front gate that can brick the app.
+     */
+    const READY_TIMEOUT_MS = 8000;
+    const readyFallback = setTimeout(() => setPurchasesReady(true), READY_TIMEOUT_MS);
     void configurePurchases(userId)
       .then(async () => {
-        setPurchasesReady(true);
         await refreshEntitlementRef.current?.();
       })
-      .catch(() => {});
+      .catch(() => {
+        // Swallowed on purpose — `finally` still opens the gate.
+      })
+      .finally(() => {
+        clearTimeout(readyFallback);
+        setPurchasesReady(true);
+      });
     void syncPushToken(userId);
 
     return { hasProfile, hasCouple };
@@ -1123,6 +1167,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const entitled = await checkIsPro();
     setProEntitlement(entitled);
     await AsyncStorage.setItem(KEYS.PRO_ENTITLEMENT, entitled ? '1' : '0').catch(() => {});
+
+    /**
+     * Keep the trial notice in step with reality.
+     *
+     * Scheduled here rather than at the moment of purchase because this runs on
+     * every cold start and on every entitlement change RevenueCat reports — so
+     * a trial started on the partner's phone, a conversion, or a cancellation
+     * all correct the notice without anything else having to remember to. The
+     * scheduler is idempotent, so running it repeatedly is the intended use.
+     */
+    try {
+      const { trialing, expiresAt } = await getTrialInfo();
+      if (trialing && expiresAt) {
+        await scheduleTrialEndingReminder(expiresAt);
+      } else {
+        await cancelTrialEndingReminder();
+      }
+    } catch {
+      // A missing reminder must never be the reason a purchase looks broken.
+    }
     return entitled;
   }, []);
 
@@ -1818,6 +1882,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.multiRemove(Object.values(KEYS));
     await cancelNightlyReminder();
     await cancelStreakProtection();
+    // A device nobody is signed into must not keep telling someone their trial
+    // is ending — it is scheduled per-account and this device just left one.
+    await cancelTrialEndingReminder();
     setOnboardingComplete(false);
     setWhoPaysState(null);
     setUserState(null);
@@ -1828,6 +1895,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRevealedDates(new Set());
     setNotificationSettingsState(DEFAULT_NOTIFICATION_SETTINGS);
     setProEntitlement(false);
+    // Back to "nobody has asked yet". Left true, the front gate would judge the
+    // *next* account against a RevenueCat customer that has not logged in yet
+    // and flash a paywall at a subscriber on their way back in.
+    setPurchasesReady(false);
     signingOutRef.current = false;
   }, []);
 
@@ -1901,6 +1972,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         isLoading,
+        purchasesReady,
         onboardingComplete,
         ritualDate,
         realtimeConnected,

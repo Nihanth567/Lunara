@@ -45,7 +45,7 @@ function IdeaCard({
   return (
     <View style={[styles.ideaCard, width ? { width } : null, style]}>
       <View style={styles.ideaHeader}>
-        <Ionicons name={THEME_ICON[idea.theme]} size={15} color="#C9BDB0" />
+        <Ionicons name={THEME_ICON[idea.theme]} size={15} color={palette.content[1]} />
         <Text style={styles.ideaTheme}>{idea.theme}</Text>
         <Text style={styles.ideaDuration}>{idea.duration}</Text>
       </View>
@@ -81,7 +81,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
             <IdeaCard key={idea.id} idea={idea} />
           ))}
           <View style={styles.lockRow}>
-            <Ionicons name="lock-closed" size={13} color="#9A9084" />
+            <Ionicons name="lock-closed" size={13} color={palette.content[2]} />
             <Text style={styles.lockText}>
               {DATE_IDEAS.length} ideas across Cozy, Outdoor & Conversational themes
             </Text>
@@ -93,7 +93,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
               onUnlock();
             }}
           >
-            <Ionicons name="sparkles" size={16} color="#0E0B14" />
+            <Ionicons name="sparkles" size={16} color={palette.ink[0]} />
             <Text style={styles.unlockText}>Unlock Full Date Night Playbook with Lunara Pro</Text>
           </Pressable>
         </View>

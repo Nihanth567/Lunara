@@ -130,7 +130,7 @@ function QuestionCard({
             </View>
           ) : (
             <View style={styles.waitingRow}>
-              <Ionicons name="moon-outline" size={14} color="#9A9084" />
+              <Ionicons name="moon-outline" size={14} color={palette.content[2]} />
               <Text style={styles.waitingText}>
                 Kept safe until {partnerName} answers this one too
               </Text>
@@ -167,7 +167,7 @@ export default function KeepsakesScreen() {
       <StarField />
       {!isIntro && (
         <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color="#C9BDB0" />
+          <Ionicons name="close" size={22} color={palette.content[1]} />
         </Pressable>
       )}
 
@@ -176,7 +176,7 @@ export default function KeepsakesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Ionicons name="heart-outline" size={24} color="#FFB86B" />
+          <Ionicons name="heart-outline" size={24} color={palette.accent.glow} />
           <Text style={styles.title}>Your Keepsake</Text>
           <Text style={styles.subtitle}>
             {isIntro

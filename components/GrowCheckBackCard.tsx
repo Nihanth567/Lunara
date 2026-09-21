@@ -48,7 +48,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
       {answer === null ? (
         <>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={15} color="#7DDEB5" />
+            <Ionicons name="leaf-outline" size={15} color={palette.accent.success} />
             <Text style={styles.eyebrow}>Yesterday’s Grow note</Text>
           </View>
           <Text style={styles.question}>{GROW_CHECK_BACK_QUESTION}</Text>
@@ -68,7 +68,7 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
         </>
       ) : (
         <View style={styles.resultRow}>
-          <Ionicons name="leaf" size={16} color="#7DDEB5" />
+          <Ionicons name="leaf" size={16} color={palette.accent.success} />
           <Text style={styles.resultText}>{growFollowUpAcknowledgement(answer)}</Text>
         </View>
       )}

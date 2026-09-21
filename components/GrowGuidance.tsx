@@ -49,11 +49,11 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
     <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)} style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="leaf-outline" size={16} color="#7DDEB5" />
+          <Ionicons name="leaf-outline" size={16} color={palette.accent.success} />
           <Text style={styles.title}>A gentle way forward</Text>
         </View>
         <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.dismissBtn}>
-          <Ionicons name="close" size={16} color="#9A9084" />
+          <Ionicons name="close" size={16} color={palette.content[2]} />
         </Pressable>
       </View>
       <Text style={styles.intro}>A few small, no-pressure ideas — take what’s useful, leave the rest.</Text>

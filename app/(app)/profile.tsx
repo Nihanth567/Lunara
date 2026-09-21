@@ -26,7 +26,7 @@ import { DateNightSection } from '@/components/DateNightSection';
 import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { useApp } from '@/context/AppContext';
 import { useGrowth } from '@/hooks/useGrowth';
-import { isPro, proFeatureSummary } from '@/lib/entitlements';
+import { isPro, premiumSummary } from '@/lib/entitlements';
 import { isPartnerJoined } from '@/lib/partner';
 import { isSunday } from '@/lib/growth';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
@@ -99,7 +99,7 @@ function SettingsRow({
         {label}
       </Text>
       {value && <Text style={styles.settingsValue}>{value}</Text>}
-      {onPress && <Ionicons name="chevron-forward" size={16} color="#9A9084" style={{ opacity: 0.7 }} />}
+      {onPress && <Ionicons name="chevron-forward" size={16} color={palette.content[2]} style={{ opacity: 0.7 }} />}
     </Pressable>
   );
 }
@@ -166,7 +166,7 @@ function TimePickerModal({
                   {opt.label}
                 </Text>
                 {selected && (
-                  <Ionicons name="checkmark" size={18} color="#C9BDB0" />
+                  <Ionicons name="checkmark" size={18} color={palette.content[1]} />
                 )}
               </Pressable>
             );
@@ -433,7 +433,7 @@ export default function ProfileScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="You are in demo mode. Leave the demo and pair with your real partner."
               >
-                <Ionicons name="flask-outline" size={13} color="#C9BDB0" />
+                <Ionicons name="flask-outline" size={13} color={palette.content[1]} />
                 <Text style={styles.demoBadgeText}>Demo · tap to pair for real</Text>
               </Pressable>
             )}
@@ -473,7 +473,7 @@ export default function ProfileScreen() {
 
         {longestStreak > 0 && (
           <View style={styles.longestStreakRow}>
-            <Ionicons name="trophy-outline" size={14} color="#F0C75E" />
+            <Ionicons name="trophy-outline" size={14} color={palette.accent.streak} />
             <Text style={styles.longestStreakText}>
               Longest streak: {longestStreak} {longestStreak === 1 ? 'night' : 'nights'}
             </Text>
@@ -496,7 +496,7 @@ export default function ProfileScreen() {
               }}
             >
               <View style={styles.keepsakeIcon}>
-                <Ionicons name="heart-outline" size={20} color="#FFB86B" />
+                <Ionicons name="heart-outline" size={20} color={palette.accent.glow} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.keepsakeTitle}>Your Keepsake</Text>
@@ -504,7 +504,7 @@ export default function ProfileScreen() {
                   {keepsakes.filter((k) => k.mySubmitted).length} of {keepsakes.length || KEEPSAKE_QUESTIONS.length} answered
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#9A9084" />
+              <Ionicons name="chevron-forward" size={18} color={palette.content[2]} />
             </Pressable>
           </Animated.View>
         )}
@@ -513,7 +513,7 @@ export default function ProfileScreen() {
          <Animated.View style={styles.premiumCard}>
            <View style={styles.premiumGradient}>
             <View style={styles.premiumContent}>
-              <Ionicons name="sparkles" size={22} color="#FFB86B" />
+              <Ionicons name="sparkles" size={22} color={palette.accent.glow} />
               <View style={styles.premiumText}>
                 <Text style={styles.premiumTitle}>
                   {couple?.isSubscribed ? 'Lunara Premium — Active' : 'Lunara Premium'}
@@ -521,8 +521,8 @@ export default function ProfileScreen() {
                 {/* Named from lib/entitlements.ts, so this can't outlive a feature. */}
                 <Text style={styles.premiumBody}>
                   {couple?.isSubscribed
-                    ? `${proFeatureSummary().replace(/\.$/, '')} — all unlocked for both of you.`
-                    : `${proFeatureSummary()} One subscription for both of you.`}
+                    ? `${premiumSummary().replace(/\.$/, '')} — all unlocked for both of you.`
+                    : `${premiumSummary()} One subscription for both of you.`}
                 </Text>
               </View>
             </View>
@@ -553,14 +553,14 @@ export default function ProfileScreen() {
               icon={notifEnabled ? 'notifications' : 'notifications-off-outline'}
               label="Notifications"
               value={notifEnabled ? 'On' : 'Off'}
-              color="#C9BDB0"
+              color={palette.content[1]}
               onPress={handleNotificationsToggle}
             />
             <SettingsRow
               icon="time-outline"
               label="Reminder time"
               value={reminderLabel}
-              color="#C9BDB0"
+              color={palette.content[1]}
               onPress={() => setTimePickerVisible(true)}
             />
           </View>
@@ -572,25 +572,25 @@ export default function ProfileScreen() {
             <SettingsRow
               icon="lock-closed-outline"
               label="Privacy Policy"
-              color="#7DDEB5"
+              color={palette.accent.success}
               onPress={() => router.push('/(modals)/privacy')}
             />
             <SettingsRow
               icon="document-text-outline"
               label="Terms of Service"
-              color="#7DDEB5"
+              color={palette.accent.success}
               onPress={() => router.push('/(modals)/terms')}
             />
             <SettingsRow
               icon="download-outline"
               label="Export my data"
-              color="#7DDEB5"
+              color={palette.accent.success}
               onPress={handleExport}
             />
             <SettingsRow
               icon="reader-outline"
               label="License Agreement (EULA)"
-              color="#7DDEB5"
+              color={palette.accent.success}
               onPress={() => Linking.openURL(APPLE_EULA_URL)}
             />
           </View>

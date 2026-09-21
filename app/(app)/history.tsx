@@ -40,14 +40,14 @@ function MomentRow({ entry, onPress }: { entry: DailyEntry; onPress: () => void 
         <Text style={styles.rowPreview} numberOfLines={1}>{preview}</Text>
         {voiceCount > 0 && (
           <View style={styles.rowVoice}>
-            <Ionicons name="mic" size={11} color="#9A9084" />
+            <Ionicons name="mic" size={11} color={palette.content[2]} />
             <Text style={styles.rowVoiceText}>
               {voiceCount} voice {voiceCount === 1 ? 'note' : 'notes'}
             </Text>
           </View>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={16} color="#3A3149" />
+      <Ionicons name="chevron-forward" size={16} color={palette.ink[4]} />
     </Pressable>
   );
 }
@@ -117,17 +117,24 @@ export default function HistoryScreen() {
         {lockedCount > 0 && (
           <Pressable style={styles.lockedBanner} onPress={() => router.push('/(modals)/paywall')}>
             <View style={styles.lockedIcon}>
-              <Ionicons name="lock-closed" size={16} color="#FFB86B" />
+              <Ionicons name="lock-closed" size={16} color={palette.accent.glow} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.lockedTitle}>
                 {lockedCount} earlier {lockedCount === 1 ? 'moment is' : 'moments are'} waiting
               </Text>
+              {/*
+                This banner is a backstop, not a free tier. The front gate means
+                nobody without an entitlement reaches this screen, so if it ever
+                renders, something upstream is wrong and the honest thing to say
+                is that the archive is incomplete — not to advertise a free plan
+                Lunara no longer has.
+              */}
               <Text style={styles.lockedBody}>
-                Free keeps your last {FREE_HISTORY_DAYS} days — Lunara Pro keeps all of them
+                Showing the last {FREE_HISTORY_DAYS} days — subscribe to see every night
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#9A9084" />
+            <Ionicons name="chevron-forward" size={16} color={palette.content[2]} />
           </Pressable>
         )}
       </ScrollView>

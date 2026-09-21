@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { useApp } from '@/context/AppContext';
-import { proFeatureSummary } from '@/lib/entitlements';
+import { premiumSummary } from '@/lib/entitlements';
 import { maybeAskForNotifications } from '@/services/notifications';
 import { radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
@@ -73,7 +73,7 @@ function PhonePreview() {
         <Animated.View entering={FadeIn.delay(400).duration(600)} style={styles.widgetCard}>
           <View style={styles.widgetHeader}>
             <View style={styles.widgetIcon}>
-              <Ionicons name="moon" size={11} color="#F7F1E8" />
+              <Ionicons name="moon" size={11} color={palette.content[0]} />
             </View>
             <Text style={styles.widgetLabel}>Lunara</Text>
           </View>
@@ -123,7 +123,7 @@ export default function ProPreviewScreen() {
           <Text style={styles.title}>Feel close, even when you're apart.</Text>
           <Text style={styles.subtitle}>
             Lunara Pro keeps every night you&apos;ve shared, in both your hands.{' '}
-            {proFeatureSummary()} One subscription, for the two of you.
+            {premiumSummary()} One subscription, for the two of you.
           </Text>
         </Animated.View>
 

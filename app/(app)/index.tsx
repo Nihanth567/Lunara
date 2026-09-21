@@ -29,7 +29,6 @@ import { NotSignedInError, useApp } from '@/context/AppContext';
 import { useGrowth } from '@/hooks/useGrowth';
 import { useCompanion } from '@/hooks/useCompanion';
 import { useGrowCheckBack } from '@/hooks/useGrowCheckBack';
-import { usePaywallMoment } from '@/hooks/usePaywallMoment';
 import { isPro } from '@/lib/entitlements';
 import { isPartnerJoined, partnerLabel } from '@/lib/partner';
 import { inviteShareMessage } from '@/lib/inviteLinks';
@@ -425,41 +424,6 @@ function AlreadyRevealedState({
   );
 }
 
-/**
- * The one place Lunara brings up Premium on its own.
- *
- * A card in the afterglow of a finished night, below everything else on the
- * screen — not a modal, not an interstitial, and never on the way to anything.
- * It appears once, after three shared nights, and dismissing it is a real
- * dismissal (see `lib/paywallMoment.ts` for why each of those is a rule).
- *
- * The copy sells *more care*, not access. "Unlock" implies the free product is
- * a locked version of the real one, which is both untrue here and the fastest
- * way to make a couple feel like the app is holding their nights hostage.
- */
-function PremiumMoment({ onOpen, onDismiss }: { onOpen: () => void; onDismiss: () => void }) {
-  return (
-    <View style={styles.premiumCard}>
-      <View style={styles.premiumHeader}>
-        <Ionicons name="sparkles" size={16} color={palette.accent.glow} />
-        <Text style={styles.premiumTitle}>Room for more of this</Text>
-      </View>
-      <Text style={styles.premiumBody}>
-        Premium keeps every night you&apos;ve had — not just the recent ones — and
-        adds voice notes, so some nights arrive in your actual voice.
-      </Text>
-      <View style={styles.premiumActions}>
-        <Pressable onPress={onOpen} style={styles.premiumBtn} accessibilityRole="button">
-          <Text style={styles.premiumBtnText}>See what&apos;s in it</Text>
-        </Pressable>
-        <Pressable onPress={onDismiss} style={styles.premiumSkip} accessibilityRole="button">
-          <Text style={styles.premiumSkipText}>Not now</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function TonightScreen() {
@@ -503,7 +467,6 @@ export default function TonightScreen() {
   const { todayTip, markTodayTipViewed, pendingFollowUp, respondToFollowUp, connectionStreak } = useGrowth();
   const { pending: growCheckBack } = useGrowCheckBack(entries);
   const companion = useCompanion();
-  const { shouldOffer: offerPremium, markOffered } = usePaywallMoment();
 
   // Snapshot so the acknowledgement stays on screen for a beat after answering.
   const [activeCheckBack, setActiveCheckBack] = useState(growCheckBack);
@@ -954,20 +917,6 @@ export default function TonightScreen() {
           {/* Growth Tip — actionable nudge shown below the completed prompt */}
           {isSubmitted && <GrowthTipCard tip={todayTip} />}
 
-          {/* Premium, once, in the afterglow. Last on the screen on purpose. */}
-          {offerPremium && (
-            <PremiumMoment
-              onOpen={() => {
-                markOffered();
-                router.push({
-                  pathname: '/(modals)/paywall',
-                  params: { source: 'afterglow' },
-                } as never);
-              }}
-              onDismiss={markOffered}
-            />
-          )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -1272,39 +1221,4 @@ const styles = StyleSheet.create({
   },
   viewBtnText: { ...text.caption, color: palette.accent.glow },
 
-  // ── Premium moment ────────────────────────────────────────────────────────
-  // Quieter than every other card here. It is the only thing on this screen
-  // asking for something rather than giving something, and it should look it.
-  premiumCard: {
-    marginTop: space.lg,
-    backgroundColor: palette.ink[1],
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: tint.glow(0.16),
-    padding: space.xl,
-    gap: space.sm + 2,
-  },
-  premiumHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  premiumTitle: { ...text.label, color: palette.content[0] },
-  premiumBody: { ...text.callout, color: palette.content[1], lineHeight: 21 },
-  premiumActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    marginTop: space.xs,
-  },
-  premiumBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: space.lg,
-    borderRadius: radius.full,
-    borderCurve: 'continuous',
-    backgroundColor: tint.glow(0.14),
-    borderWidth: 1,
-    borderColor: tint.glow(0.3),
-  },
-  premiumBtnText: { ...text.caption, color: palette.accent.glow },
-  premiumSkip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.md },
-  premiumSkipText: { ...text.caption, color: palette.content[2] },
 });

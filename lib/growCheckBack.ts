@@ -1,4 +1,5 @@
-/**
+
+import { palette } from '@/constants/colors';/**
  * The Grow check-back: one soft question the day after a couple saw guidance on
  * their Grow notes. Deliberately a single question with three taps and no text
  * field — it's a nudge to notice, not a coaching thread.
@@ -22,9 +23,9 @@ export interface GrowFollowUpOption {
 }
 
 export const GROW_FOLLOW_UP_OPTIONS: GrowFollowUpOption[] = [
-  { value: 'yes', label: 'Yes', icon: 'sparkles-outline', color: '#7DDEB5' },
+  { value: 'yes', label: 'Yes', icon: 'sparkles-outline', color: palette.accent.success },
   { value: 'a_little', label: 'A little', icon: 'leaf-outline', color: '#FFD6A5' },
-  { value: 'not_yet', label: 'Not yet', icon: 'moon-outline', color: '#A78BFA' },
+  { value: 'not_yet', label: 'Not yet', icon: 'moon-outline', color: palette.accent.moon },
 ];
 
 /** Warm, never disappointed — "not yet" has to feel as safe an answer as "yes". */

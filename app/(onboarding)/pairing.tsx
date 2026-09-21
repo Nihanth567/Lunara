@@ -188,7 +188,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#C9BDB0" />
+            <Ionicons name="arrow-back" size={22} color={palette.content[1]} />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -202,13 +202,13 @@ export default function PairingScreen() {
             <Text style={styles.codeLabel}>Your invite code</Text>
             <Text style={styles.code}>{inviteCode}</Text>
             <Pressable style={styles.shareButton} onPress={handleShareCode}>
-              <Ionicons name="share-outline" size={18} color="#FFB86B" />
+              <Ionicons name="share-outline" size={18} color={palette.accent.glow} />
               <Text style={styles.shareText}>Share invite link</Text>
             </Pressable>
           </Animated.View>
 
            <Animated.View style={styles.waitingNote}>
-            <Ionicons name="time-outline" size={16} color="#C9BDB0" />
+            <Ionicons name="time-outline" size={16} color={palette.content[1]} />
             <Text style={styles.waitingText}>
               You can keep using Lunara while you wait for your partner to join
             </Text>
@@ -237,7 +237,7 @@ export default function PairingScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#C9BDB0" />
+            <Ionicons name="arrow-back" size={22} color={palette.content[1]} />
           </Pressable>
 
            <Animated.View style={styles.header}>
@@ -265,7 +265,7 @@ export default function PairingScreen() {
             />
             {joinError && (
               <View style={styles.joinErrorRow}>
-                <Ionicons name="moon-outline" size={15} color="#F0C75E" />
+                <Ionicons name="moon-outline" size={15} color={palette.accent.streak} />
                 <Text style={styles.joinErrorText}>{joinError}</Text>
               </View>
             )}
@@ -307,24 +307,24 @@ export default function PairingScreen() {
          <Animated.View style={styles.options}>
           <Pressable style={styles.bigOption} onPress={handleStartNewCouple} disabled={loading}>
             <View style={styles.bigOptionIcon}>
-              <Ionicons name="sparkles-outline" size={28} color="#FFB86B" />
+              <Ionicons name="sparkles-outline" size={28} color={palette.accent.glow} />
             </View>
             <View style={styles.bigOptionText}>
               <Text style={styles.bigOptionTitle}>Start a new couple</Text>
               <Text style={styles.bigOptionSub}>Generate an invite code to share</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9A9084" />
+            <Ionicons name="chevron-forward" size={20} color={palette.content[2]} />
           </Pressable>
 
           <Pressable style={styles.bigOption} onPress={() => setMode('join')}>
             <View style={[styles.bigOptionIcon, styles.iconLavender]}>
-              <Ionicons name="enter-outline" size={28} color="#C9BDB0" />
+              <Ionicons name="enter-outline" size={28} color={palette.content[1]} />
             </View>
             <View style={styles.bigOptionText}>
               <Text style={styles.bigOptionTitle}>Join an existing couple</Text>
               <Text style={styles.bigOptionSub}>Enter the code from your partner</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9A9084" />
+            <Ionicons name="chevron-forward" size={20} color={palette.content[2]} />
           </Pressable>
         </Animated.View>
 

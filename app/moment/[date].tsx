@@ -93,10 +93,10 @@ export default function MomentScreen() {
       <LinearGradient colors={[palette.ink[0], palette.ink[2]]} style={styles.container}>
         <StarField />
         <View style={styles.missing}>
-          <Ionicons name="moon-outline" size={26} color="#C9BDB0" />
+          <Ionicons name="moon-outline" size={26} color={palette.content[1]} />
           <Text style={styles.missingText}>That night isn't here anymore</Text>
           <Pressable onPress={() => router.back()} style={styles.backRow}>
-            <Ionicons name="arrow-back" size={18} color="#C9BDB0" />
+            <Ionicons name="arrow-back" size={18} color={palette.content[1]} />
             <Text style={styles.backText}>Back to Moments</Text>
           </Pressable>
         </View>
@@ -113,7 +113,7 @@ export default function MomentScreen() {
       <StarField />
 
       <Pressable style={[styles.closeButton, { top: topPad + 12 }]} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={22} color="#C9BDB0" />
+        <Ionicons name="chevron-back" size={22} color={palette.content[1]} />
       </Pressable>
 
       <ScrollView
@@ -137,7 +137,7 @@ export default function MomentScreen() {
         {/* The check-back reply, kept beside the Grow note it belongs to */}
         {(entry.growFollowUp || entry.partnerGrowFollowUp) && (
           <View style={styles.followUp}>
-            <Ionicons name="leaf-outline" size={14} color="#7DDEB5" />
+            <Ionicons name="leaf-outline" size={14} color={palette.accent.success} />
             <Text style={styles.followUpText}>
               {entry.growFollowUp
                 ? `You checked back the next day: ${growFollowUpLabel(entry.growFollowUp)}.`

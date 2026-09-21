@@ -505,3 +505,77 @@ export async function maybeAskForNotifications(
     );
   });
 }
+
+// ─── Trial ending ─────────────────────────────────────────────────────────────
+
+const TRIAL_ID = 'lunara_trial_ending';
+const TRIAL_DATA_TYPE = 'trial-ending';
+
+/**
+ * How many days before a trial lapses to say something. Three, which lands on
+ * day 18 of 21.
+ *
+ * Early enough that someone who wants to keep Lunara has a couple of evenings
+ * to decide in, and late enough that they have actually used it — a reminder on
+ * day 4 is an advert, and the store sends its own notice anyway.
+ */
+export const TRIAL_REMINDER_LEAD_DAYS = 3;
+
+/**
+ * One gentle notice before a free trial turns into a charge.
+ *
+ * ─── Why this exists at all ──────────────────────────────────────────────────
+ *
+ * A 21-day trial is long enough that its ending is genuinely a surprise, and
+ * being surprised by a charge is the single fastest way to earn a refund
+ * request and a one-star review. Telling people plainly is both the decent
+ * thing and the commercially better one.
+ *
+ * ─── The tone rule, which is not decoration ──────────────────────────────────
+ *
+ * No countdown, no "don't lose your streak", no threat to anything the couple
+ * has made. The streak is *theirs*, and implying it is collateral for a payment
+ * is the exact dark pattern this product is supposed to be the alternative to.
+ * The copy states a fact and leaves the decision alone.
+ *
+ * Idempotent: scheduling twice replaces rather than stacks, because entitlement
+ * refreshes fire more than once per session.
+ */
+export async function scheduleTrialEndingReminder(expiresAt: Date): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  const fireAt = new Date(expiresAt);
+  fireAt.setDate(fireAt.getDate() - TRIAL_REMINDER_LEAD_DAYS);
+
+  // A trial already inside its last three days has nothing to schedule — the
+  // date is in the past and the OS would either drop it or fire it instantly.
+  if (fireAt.getTime() <= Date.now()) return;
+
+  await cancelTrialEndingReminder();
+  await Notifications.scheduleNotificationAsync({
+    identifier: TRIAL_ID,
+    content: {
+      title: 'Your free trial ends in a few days',
+      body: 'Nothing changes tonight — your nights can keep going, and one of you covers both.',
+      data: {
+        screen: 'profile',
+        notificationType: TRIAL_DATA_TYPE,
+      },
+      sound: false,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+    },
+  });
+}
+
+/** Cancel the trial notice — on conversion, on cancellation, on sign-out. */
+export async function cancelTrialEndingReminder(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(TRIAL_ID);
+  } catch {
+    // Nothing scheduled under that id. Cancelling an absent notice is a no-op.
+  }
+}

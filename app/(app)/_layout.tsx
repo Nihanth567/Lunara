@@ -3,11 +3,15 @@ import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
 import { palette } from '@/constants/colors';
+import { useApp } from '@/context/AppContext';
+import { isPro } from '@/lib/entitlements';
+import { hasStoreKey } from '@/lib/purchases';
+import { resolveGate } from '@/lib/accessGate';
 
 /**
  * iOS 26 renders this as the system Liquid Glass tab bar, which brings its own
@@ -21,7 +25,7 @@ function NativeTabLayout() {
     <NativeTabs
       // Rose is the app's action colour everywhere else; the tab bar was the
       // only surface still selecting in blue.
-      tintColor="#FFB86B"
+      tintColor={palette.accent.glow}
       iconColor={{ default: 'rgba(247, 241, 232,0.45)', selected: palette.accent.glow }}
       indicatorColor="rgba(255, 184, 107,0.14)"
       labelStyle={{
@@ -175,9 +179,47 @@ function ClassicTabLayout() {
   );
 }
 
+/**
+ * The entitlement guard, at the only chokepoint that catches everything.
+ *
+ * `app/index.tsx` routes people correctly on a cold start, but it is not the
+ * only way into this group: `pairing` and `join/[code]` both `router.replace`
+ * straight to `/(app)/` when they finish, and a deep link or a restored
+ * navigation state can land here without passing through the index at all.
+ * Guarding each of those call sites means the next one added is unguarded, so
+ * the check lives here instead — this layout is the one thing every route in
+ * the group has to render through.
+ *
+ * It returns `null` rather than a spinner while the answer is still unknown.
+ * This layout is the tab bar; rendering it and then redirecting would flash the
+ * chrome of a product the person has not unlocked. `app/index.tsx` owns the
+ * loading state, and it is the screen they came from.
+ */
+function EntitlementGuard({ children }: { children: React.ReactNode }) {
+  const { isLoading, onboardingComplete, sessionExpired, couple, purchasesReady } = useApp();
+
+  const destination = resolveGate({
+    isLoading,
+    sessionExpired,
+    onboardingComplete,
+    coupleEntitled: isPro(couple),
+    purchasesReady,
+    purchasesConfigurable: hasStoreKey(),
+    isDev: __DEV__,
+    isDemo: couple?.isDemoMode ?? false,
+  });
+
+  if (destination === 'loading') return null;
+  if (destination === 'auth') return <Redirect href="/(onboarding)/auth" />;
+  if (destination === 'onboarding') return <Redirect href="/(onboarding)/welcome" />;
+  if (destination === 'paywall') return <Redirect href={'/(modals)/paywall?gate=1' as never} />;
+  return <>{children}</>;
+}
+
 export default function AppLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <EntitlementGuard>
+      {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
+    </EntitlementGuard>
+  );
 }

@@ -53,7 +53,7 @@ export default function PrivacyScreen() {
         onPress={() => router.back()}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#C9BDB0" />
+        <Ionicons name="close" size={22} color={palette.content[1]} />
       </Pressable>
 
       <ScrollView

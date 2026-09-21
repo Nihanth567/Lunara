@@ -3,6 +3,7 @@ import { AccessibilityInfo, Animated, AppState, Easing, Platform, View, type Vie
 import { Canvas, PaintStyle, Picture, Skia, createPicture } from '@shopify/react-native-skia';
 import type { SkPicture } from '@shopify/react-native-skia';
 import { MODE_FRAMES, resolvePreset, type OrbSize, type OrbState } from 'thinking-orbs/engine';
+import { palette } from '@/constants/colors';
 
 /**
  * Vendored from thinking-orbs' own React Native port
@@ -167,7 +168,7 @@ function FallbackOrb({ size, dark }: { size: number; dark: boolean }) {
 
   const dot = Math.max(3, Math.round(size * 0.13));
   // The engine is strictly monochrome: light ink on dark, dark ink on light.
-  const ink = dark ? '#0E0B14' : '#F7F1E8';
+  const ink = dark ? palette.ink[0] : palette.content[0];
 
   return (
     <View

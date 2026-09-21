@@ -16,7 +16,7 @@ export default function NotFoundScreen() {
       >
         <StarField />
         <View style={styles.content}>
-          <Ionicons name="moon-outline" size={30} color="#C9BDB0" />
+          <Ionicons name="moon-outline" size={30} color={palette.content[1]} />
           <Text style={styles.title}>This page drifted off somewhere</Text>
           <Text style={styles.body}>
             Whatever you were looking for isn’t here — but Lunara is, right where you left it.

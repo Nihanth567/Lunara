@@ -63,7 +63,7 @@ export function MilestoneBanner({ milestone }: MilestoneBannerProps) {
           <View key={i} style={[styles.dot, { opacity: 0.25 + (i / 4) * 0.75 }]} />
         ))}
       </View>
-      <Ionicons name="sparkles" size={22} color="#F0C75E" />
+      <Ionicons name="sparkles" size={22} color={palette.accent.streak} />
       <Text style={styles.title}>{copy.title}</Text>
       <Text style={styles.body}>{copy.body}</Text>
     </Animated.View>

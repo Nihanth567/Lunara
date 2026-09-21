@@ -1,14 +1,14 @@
-# Night fox — companion art brief
+# Night fox — companion art
 
-Seven PNGs live here, one per companion state. Until they do, the app draws a
-vector placeholder (`components/NightFoxArt.tsx`) and everything works; dropping
-the files in and uncommenting the matching lines in `index.ts` is the entire
-integration.
+Seven PNGs live here, one per companion state, and all seven are wired in
+`index.ts`. `components/NightFoxArt.tsx` still carries a geometric vector
+placeholder behind them, so an unreadable asset degrades to a working screen —
+but it is a safety net now, not a stage of the project.
 
 ## Art policy
 
-**AI-generated art is accepted here.** This file used to carry a hard constraint
-against it and describe the seven poses as a commission for a human
+**AI-generated art is accepted here.** This file used to carry a hard
+constraint against it and describe the seven poses as a commission for a human
 illustrator. That was overridden deliberately, so the rule is removed rather
 than left sitting in the repo being quietly ignored.
 
@@ -17,187 +17,196 @@ Two things it does *not* reverse:
 - **The placeholder stays geometric.** `NightFoxArt`'s vector fallback is
   primitives rather than a character, so a missing PNG can still never be
   mistaken for finished art.
-- **Consistency is still the bar.** The reason this was specified as a
-  commission is that one character across seven poses is precisely what
-  generation is worst at. Judge a generated set on whether it reads as the
-  *same animal* at 44pt — not on whether each image is individually pretty.
-  The character lock in "Generation prompts" below is the whole game.
+- **Consistency is still the bar.** One character across seven poses is
+  precisely what generation is worst at. Judge a generated set on whether it
+  reads as the *same animal* at 44pt — not on whether each image is
+  individually pretty. The character lock in "Generation prompts" is the whole
+  game, and passing a previous pose back in as an **image reference** is what
+  actually enforces it.
 
 ## Files
 
-| File | State | The moment | Status |
+All seven are 768×768 RGBA, trimmed to the animal and re-centred on a square
+with a 5.5% margin, so every state lands at the same optical scale in a
+fixed-size slot.
+
+| File | State | The moment | Source |
 |---|---|---|---|
-| `nesting.png` | Nesting | Just paired, no shared night yet. Curled in the den, unhurried. | **Live** — reprocessed from `fox_nesting.png`. Reads close to `sleeping` — see caveat below |
-| `waiting.png` | Waiting | One of them has shared, the other hasn't. Sitting up, keeping a small light. | **Live** — reprocessed from `fox_patient.png` |
-| `ready.png` | Ready | Both shared, nothing opened. Alert, ears forward, about to move. | **Live**, but off-character — see caveat below |
-| `glowing.png` | Glowing | Tonight is open and done. The warmest pose of the seven. | Falls back to `fox.png` |
-| `streaklit.png` | Streak-lit | Tonight still open, but a live run carries it. Settled and lit. | **Live**, but off-character — see caveat below |
-| `resting.png` | Resting | A night or few missed. Lying down, eyes open, still watching. | Falls back to `fox.png` |
-| `sleeping.png` | Sleeping | A longer quiet stretch. Curled nose-to-tail, asleep. | **Live** — reprocessed from `fox_sleeping.png` |
+| `nesting.png` | Nesting | Just paired, no shared night yet. Settled in a ring of its own tail, awake. | Runway, ref `waiting` |
+| `waiting.png` | Waiting | One has shared, the other hasn't. Sitting up, looking off and slightly up. | Original — established the character |
+| `ready.png` | Ready | Both shared, nothing opened. Facing front, ears forward, eyes wide. | Runway, ref `waiting` |
+| `glowing.png` | Glowing | Tonight is open and done. Eyes closed into happy crescents. | Runway, ref `waiting` |
+| `streaklit.png` | Streak-lit | Tonight still open, a live run carries it. Sitting square and steady. | Runway, ref `waiting` |
+| `resting.png` | Resting | A night or few missed. Lying down, chin up, still watching. | Runway, ref `waiting` |
+| `sleeping.png` | Sleeping | A longer quiet stretch. Curled nose-to-tail, asleep. | Original |
 
-`fox.png` is the generic single image the two remaining fallback states point
-at — posture doesn't change with state there.
+The raw generator outputs stay alongside as `fox_*.png` and `fox.png`. Nothing
+`require`s them, so they cost nothing in the shipped bundle.
 
-**`ready.png` and `streaklit.png` break the "same fox, seven moods" rule.**
-`ready` arrived in a completely different color family (fiery gold/orange
-instead of indigo-plum) and a more painterly rendering style — it reads as a
-different animal, not a mood on this one. `streaklit` is closer in palette but
-still visibly off: a leaner build, a sharper/longer muzzle, and a more dynamic
-rendering technique than the character established by `fox.png` / `waiting` /
-`sleeping` / `nesting`. Both are wired in because they were asked for, not
-because they clear the bar this file sets for itself. Regenerate both against
-the character-lock prompt in "Generation prompts" below before treating them as
-finished — ideally img2img from `fox.png` at low strength, per that section's
-own advice, rather than a fresh text-to-image run.
+### The four upright states
 
-**`nesting.png` is on-character but under-differentiated from `sleeping`.**
-Same palette and style, correctly curled — but the eyes read closed rather
-than the "half-open, settled, not sleepy" the brief calls for, so the two
-poses are close to indistinguishable at 44pt. Lower priority than the two
-above; it's the same animal, just not yet a distinct mood.
+`waiting`, `ready`, `glowing` and `streaklit` are all a fox sitting up, and at
+44pt their silhouettes are close. That is handled in `CoupleCompanion`, which
+gives each its own halo colour and opacity, breath rate and line of copy. What
+the art contributes is head angle, ear set, eye state and tail position. Do not
+try to make these four read apart by silhouette alone; that is not the axis
+they differ on.
 
-All five delivered poses arrived as opaque exports — solid background, no
-alpha channel — with a "Made with AI" badge baked into a top-right corner.
-None were usable as-is. Each was reprocessed:
+### Why `nesting` is not just "curled with its eyes open"
 
-1. **Flood-filled to transparency from the border**, never a global color-key —
-   an internal fox pixel that happens to share the background color is never
-   touched unless it's actually connected to the edge through more background.
-2. **Eroded ~3px inward** before finalizing the mask. A pure color-threshold
-   flood fill leaves a thin ring of pixels fully opaque wherever the source's
-   own antialiasing blended the outline ink with the background — those pixels
-   don't read as "background" by color, but they're not real fox edge either,
-   and left alone they show up as a faint light halo around the whole
-   silhouette once composited onto the app's dark ground. Eroding the kept
-   region trims that ring away; the softened edge below covers the seam.
-3. **Badge region cleared** (a rectangle wipe — it's a different color sitting
-   inside the background, not part of it, so color-keying alone doesn't catch
-   it).
-4. **Edges softened**, then **defringed** — for any pixel left with partial
-   alpha, its RGB is decontaminated against the known original background
-   color (`fg = bg + (rgb - bg) / alpha`), since the source's antialiasing had
-   already blended background color into those pixels before transparency
-   ever entered the picture.
-5. **Trimmed to content** with a small pad, so the fox fills more of its square
-   slot instead of sitting in mostly-empty padding.
+An earlier `nesting` was curled with its eyes closed and was therefore
+indistinguishable from `sleeping` at the size it is actually seen. The current
+one sits low inside a ring of its own tail with its head up and ears pricked.
+The distinction from `sleeping` is carried by the **silhouette** — a low ring
+with a head above it, against a closed ball with the nose tucked in — because
+an eyelid is not a difference that survives being shrunk to 44 pixels.
 
-Verify any future reprocessing against the actual render, not just the raw PNG
-in an image viewer — composite the result onto the app's real surface colors
-(`#251B2B` card, `#150F19` ground) at the actual size it renders at (`sm` 44 /
-`md` 76 / `lg` 116, see `CoupleCompanion.tsx`) before trusting it. A fringe that
-reads as invisible against a light preview canvas can be very visible against
-Lunara's dark ground, and the reverse is just as possible for a defect assumed
-fixed from pixel checks alone.
+## Idle loops
 
-The raw originals stay alongside as source; nothing `require`s them, so they
-cost nothing in the shipped bundle.
+Two animated WebPs, wired in `index.ts` as `FOX_LOOPS` and rendered by
+`NightFoxArt` via `expo-image`.
+
+| File | State | Motion |
+|---|---|---|
+| `waiting_idle.webp` | Waiting | slow breath, one blink |
+| `glowing_idle.webp` | Glowing | slow breath, one blink |
+
+**Animated WebP, not MP4.** MP4 has no alpha channel, so the fox would arrive as
+an opaque rectangle over the gradient, the `StarField` and — worst — the halo
+the app draws *behind* the animal, turning a bloom into a donut. Playing one
+would also mean adding `expo-video`: a native module and a prebuild. WebP has
+alpha, `expo-image` is already a dependency, and the loop drops into exactly the
+slot the still occupied with the layering unchanged.
+
+Only two, because `waiting` and `glowing` are the states a person sits and looks
+at. Five more would be megabytes spent animating screens nobody is watching.
+
+`CoupleCompanion` plays them only at `lg`/`hero` **and** only when the OS
+"Reduce Motion" switch is off — an animated file does not honour that setting on
+its own, so the decision is made in the component rather than in the art.
+
+### Rules for regenerating one
+
+- **Framed to match the stills.** Both are scaled so the animal occupies 0.898
+  of the frame height against the stills' 0.901. A fox that changes size when
+  its state changes reads as a bug, not as motion. The transform is derived from
+  frame zero and applied to every frame, so the breathing does not become a
+  wobble.
+- **No baked glow — check, do not assume.** The first `glowing` loop came back
+  with a large yellow bloom painted around the animal, which is exactly what the
+  Specification below forbids. Verify by comparing mean frame brightness against
+  frame zero; the shipped file drifts 0.0.
+- **Ping-pong the frames.** Play forward then back so the loop point is exact by
+  construction. Models do not return to where they started: the raw `glowing`
+  clip ended 14.1 mean levels from its first frame and visibly jumped every five
+  seconds. Ping-ponging took that to 1.1, and it suits a breath anyway.
+- Generated with Runway `gen4_turbo` (image-to-video, 5 credits/sec) seeded with
+  the matching still composited onto `#0E0B14`, then keyed back to alpha by
+  distance from that known colour.
 
 ## Specification
 
-- **Square, 512×512**, transparent background. Ship `@2x` and `@3x` alongside if
-  the budget allows; the largest on-screen size is 116pt.
+- **Square, 768×768**, transparent background. The largest on-screen size is
+  `hero` at 188pt, which is 564px at @3x, so 768 is the smallest size with
+  headroom. Render sizes are `sm` 44 / `md` 88 / `lg` 140 / `hero` 188 — see
+  `ART_SIZE` in `components/CoupleCompanion.tsx`.
 - **The silhouette must read at 44pt.** That is the header instance — the one
-  people see every single night, and the smallest. Design at that size first and
-  scale up, not the other way round.
-- **Same fox, seven moods.** Not seven drawings of a fox. Head shape, ear shape,
-  tail mass and proportions stay fixed; posture, ear angle, eye state and warmth
-  are what change. A viewer must never wonder whether it is the same animal.
+  people see every night, and the smallest.
+- **Same fox, seven moods.** Not seven drawings of a fox. Head shape, ear
+  shape, tail mass and proportions stay fixed; posture, ear angle, eye state
+  and warmth are what change.
 - **Posture carries the state, not opacity.** `sleeping` is *curled*; a dimmed
   awake fox reads as a rendering bug. This is the single most important note
   here.
-- **Palette**: the app's tokens — ground `#150F19`, surface `#251B2B`, lilac
-  `#B9A5E3`, rose `#E8A0B4`, mint `#9BC9A8`, peach `#E8B98A`, cream `#F8F1F6`.
-  The fox is a *night* fox: dusk-lilac and deep plum fur rather than daylight
-  orange, warm peach only where something is lit.
-  (This bullet previously cited `#0F0C29` / `#1E1B3A` / `#C3B1E1` / `#FF9A8B` /
-  `#A8D8A8` / `#FFD6A5`. The app moved from the indigo ramp to the plum one and
-  none of those tokens exist any more — see `constants/colors.ts`.)
-- **Room for 0–5 star specks** along the flank and tail. The app draws these
-  itself over the art (streak tier), so leave those areas uncluttered.
-- **A small warm light** near the muzzle in `waiting.png` — the literal reading
-  of "holding a light for them", and the detail that makes that state legible
-  at 44pt.
+- **Palette**: the app's current tokens — page `#0E0B14`, card `#221C30`,
+  apricot `#FFB86B`, coral `#FF7A9A`, violet `#A78BFA`, gold `#F0C75E`, cream
+  `#F7F1E8`. See `constants/colors.ts`; do not paste values from memory, this
+  bullet has been stale twice. The fox is a *night* fox: indigo-violet fur
+  rather than daylight orange, warm apricot only where something is lit.
 - **Glow lives outside the file.** The app renders a soft animated halo behind
   the fox and a slow breathing scale over it. Do not bake either in, or they
-  double up.
+  double up. Reject any output with a ring, aura or bloom — a generated
+  "glowing" pose will try to give the animal a literal halo, which reads as an
+  angel rather than a lit fox.
+- **Star specks** are baked into the fur here and the app does **not** overlay
+  its own on top of commissioned art — `SPARKS` in `NightFoxArt` is in the
+  placeholder's coordinate space and lands wherever those numbers happen to
+  fall on a PNG. The streak tier is carried by the halo colour, the chip and
+  the copy instead.
 
 ## Tone
 
 Soft loyalty. This is an animal that waits up for someone. It is never sad,
-never scolding, never pleading, and never sick — a couple who missed four nights
-opens the app to a fox *asleep*, not a fox suffering. Every state has to look
-recoverable in one shared night, because it is.
+never scolding, never pleading, and never sick — a couple who missed four
+nights opens the app to a fox *asleep*, not a fox suffering. Every state has to
+look recoverable in one shared night, because it is.
 
 ## Generation prompts
 
-Each prompt is **character lock + state + rules**. Keep the lock and the rules
-byte-identical across all seven runs and vary only the state paragraph. That is
-the only lever that keeps this one animal rather than seven foxes.
+Each prompt is **character lock + state**. Keep the lock byte-identical across
+runs and vary only the state sentence.
 
-**Before wording, use the mechanics.** If the tool supports image-to-image, run
-all seven *from the first fox* at low-to-middling strength rather than
-text-to-image from scratch — that holds the character far better than any
-prompt phrasing can. If it supports seeds, fix one seed across all seven.
+**Use the mechanics before the wording.** Every pose here was generated with
+Runway `gen4_image` passing `waiting.png` as a reference image tagged `@fox`.
+That holds the character far better than prompt phrasing alone; a text-only run
+produces a different animal, which is exactly how this folder acquired a golden
+fire-fox and a leaping fox in the first place.
 
 ### Character lock — paste into every prompt
 
-> A slender nocturnal fox, three-quarter front view, head and upper body. Large
-> upright triangular ears with pale ivory inner fur. Deep indigo-violet fur over
-> the head, back and tail, gradating to dark plum beneath. A darker mask patch
-> across the brow and around the eyes, with two small pale ivory oval markings
-> above the eyes. Ivory-cream muzzle, cheeks, chest ruff and tail tip. Warm
-> peach-amber eyes with a single soft star glint. A scattering of tiny star
-> specks in the brow fur. Flat 2D illustration, clean confident linework, soft
-> cel shading, no photorealism.
+> The exact same character as @fox: a slender elegant night fox, deep
+> indigo-violet fur with tiny gold star sparkles scattered through it,
+> cream-apricot chest ruff and inner ears, cream tail tip, warm amber-gold
+> eyes, soft flat cel-shaded 2D illustration with warm apricot rim light, calm
+> and loyal expression. Whole animal fully inside the frame with clear margin
+> on all sides, centered. Plain solid pure black background. No text, no
+> watermark, no logo, no letters, no halo, no ring above the head, no border,
+> no photoreal fur, no 3D render, no chibi proportions.
 
-### Rules — paste into every prompt
+### Per-state sentence
 
-> 512×512 square. Fully transparent background: no scene, no sky, no ground, no
-> vignette. Do not draw any halo, glow ring, aura or light bloom around the
-> animal — the app renders those itself and they will double up. Keep the flank
-> and tail uncluttered; the app draws star specks over that area. The silhouette
-> must read at 44 pixels, so keep ear shape and tail mass distinct and avoid
-> fine detail that disappears when small. Head shape, ear shape, tail mass and
-> body proportions are identical in every image and must not change. Palette:
-> fur `#B9A5E3` down to `#312338`, cream `#F8F1F6`, eyes and warm light
-> `#E8B98A`, optional rose warmth `#E8A0B4`.
+- **`nesting`** — Curled up in a round nest shape, tail wrapped all the way
+  around itself, but wide awake and alert: head and neck lifted high and clear
+  of the body, chin up, ears pricked upright, both eyes wide open, looking
+  calmly toward the viewer. A settled animal keeping watch from its nest.
+- **`waiting`** — Sitting upright, chest lifted, ears up and slightly forward,
+  head turned off and slightly up, eyes open and soft. Watching for someone who
+  has not arrived yet.
+- **`ready`** — Sitting upright and alert, facing the viewer three-quarter,
+  ears pricked forward, eyes wide open and bright with anticipation, chin
+  lifted, front paws neatly together, tail sweeping out behind. Poised, about
+  to move.
+- **`glowing`** — Sitting tall and radiant, chest lifted, eyes softly closed in
+  contentment with a gentle warm smile, ears relaxed, tail curled forward
+  around its paws.
+- **`streaklit`** — Sitting upright and calm, body three-quarter left, head
+  level, eyes open and content, tail curled neatly around its front paws, a
+  warm golden glow on its chest.
+- **`resting`** — Lying down with front paws extended forward, head up and
+  awake but low energy, eyes open and gentle, ears slightly lowered, tail laid
+  out loosely behind. Quieter than usual, still present.
+- **`sleeping`** — Fully asleep, curled nose-to-tail. The body is a closed
+  circle with the tail wrapped over the nose, ears folded back and down, eyes
+  closed. Unmistakably *curled*.
 
-### Per-state paragraphs
+## Post-processing
 
-**`nesting.png`** — Just paired, no shared night yet.
-> Curled in the den, unhurried. Body curled with the tail wrapped around the
-> front paws. Ears relaxed and angled slightly outward. Eyes half-open, calm and
-> unbothered. Settled, not sleepy.
+Raw outputs arrive **opaque on flat black**, sometimes with a stray glyph
+stamped in a corner. Each is processed to transparency:
 
-**`waiting.png`** — One has shared, the other hasn't.
-> Sitting upright, keeping watch. Chest lifted, ears up and slightly forward,
-> eyes fully open and soft. A single small warm light floats just in front of
-> the muzzle and is the only lit thing in the image — this is the fox holding a
-> light for someone who has not arrived yet. This detail is what makes the state
-> legible at 44pt; do not omit it.
+1. **Soft luma ramp to alpha** (`lo` 6, `hi` 26 on perceptual luma). The
+   background is pure `#000` and the darkest fur is indigo, so the two separate
+   cleanly; a ramp rather than a hard cut keeps the rim light from going jagged.
+2. **Largest connected component only.** Threshold the alpha into a core mask,
+   close it, label it, keep the biggest blob, fill holes. This is what removes
+   stray glyphs — no rectangle wipe and no hand-placed coordinates, so it works
+   wherever the artifact lands.
+3. **Dilate that blob into a gate** and multiply the soft alpha by it, so the
+   feathered edge survives but nothing outside the animal does.
+4. **Trim to content, re-centre on a square** with a 5.5% margin, resize to
+   768, then one 0.6px blur on the alpha channel only to de-fringe.
 
-**`ready.png`** — Both shared, nothing opened.
-> Alert and about to move. Chest high, front paws planted, ears fully forward
-> and sharp, eyes wide and bright, weight leaning very slightly forward.
-> Anticipation, not alarm.
-
-**`glowing.png`** — Tonight is open and done.
-> The warmest pose of the seven. Head tilted slightly up, eyes closed into happy
-> crescents, cheeks lifted, chest ruff full and soft. Warm peach light on the
-> muzzle, brow and chest. Quiet contentment shared with someone.
-
-**`streaklit.png`** — Still open, but a live run carries it.
-> Settled and lit. Sitting calm and square, ears up but relaxed, eyes open and
-> steady. Warm peach light catching along the brow, the ruff and the top of the
-> tail. Steady pride, not excitement.
-
-**`resting.png`** — A night or few missed.
-> Lying down, still watching. Body down, front paws forward, chin up or resting
-> lightly on the paws. Ears at half-mast, eyes open and patient. Waiting out a
-> quiet stretch — never sad, never sick.
-
-**`sleeping.png`** — A longer quiet stretch.
-> Fully asleep, curled nose-to-tail. The body is a closed circle with the tail
-> wrapped over the nose. Ears folded back and down, eyes closed. Peacefully
-> asleep, never unwell. This pose must be unmistakably *curled* — a dimmed awake
-> fox reads as a rendering bug.
+Verify any future reprocessing **against the actual render**, not the raw PNG
+in a viewer: composite onto the app's real surfaces (`#0E0B14` page, `#221C30`
+card) at the sizes it actually renders at. A fringe invisible on a light
+preview canvas can be very visible on Lunara's dark ground.

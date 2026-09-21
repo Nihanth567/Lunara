@@ -1,4 +1,5 @@
 import type { DailyEntry } from '@/context/AppContext';
+import { promptAccent } from '@/constants/colors';
 
 /**
  * Small pure helpers shared by the Moments list and a single moment's detail
@@ -67,7 +68,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'grateful',
       title: 'Grateful',
-      color: '#FFB86B',
+      color: promptAccent.grateful,
       mine: entry.grateful,
       theirs: entry.partnerGrateful,
       myVoice: entry.voiceGrateful ?? null,
@@ -76,7 +77,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'cute',
       title: 'Cute',
-      color: '#A78BFA',
+      color: promptAccent.cute,
       mine: entry.cute,
       theirs: entry.partnerCute,
       myVoice: entry.voiceCute ?? null,
@@ -85,7 +86,7 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
     {
       key: 'grow',
       title: 'Grow',
-      color: '#7DDEB5',
+      color: promptAccent.grow,
       mine: entry.grow,
       theirs: entry.partnerGrow,
       myVoice: entry.voiceGrow ?? null,

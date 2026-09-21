@@ -34,7 +34,7 @@ import { isPro } from '@/lib/entitlements';
 import { partnerLabel } from '@/lib/partner';
 import { REACTIONS } from '@/lib/reactions';
 import { radius, space, elevation, duration, touchTarget } from '@/constants/tokens';
-import { gradients, glow, palette, tint } from '@/constants/colors';
+import { glow, gradients, palette, promptAccent, tint } from '@/constants/colors';
 import { type as text, maxFontScale } from '@/constants/typography';
 
 const { width } = Dimensions.get('window');
@@ -240,7 +240,7 @@ export default function RevealScreen() {
           <Ionicons name="moon-outline" size={26} color={palette.content[1]} />
           <Text style={styles.noEntryText}>Nothing to open here yet tonight</Text>
           <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="arrow-back" size={20} color="#C9BDB0" />
+            <Ionicons name="arrow-back" size={20} color={palette.content[1]} />
             <Text style={styles.closeBtnText}>Go back</Text>
           </Pressable>
         </View>
@@ -269,7 +269,7 @@ export default function RevealScreen() {
         style={[styles.closeButton, { top: topPad + 12 }]}
         onPress={() => router.back()}
       >
-        <Ionicons name="close" size={22} color="#C9BDB0" />
+        <Ionicons name="close" size={22} color={palette.content[1]} />
       </Pressable>
 
       <ScrollView
@@ -305,7 +305,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grateful"
-          accentColor={palette.accent.heart}
+          accentColor={promptAccent.grateful}
           mine={todayEntry.grateful}
           theirs={todayEntry.partnerGrateful}
           myVoice={todayEntry.voiceGrateful}
@@ -317,7 +317,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Cute"
-          accentColor={palette.accent.moon}
+          accentColor={promptAccent.cute}
           mine={todayEntry.cute}
           theirs={todayEntry.partnerCute}
           myVoice={todayEntry.voiceCute}
@@ -329,7 +329,7 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grow"
-          accentColor={palette.accent.success}
+          accentColor={promptAccent.grow}
           mine={todayEntry.grow}
           theirs={todayEntry.partnerGrow}
           myVoice={todayEntry.voiceGrow}
@@ -347,13 +347,13 @@ export default function RevealScreen() {
             ) : (
               <Pressable style={styles.aiLockedCard} onPress={() => router.push('/(modals)/paywall')}>
                 <View style={styles.aiLockedIcon}>
-                  <Ionicons name="sparkles" size={16} color="#FFB86B" />
+                  <Ionicons name="sparkles" size={16} color={palette.accent.glow} />
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.aiLockedTitle}>A gentle way forward</Text>
                   <Text style={styles.aiLockedBody}>Premium turns tonight&apos;s Grow notes into one small idea</Text>
                 </View>
-                <Ionicons name="lock-closed" size={16} color="#9A9084" />
+                <Ionicons name="lock-closed" size={16} color={palette.content[2]} />
               </Pressable>
             )
           ) : null}

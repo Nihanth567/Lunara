@@ -126,7 +126,7 @@ export function VoiceNoteRecorder({ value, color, onRecorded, onDelete, disabled
         </View>
         {!disabled && (
           <Pressable onPress={remove} hitSlop={8} style={styles.iconBtn} disabled={busy}>
-            <Ionicons name="trash-outline" size={15} color="#9A9084" />
+            <Ionicons name="trash-outline" size={15} color={palette.content[2]} />
           </Pressable>
         )}
       </View>

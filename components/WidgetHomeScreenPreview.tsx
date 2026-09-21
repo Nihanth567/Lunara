@@ -71,7 +71,7 @@ function LunaraWidget() {
       style={styles.widget}
     >
       <View style={styles.widgetHeader}>
-        <Ionicons name="moon" size={13} color="#C9BDB0" />
+        <Ionicons name="moon" size={13} color={palette.content[1]} />
         <Text style={styles.widgetBrand}>LUNARA</Text>
       </View>
 

@@ -9,7 +9,8 @@ import Svg, {
   Path,
   Stop,
 } from 'react-native-svg';
-import { FOX_ART } from '@/assets/companion/fox';
+import { Image as ExpoImage } from 'expo-image';
+import { FOX_ART, FOX_LOOPS } from '@/assets/companion/fox';
 import type { CompanionState } from '@/lib/companion';
 
 /**
@@ -75,6 +76,16 @@ interface Props {
    */
   light?: string | null;
   /**
+   * Play the state's idle loop instead of its still, where one exists.
+   *
+   * The caller decides rather than this component, because the two reasons to
+   * say no both live up there: the OS "Reduce Motion" switch, and size — an
+   * animated WebP decoding every frame behind a 44pt header glyph is work
+   * nobody can see. `CoupleCompanion` passes true only at `lg` and `hero` with
+   * motion enabled.
+   */
+  animated?: boolean;
+  /**
    * 0 = curled nose-to-tail, ears flat, eyes closed. 1 = sitting up, ears
    * forward, watching. Static per state; any breathing is applied by the parent
    * as a transform, so this component never animates and never re-renders on a
@@ -109,8 +120,10 @@ export function NightFoxArt({
   sparks = 0,
   light = null,
   alertness = 1,
+  animated = false,
 }: Props) {
   const commissioned = FOX_ART[state];
+  const loop = animated ? FOX_LOOPS[state] : undefined;
   const level = Math.min(Math.max(alertness, 0), 1);
   const visibleSparks = SPARKS.slice(0, Math.min(Math.max(sparks, 0), SPARKS.length));
 
@@ -142,6 +155,27 @@ export function NightFoxArt({
       ))}
     </Svg>
   );
+
+  if (loop) {
+    return (
+      <View style={{ width: size, height: size }}>
+        {/*
+          `expo-image` rather than React Native's `Image` because RN's does not
+          animate WebP. The loop is framed to the same occupancy as the still it
+          replaces, so swapping between them never changes the animal's size.
+        */}
+        <ExpoImage
+          source={loop}
+          style={{ width: size, height: size }}
+          contentFit="contain"
+          // The file loops forever on its own; this is belt and braces for
+          // platforms that honour the hint rather than the file's own count.
+          autoplay
+          accessibilityIgnoresInvertColors
+        />
+      </View>
+    );
+  }
 
   if (commissioned) {
     return (

@@ -16,8 +16,8 @@
     "submit:ios": "eas submit --platform ios",
     "test:streak": "node --test lib/streak.test.ts",
     "test:companion": "node --test lib/companion.test.ts",
-    "test:paywall": "node --test lib/paywallMoment.test.ts",
-    "test": "node --test lib/streak.test.ts lib/companion.test.ts lib/paywallMoment.test.ts"
+    "test": "node --test lib/streak.test.ts lib/companion.test.ts lib/accessGate.test.ts",
+    "test:gate": "node --test lib/accessGate.test.ts"
   },
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",

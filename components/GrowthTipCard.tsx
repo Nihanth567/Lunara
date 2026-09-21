@@ -18,7 +18,7 @@ export function GrowthTipCard({ tip }: Props) {
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="bulb-outline" size={16} color="#F0C75E" />
+        <Ionicons name="bulb-outline" size={16} color={palette.accent.streak} />
         <Text style={styles.title}>Growth Tip</Text>
         <View style={styles.topicPill}>
           <Text style={styles.topicText}>{tip.topic}</Text>

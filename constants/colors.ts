@@ -216,17 +216,32 @@ const tokens = {
   partnerA: partners.a,
   partnerB: partners.b,
 
-  /**
-   * The three prompts. One muted mark of colour each; the card itself stays
-   * neutral so three of them in a column read as a set rather than a traffic
-   * light.
-   */
-  gratefulColor: accent.heart,
-  cuteColor: accent.moon,
-  growColor: accent.success,
 } as const;
 
 export const palette = { ink, content, accent, partners } as const;
+
+/**
+ * The three prompts. One muted mark of colour each; the card itself stays
+ * neutral so three of them in a column read as a set rather than a traffic
+ * light.
+ *
+ * ─── Why this is a map and not three tokens ──────────────────────────────────
+ *
+ * It used to be `gratefulColor` / `cuteColor` / `growColor` on the semantic
+ * token object, and nothing ever read them. Both surfaces that draw the three
+ * prompts — the reveal and a past moment — spelled the colours out themselves
+ * instead, and duly drifted: `Grateful` was `heart` on the reveal and `glow` in
+ * Moments, so the same answer changed colour depending on which screen you read
+ * it back on. `glow` is also the wrong choice on its own terms — it is the
+ * "act on this" colour, and a category dot is not an action.
+ *
+ * Exported as one map so there is exactly one place to disagree with.
+ */
+export const promptAccent = {
+  grateful: accent.heart,
+  cute: accent.moon,
+  grow: accent.success,
+} as const;
 
 /**
  * Soft glow shadows, for the things that are supposed to be giving off light —

@@ -93,7 +93,7 @@ export default function WhoPayScreen() {
                 <Text style={styles.optionSub}>{opt.sub}</Text>
               </View>
               {selected === opt.key && (
-                <Ionicons name="checkmark-circle" size={22} color="#FFB86B" />
+                <Ionicons name="checkmark-circle" size={22} color={palette.accent.glow} />
               )}
             </Pressable>
           ))}

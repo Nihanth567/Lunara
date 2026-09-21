@@ -382,6 +382,11 @@ export function CoupleCompanion({
           sparks={sparks}
           light={visual.light}
           alertness={visual.alertness}
+          // Loops only where the fox is the subject and motion is wanted. At
+          // `sm`/`md` the animation is invisible and still costs a decode, and
+          // an animated file ignores the OS Reduce Motion switch on its own —
+          // so both conditions are enforced here rather than in the art.
+          animated={big && !reduceMotion}
         />
       </Animated.View>
 

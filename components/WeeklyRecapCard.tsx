@@ -26,7 +26,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="calendar-outline" size={16} color="#F0C75E" />
+        <Ionicons name="calendar-outline" size={16} color={palette.accent.streak} />
         <Text style={styles.title}>Sunday Recap</Text>
       </View>
 
@@ -48,7 +48,7 @@ export function WeeklyRecapCard({ recap, isPro, onUnlock }: Props) {
               onUnlock();
             }}
           >
-            <Ionicons name="sparkles" size={15} color="#0E0B14" />
+            <Ionicons name="sparkles" size={15} color={palette.ink[0]} />
             <Text style={styles.unlockText}>See full insights with Lunara Pro</Text>
           </Pressable>
         </>

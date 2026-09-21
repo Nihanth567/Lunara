@@ -51,14 +51,14 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
       {answer === null && (
         <>
           <View style={styles.header}>
-            <Ionicons name="leaf-outline" size={16} color="#7DDEB5" />
+            <Ionicons name="leaf-outline" size={16} color={palette.accent.success} />
             <Text style={styles.eyebrow}>Yesterday’s Growth Tip · {tip.topic}</Text>
           </View>
           <Text style={styles.prompt}>Did you get a chance to try yesterday’s growth tip?</Text>
           <Text style={styles.tipRef}>“{tip.tip}”</Text>
           <View style={styles.pills}>
             <Pressable style={[styles.pill, styles.pillYes]} onPress={() => handle('yes')}>
-              <Ionicons name="sparkles" size={14} color="#7DDEB5" />
+              <Ionicons name="sparkles" size={14} color={palette.accent.success} />
               <Text style={[styles.pillText, styles.pillTextYes]}>Yes, we did!</Text>
             </Pressable>
             <Pressable style={styles.pill} onPress={() => handle('later')}>
@@ -70,7 +70,7 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
 
       {answer === 'yes' && (
         <View style={styles.resultRow}>
-          <Ionicons name="flame" size={18} color="#FFB86B" />
+          <Ionicons name="flame" size={18} color={palette.accent.glow} />
           <Text style={styles.resultText}>
             Connection Streak: {connectionStreak} {connectionStreak === 1 ? 'day' : 'days'} — nicely done.
           </Text>
@@ -79,7 +79,7 @@ export function GrowthFollowUpCard({ tip, connectionStreak, onRespond, onDismiss
 
       {answer === 'later' && (
         <View style={styles.resultRow}>
-          <Ionicons name="moon-outline" size={16} color="#C9BDB0" />
+          <Ionicons name="moon-outline" size={16} color={palette.content[1]} />
           <Text style={styles.resultText}>No pressure — today’s a fresh chance.</Text>
         </View>
       )}

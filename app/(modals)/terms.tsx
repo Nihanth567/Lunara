@@ -57,7 +57,7 @@ export default function TermsScreen() {
         onPress={() => router.back()}
         hitSlop={10}
       >
-        <Ionicons name="close" size={22} color="#C9BDB0" />
+        <Ionicons name="close" size={22} color={palette.content[1]} />
       </Pressable>
 
       <ScrollView
@@ -78,7 +78,7 @@ export default function TermsScreen() {
                 style={styles.linkRow}
               >
                 <Text style={[styles.body, styles.bodyLink]}>{section.body}</Text>
-                <Ionicons name="open-outline" size={14} color="#C9BDB0" />
+                <Ionicons name="open-outline" size={14} color={palette.content[1]} />
               </Pressable>
             ) : (
               <Text style={styles.body}>{section.body}</Text>
