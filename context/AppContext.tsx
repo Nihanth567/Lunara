@@ -9,6 +9,7 @@ import {
   checkIsPro,
   getTrialInfo,
   onEntitlementChange,
+  restore,
 } from '@/lib/purchases';
 import { updateWidgetData, type WidgetStatus } from '@/lib/widget';
 import { isPartnerJoined } from '@/lib/partner';
@@ -83,6 +84,53 @@ export class GuestSignInError extends Error {
     super(message);
     this.name = 'GuestSignInError';
   }
+}
+
+// ─── Sign-in ──────────────────────────────────────────────────────────────────
+
+export interface SignInResult {
+  /**
+   * The device now holds a different account from the one it had a moment ago —
+   * an anonymous account couldn't be linked, so the sign-in replaced it.
+   */
+  switchedAccount: boolean;
+}
+
+/**
+ * Sign in with an Apple or Google identity token — or, on an anonymous
+ * account, attach the identity to it.
+ *
+ * ─── Why linking, not signing in ─────────────────────────────────────────────
+ *
+ * Onboarding now sells before it asks anyone to sign in. The purchase is made
+ * on an anonymous account (`startAnonymousAccount`), RevenueCat is configured
+ * with that account's user id, and the webhook writes `is_subscribed` onto its
+ * profile — which is what unlocks the partner who never pays. A plain sign-in
+ * here would mint a *new* user id and leave all of that attached to an
+ * account nobody can reach again. Linking keeps the id, so the profile, the
+ * purchase and the partner's access all stay where they are.
+ *
+ * ─── When linking fails ──────────────────────────────────────────────────────
+ *
+ * Two reasons, both handled the same way. The identity may already belong to
+ * an account (someone returning on a new phone), or manual linking may be off
+ * in the Supabase dashboard. Either way the sign-in goes ahead as a normal one
+ * and reports `switchedAccount`, so the caller can carry the purchase across
+ * with `carryPurchaseToAccount` instead of stranding it.
+ */
+async function authenticateWithIdToken(
+  provider: 'apple' | 'google',
+  token: string,
+): Promise<SignInResult> {
+  const { data } = await supabase.auth.getSession();
+  const anonymous = data.session?.user.is_anonymous === true;
+  if (anonymous) {
+    const { error } = await supabase.auth.linkIdentity({ provider, token });
+    if (!error) return { switchedAccount: false };
+  }
+  const { error } = await supabase.auth.signInWithIdToken({ provider, token });
+  if (error) throw new Error(error.message);
+  return { switchedAccount: anonymous };
 }
 
 // ─── Nudge results ────────────────────────────────────────────────────────────
@@ -325,10 +373,21 @@ interface AppContextType {
   whoPays: 'me' | 'partner' | 'later' | null;
   user: User | null;
   /**
-   * Signed in with an anonymous account made by `joinCoupleAsGuest` — a partner
-   * who joined with just a name and a code. Never true for Apple or Google.
+   * Signed in with an anonymous account: a partner who joined with just a name
+   * and a code (`joinCoupleAsGuest`), or the purchaser partway through
+   * onboarding, before the late sign-in (`startAnonymousAccount`). Never true
+   * once Apple or Google is attached.
    */
   isGuest: boolean;
+  /** Any session at all, anonymous included. Onboarding resumes on this. */
+  hasSession: boolean;
+  /**
+   * RevenueCat's own answer on this device — a trial or subscription bought
+   * here — independent of whether a couple exists yet. `couple.isSubscribed`
+   * folds it in once there is a couple; before pairing, this is the only place
+   * a purchase shows up.
+   */
+  deviceEntitled: boolean;
   couple: Couple | null;
   entries: DailyEntry[];
   todayEntry: DailyEntry | null;
@@ -350,8 +409,27 @@ interface AppContextType {
 
   completeOnboarding: () => Promise<void>;
   setWhoPays: (who: 'me' | 'partner' | 'later') => Promise<void>;
-  signInWithApple: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  /**
+   * Sign in with Apple or Google. On an anonymous account this *links* the
+   * identity instead, so the user id — and the purchase and profile attached to
+   * it — stays put. `switchedAccount` is true when that wasn't possible and the
+   * device now holds a different account; see `carryPurchaseToAccount`.
+   */
+  signInWithApple: () => Promise<SignInResult>;
+  signInWithGoogle: () => Promise<SignInResult>;
+  /**
+   * The account the onboarding funnel runs on before sign-in: anonymous, made
+   * just before the paywall so a purchase has a profile to land on. Reuses a
+   * session that already exists.
+   */
+  startAnonymousAccount: () => Promise<void>;
+  /**
+   * After a sign-in that switched accounts, make sure the subscription bought on
+   * this device follows: log RevenueCat into the new account and, if it isn't
+   * entitled there, restore — which moves the store receipt across. Returns
+   * whether the new account is entitled.
+   */
+  carryPurchaseToAccount: () => Promise<boolean>;
   updateProfile: (fields: { name: string; birthday?: string; pronouns?: string }) => Promise<void>;
   setCouple: (couple: Couple) => Promise<void>;
   createCouple: () => Promise<Couple>;
@@ -1473,11 +1551,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!credential.identityToken) {
       throw new Error('Apple sign-in did not return a credential. Please try again.');
     }
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: credential.identityToken,
-    });
-    if (error) throw new Error(error.message);
+    const result = await authenticateWithIdToken('apple', credential.identityToken);
 
     if (credential.fullName?.givenName) {
       const name = [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean).join(' ');
@@ -1486,6 +1560,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('profiles').update({ name }).eq('id', userData.user.id).eq('name', '');
       }
     }
+    return result;
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
@@ -1503,9 +1578,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!idToken) {
       throw new Error('Google sign-in did not return a credential. Please try again.');
     }
-    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token: idToken });
-    if (error) throw new Error(error.message);
+    return authenticateWithIdToken('google', idToken);
   }, []);
+
+  // Shared by concurrent callers: a double-mounted effect or a retry tapped
+  // twice would otherwise both see "no session" and mint two accounts.
+  const anonymousInFlight = useRef<Promise<void> | null>(null);
+  const startAnonymousAccount = useCallback((): Promise<void> => {
+    anonymousInFlight.current ??= (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) return;
+      // No name yet: `handle_new_user` makes the profile with an empty one, and
+      // profile setup asks after the late sign-in if Apple didn't supply it.
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw new Error(error.message);
+    })().finally(() => {
+      anonymousInFlight.current = null;
+    });
+    return anonymousInFlight.current;
+  }, []);
+
+  const carryPurchaseToAccount = useCallback(async (): Promise<boolean> => {
+    const { data } = await supabase.auth.getSession();
+    const userId = data.session?.user.id;
+    if (!userId) return false;
+    // Awaited here rather than left to the auth listener, which configures
+    // RevenueCat for the new account on its own schedule — this has to know the
+    // answer before routing on it.
+    await configurePurchases(userId);
+    if (await refreshEntitlement()) return true;
+    // The receipt belongs to the Apple ID, not to either account; restoring
+    // moves it to the one this device holds now.
+    await restore();
+    return refreshEntitlement();
+  }, [refreshEntitlement]);
 
   const updateProfile = useCallback(async (fields: { name: string; birthday?: string; pronouns?: string }) => {
     if (!session) throw new Error('You need to be signed in to update your profile.');
@@ -2119,6 +2225,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         whoPays,
         user,
         isGuest: session?.user.is_anonymous === true,
+        hasSession: session !== null,
+        deviceEntitled: proEntitlement,
         couple,
         entries,
         todayEntry,
@@ -2130,6 +2238,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setWhoPays,
         signInWithApple,
         signInWithGoogle,
+        startAnonymousAccount,
+        carryPurchaseToAccount,
         updateProfile,
         setCouple,
         createCouple,

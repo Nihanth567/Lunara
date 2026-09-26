@@ -44,9 +44,10 @@ import { radius, space } from '@/constants/tokens';
  * which spreads a serif and reads as amateur at 52px), over an eyebrow and a
  * concrete sub-line.
  *
- * The three prompts are named on the first screen. They are the one thing on it
- * that could not belong to any other product, and they say what Lunara is
- * faster than a tagline can.
+ * The line under the wordmark is the promise — one outcome, in the couple's
+ * words — because this is now the top of a funnel that ends at the paywall,
+ * and the first screen of a funnel sells the result. The three prompts, which
+ * used to be named here, are shown on the next screen instead of described.
  */
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -103,11 +104,14 @@ export default function WelcomeScreen() {
           <CoupleCompanion state="nesting" streak={0} size="hero" />
         </Animated.View>
 
+        {/*
+          The promise, in the couple's words: one outcome, not a feature list.
+          What the product *is* — three questions, answered apart, opened
+          together — is the next screen's job, shown rather than said.
+        */}
         <Animated.View style={[styles.masthead, enterStyle]}>
           <Text style={styles.wordmark}>Lunara</Text>
-          <Text style={styles.tagline}>
-            Three little questions a night. Answered apart, opened together.
-          </Text>
+          <Text style={styles.tagline}>Feel closer in 3 minutes a night — together.</Text>
         </Animated.View>
 
         <Animated.View style={[styles.actions, actionsStyle]}>
@@ -119,15 +123,32 @@ export default function WelcomeScreen() {
             <Ionicons name="arrow-forward" size={17} color={palette.ink[0]} />
           </SpringPressable>
 
-          <SpringPressable
-            onPress={() => router.push('/(onboarding)/auth')}
-            style={styles.signInRow}
-            hitSlop={10}
-            feedback="highlight"
-          >
-            <Text style={styles.signInText}>Already have an account?</Text>
-            <Text style={styles.signInAction}> Sign in</Text>
-          </SpringPressable>
+          {/*
+            The invited partner's door. They skip the quiz and the paywall —
+            the one who invited them has already seen the pitch and pays for
+            both — and go straight to the code.
+          */}
+          <View style={styles.secondary}>
+            <SpringPressable
+              onPress={() => router.push('/(onboarding)/pairing?mode=join' as never)}
+              style={styles.signInRow}
+              hitSlop={10}
+              feedback="highlight"
+            >
+              <Text style={styles.signInText}>Your partner sent you a code?</Text>
+              <Text style={styles.signInAction}> Join them</Text>
+            </SpringPressable>
+
+            <SpringPressable
+              onPress={() => router.push('/(onboarding)/auth')}
+              style={styles.signInRow}
+              hitSlop={10}
+              feedback="highlight"
+            >
+              <Text style={styles.signInText}>Already have an account?</Text>
+              <Text style={styles.signInAction}> Sign in</Text>
+            </SpringPressable>
+          </View>
         </Animated.View>
       </View>
     </LinearGradient>
@@ -175,7 +196,8 @@ const styles = StyleSheet.create({
   },
   ctaText: { ...text.label, color: palette.ink[0] },
 
-  signInRow: { flexDirection: 'row' },
+  secondary: { gap: space.md },
+  signInRow: { flexDirection: 'row', flexWrap: 'wrap' },
   signInText: { ...text.callout, color: palette.content[2] },
   signInAction: {
     ...text.callout,

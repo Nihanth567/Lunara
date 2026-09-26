@@ -8,6 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { SpringPressable } from '@/components/SpringPressable';
 import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { OnboardingPhoto } from '@/components/OnboardingFrame';
+import { ONBOARDING_PHOTOS } from '@/assets/images/onboarding';
 import { haptic } from '@/lib/haptics';
 import { useApp, type RemoteAccountState } from '@/context/AppContext';
 import { isGoogleSignInConfigured } from '@/lib/googleSignIn';
@@ -70,13 +72,35 @@ async function afterSignIn(
 export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { intent } = useLocalSearchParams<{ intent?: string }>();
+  const { intent, after } = useLocalSearchParams<{ intent?: string; after?: string }>();
+  /**
+   * The late sign-in: reached from the paywall (or on resume) with a trial
+   * already running on an anonymous account. Signing in here *links* Apple or
+   * Google to that account rather than making a new one, so the purchase and
+   * the profile the webhook unlocks stay put. See `authenticateWithIdToken`.
+   */
+  const lateSignIn = after === 'trial';
   const {
     signInWithApple,
     signInWithGoogle,
     refreshSharedState,
     completeOnboarding,
+    carryPurchaseToAccount,
+    deviceEntitled,
   } = useApp();
+
+  /**
+   * If the sign-in replaced the device's account instead of linking to it, a
+   * purchase made a minute ago is still on the old one. Carry it across before
+   * routing on, or pairing would open the app onto a paywall for a trial they
+   * just started. A failure here isn't fatal: the gate's paywall still has
+   * Restore.
+   */
+  const settle = async (switchedAccount: boolean, hadPurchase: boolean) => {
+    if (switchedAccount && hadPurchase) await carryPurchaseToAccount().catch(() => false);
+    const account = await refreshSharedState();
+    await afterSignIn(router, account, completeOnboarding, intent);
+  };
   /**
    * Which provider is in flight. Both buttons used to share one boolean and
    * simply went inert — nothing on screen said which one you'd pressed, or
@@ -88,10 +112,10 @@ export default function AuthScreen() {
 
   const handleApple = async () => {
     setPending('apple');
+    const hadPurchase = deviceEntitled;
     try {
-      await signInWithApple();
-      const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding, intent);
+      const { switchedAccount } = await signInWithApple();
+      await settle(switchedAccount, hadPurchase);
     } catch (error: any) {
       if (error?.code !== 'ERR_REQUEST_CANCELED') {
         haptic.error();
@@ -107,10 +131,10 @@ export default function AuthScreen() {
 
   const handleGoogle = async () => {
     setPending('google');
+    const hadPurchase = deviceEntitled;
     try {
-      await signInWithGoogle();
-      const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding, intent);
+      const { switchedAccount } = await signInWithGoogle();
+      await settle(switchedAccount, hadPurchase);
     } catch (error: any) {
       if (error?.code !== 'SIGN_IN_CANCELLED' && error?.code !== '-5') {
         haptic.error();
@@ -145,13 +169,24 @@ export default function AuthScreen() {
       <View
         style={[
           styles.content,
-          { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 },
+          // Less top room after the paywall: the photo takes it, and the
+          // buttons still have to fit on a small phone without scrolling.
+          { paddingTop: insets.top + (lateSignIn ? 24 : 60), paddingBottom: insets.bottom + 40 },
         ]}
       >
+        {/* The good part they just paid for — the last picture before the
+            last two steps. Only on the late sign-in; a returning user
+            doesn't need selling to. */}
+        {lateSignIn && <OnboardingPhoto photo={ONBOARDING_PHOTOS.delight} aspectRatio={2} />}
+
         <Animated.View style={styles.header}>
-          <Text style={styles.title}>Welcome to Lunara</Text>
+          <Text style={styles.title}>
+            {lateSignIn ? 'You’re in. Now keep it safe.' : 'Welcome to Lunara'}
+          </Text>
           <Text style={styles.subtitle}>
-            One tap, and everything the two of you share stays in sync.
+            {lateSignIn
+              ? 'Sign in so your nights are saved to your account and follow you to any phone. Your partner won’t need to.'
+              : 'One tap, and everything the two of you share stays in sync.'}
           </Text>
         </Animated.View>
 
@@ -203,24 +238,29 @@ export default function AuthScreen() {
           )}
         </Animated.View>
 
-        <Animated.View style={styles.demoSection}>
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-          <SpringPressable
-            onPress={handleDemoSignIn}
-            style={styles.demoBtn}
-            disabled={loading}
-            feedback="highlight"
-          >
-            <Text style={styles.demoBtnText}>Look around first</Text>
-          </SpringPressable>
-          <Text style={styles.demoNote}>
-            Explore with a stand-in partner — nothing saved, no account
-          </Text>
-        </Animated.View>
+        {/* Not after the paywall: someone who has just started a trial has
+            nothing to preview, and a stand-in partner would only be a detour
+            between them and their real one. */}
+        {!lateSignIn && (
+          <Animated.View style={styles.demoSection}>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <SpringPressable
+              onPress={handleDemoSignIn}
+              style={styles.demoBtn}
+              disabled={loading}
+              feedback="highlight"
+            >
+              <Text style={styles.demoBtnText}>Look around first</Text>
+            </SpringPressable>
+            <Text style={styles.demoNote}>
+              Explore with a stand-in partner — nothing saved, no account
+            </Text>
+          </Animated.View>
+        )}
 
         <Animated.View>
           <Text style={styles.legal}>

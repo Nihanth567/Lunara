@@ -1,296 +1,246 @@
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  useWindowDimensions,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { StarField } from '@/components/StarField';
-import { SpringPressable } from '@/components/SpringPressable';
-import { haptic } from '@/lib/haptics';
-import { LunaraButton } from '@/components/LunaraButton';
+import {
+  OnboardingFrame,
+  OnboardingHeading,
+  OnboardingPhoto,
+  FUNNEL,
+} from '@/components/OnboardingFrame';
+import { ONBOARDING_PHOTOS } from '@/assets/images/onboarding';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
-import { gradients, palette, tint } from '@/constants/colors';
-import { radius, space, hitSlopFor, duration } from '@/constants/tokens';
-import { type as text } from '@/constants/typography';
+import { LunaraButton } from '@/components/LunaraButton';
+import { SpringPressable } from '@/components/SpringPressable';
+import { palette, tint } from '@/constants/colors';
+import { duration, elevation, radius, space } from '@/constants/tokens';
+import { type as text, maxFontScale } from '@/constants/typography';
 
 /**
- * The intro — three panels, swipeable, skippable.
+ * The magic — what a night feels like, shown rather than described.
  *
- * ─── Three, not four ─────────────────────────────────────────────────────────
+ * ─── What this replaced ──────────────────────────────────────────────────────
  *
- * It was four: the invite code, the two-colour list mechanic, a placeholder
- * "designed to make you smile" panel, and a summary. Two of those were about
- * the shared *list*, which is the half of the product that explains itself the
- * moment you see it, and one was a panel about the app being nice — the most
- * skippable screen it is possible to write.
+ * Three swipeable panels that each *described* one rule. This plays the rules
+ * as one short scene instead: the two of you apart with your answers sealed,
+ * the fox lighting up when both are in, and the two of you together over one
+ * phone as the night opens with a line and a voice note. A person who has
+ * watched a night happen once understands the product faster than one who has
+ * read three sentences about it.
  *
- * What is left is the three things a person cannot work out for themselves:
- * there is a creature and it belongs to both of you; it only lights up when
- * *both* of you show up; and the thing you show up to is three small questions.
- * In that order, because the fox is the reason to care about the other two.
+ * The first and last beats are photographs of a real-feeling couple, with the
+ * product laid over them — the locks on their answers, the card they open —
+ * so the picture is of the moment and the overlay is what Lunara adds to it.
+ * The middle beat is the fox alone, because that is the part only this app has.
  *
- * ─── Shown before sign-in, on purpose ────────────────────────────────────────
+ * ─── Motion ──────────────────────────────────────────────────────────────────
  *
- * Asking someone to authenticate before they know what the app is is the most
- * reliable way to lose them on first launch. Three panels costs nothing and
- * Skip is always on screen.
- *
- * Every panel is art-first and text-light: one illustration, one line of title,
- * two lines of body at most. If a panel needs a paragraph, the panel is wrong.
+ * The beats advance on their own, once, and stop on the last one — no loop, so
+ * nothing keeps moving under someone reading. The dots jump to any beat. Under
+ * Reduce Motion the cross-fades become cuts (Reanimated's default) and the fox
+ * holds still, but the scene still plays; the words carry it.
  */
 
-// ─── Panel illustrations ─────────────────────────────────────────────────────
+/** Long enough to take in a photograph and read its line. */
+const BEAT_MS = 2600;
 
-/**
- * The fox itself, at hero size, in its `nesting` state — settled, awake, and
- * waiting for something that hasn't happened yet, which is exactly what is true
- * of a couple who has not signed up. Using the real component rather than a
- * drawing of one means the first fox someone ever sees is the same animal, at
- * the same size, that will be at the top of their home screen tonight.
- */
-function FoxArt() {
-  return <CoupleCompanion state="nesting" streak={0} size="hero" />;
-}
-
-/**
- * The mutual-reveal mechanic, drawn.
- *
- * Two sealed cards and a lock between them. This is the one rule that makes the
- * product a couples app rather than a shared notes file, and a sentence
- * describing it does not land the way two closed envelopes do.
- */
-function BothOfYouArt() {
-  return (
-    <View style={styles.bothRow}>
-      <View style={[styles.sealedCard, { borderColor: tint.heart(0.35) }]}>
-        <Ionicons name="lock-closed" size={18} color={palette.partners.a} />
-        <Text style={[styles.sealedName, { color: palette.partners.a }]}>You</Text>
-      </View>
-      <View style={styles.bothLink}>
-        <Ionicons name="heart" size={16} color={palette.accent.heart} />
-      </View>
-      <View style={[styles.sealedCard, { borderColor: tint.moon(0.35) }]}>
-        <Ionicons name="lock-closed" size={18} color={palette.partners.b} />
-        <Text style={[styles.sealedName, { color: palette.partners.b }]}>Them</Text>
-      </View>
-    </View>
-  );
-}
-
-/** The three prompts, as the three cards they actually are. */
-function RitualArt() {
-  const rows = [
-    { label: 'Grateful', color: palette.accent.heart, icon: 'heart-outline' as const },
-    { label: 'Cute', color: palette.accent.moon, icon: 'happy-outline' as const },
-    { label: 'Grow', color: palette.accent.success, icon: 'leaf-outline' as const },
-  ];
-  return (
-    <View style={styles.artList}>
-      {rows.map((row) => (
-        <View key={row.label} style={styles.artRow}>
-          <Ionicons name={row.icon} size={18} color={row.color} />
-          <Text style={[styles.artRowText, { color: row.color }]}>{row.label}</Text>
-          <View style={[styles.artDot, { backgroundColor: row.color }]} />
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// ─── Panels ──────────────────────────────────────────────────────────────────
-
-const PANELS = [
-  {
-    key: 'fox',
-    art: FoxArt,
-    title: 'Meet your fox',
-    body: 'It glows a little brighter every night you both show up.',
-  },
-  {
-    key: 'both',
-    art: BothOfYouArt,
-    title: 'It takes both of you',
-    body: 'Your answers stay sealed until you’ve both answered. Then they open together.',
-  },
-  {
-    key: 'ritual',
-    art: RitualArt,
-    title: 'Three small questions',
-    body: 'Type them or say them out loud. About two minutes a night.',
-  },
+const BEATS = [
+  { key: 'apart', caption: 'Each of you answers three small questions — privately.' },
+  { key: 'both', caption: 'When you’ve both shared, your fox lights up.' },
+  { key: 'open', caption: 'Then you open them together. Their words, or their voice.' },
 ] as const;
+
+/** Beat one: the two of you apart, each answer sealed in your own colour. */
+function ApartScene() {
+  return (
+    <OnboardingPhoto photo={ONBOARDING_PHOTOS.apart} style={styles.photo}>
+      <View style={styles.locks} importantForAccessibility="no-hide-descendants">
+        {(
+          [
+            { who: 'You', color: palette.partners.a },
+            { who: 'Them', color: palette.partners.b },
+          ] as const
+        ).map((side) => (
+          <View key={side.who} style={styles.lock}>
+            <Ionicons name="lock-closed" size={13} color={side.color} />
+            <Text style={[styles.lockText, { color: side.color }]}>{side.who}</Text>
+          </View>
+        ))}
+      </View>
+    </OnboardingPhoto>
+  );
+}
+
+/** Beat three: together over one phone, and the card they open — a line and their voice. */
+function TogetherScene() {
+  return (
+    <View style={styles.togetherStack}>
+      <OnboardingPhoto photo={ONBOARDING_PHOTOS.together} aspectRatio={4 / 3} style={styles.photo} />
+      <OpenedCard />
+    </View>
+  );
+}
+
+function OpenedCard() {
+  return (
+    <View style={styles.opened}>
+      <View style={styles.openedHeader}>
+        <Ionicons name="heart" size={16} color={palette.accent.heart} />
+        <Text style={styles.openedPrompt}>Grateful</Text>
+        <Text style={styles.openedFrom}>from them</Text>
+      </View>
+      <Text style={styles.openedText}>You made tea before I even asked. I noticed.</Text>
+      <View style={styles.voice}>
+        <Ionicons name="play" size={13} color={palette.partners.b} />
+        <View style={styles.bars}>
+          {[8, 14, 10, 18, 12, 16, 9, 13].map((h, i) => (
+            <View key={i} style={[styles.bar, { height: h }]} />
+          ))}
+        </View>
+        <Text style={styles.voiceTime}>0:07</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function IntroScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
-  const [page, setPage] = useState(0);
+  const [beat, setBeat] = useState(0);
 
-  const isLast = page === PANELS.length - 1;
+  useEffect(() => {
+    if (beat >= BEATS.length - 1) return;
+    const timer = setTimeout(() => setBeat((b) => b + 1), BEAT_MS);
+    return () => clearTimeout(timer);
+  }, [beat]);
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const next = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (next !== page) {
-      setPage(next);
-      // Once per page settled, never per frame of the swipe.
-      haptic.selection();
-    }
-  };
-
-  const advance = () => {
-    if (isLast) {
-      router.push('/(onboarding)/pairing');
-      return;
-    }
-    // Set the page as well as scrolling to it. `onMomentumScrollEnd` fires for
-    // a finger, but not reliably for a programmatic `scrollTo` — so driving the
-    // pager with the button alone left the dots stuck on panel one while the
-    // content moved underneath them.
-    const next = page + 1;
-    setPage(next);
-    scrollRef.current?.scrollTo({ x: next * width, animated: true });
-  };
+  const current = BEATS[beat];
 
   return (
-    <LinearGradient
-      colors={gradients.screen}
-      locations={gradients.screenLocations}
-      style={styles.container}
+    <OnboardingFrame
+      step={FUNNEL.intro}
+      footer={
+        <LunaraButton title="Continue" onPress={() => router.push('/(onboarding)/fox' as never)} />
+      }
     >
-      <StarField />
+      <OnboardingHeading title="Here’s a night with Lunara" />
 
-      <View style={[styles.skipRow, { paddingTop: insets.top + space.md }]}>
-        <SpringPressable
-          onPress={() => router.push('/(onboarding)/pairing')}
-          hitSlop={hitSlopFor(32)}
-          style={styles.skipBtn}
-          feedback="highlight"
-          accessibilityLabel="Skip the intro"
+      <View style={styles.stage}>
+        <Animated.View
+          key={current.key}
+          entering={FadeIn.duration(duration.base)}
+          exiting={FadeOut.duration(duration.fast)}
+          style={styles.scene}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={current.caption}
         >
-          <Text style={styles.skipText}>Skip</Text>
-        </SpringPressable>
+          {current.key === 'apart' && <ApartScene />}
+          {current.key === 'both' && <CoupleCompanion state="glowing" size="hero" />}
+          {current.key === 'open' && <TogetherScene />}
+        </Animated.View>
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={onScroll}
-        style={styles.pager}
+      <Animated.Text
+        key={`caption-${current.key}`}
+        entering={FadeIn.duration(duration.base)}
+        style={styles.caption}
+        maxFontSizeMultiplier={maxFontScale}
       >
-        {PANELS.map((panel) => {
-          const Art = panel.art;
-          return (
-            <View key={panel.key} style={[styles.panel, { width }]}>
-              <View style={styles.artWrap}>
-                <Art />
-              </View>
-              <View style={styles.copy}>
-                <Text style={styles.panelTitle}>{panel.title}</Text>
-                <Text style={styles.panelBody}>{panel.body}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+        {current.caption}
+      </Animated.Text>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + space.xl }]}>
-        <View style={styles.dots}>
-          {/* The active dot stretches into place rather than jumping. */}
-          {PANELS.map((panel, i) => (
-            <Animated.View
-              key={panel.key}
-              layout={LinearTransition.duration(duration.fast)}
-              style={[styles.dot, i === page && styles.dotActive]}
-            />
-          ))}
-        </View>
-        <LunaraButton
-          title={isLast ? 'Get started' : 'Next'}
-          onPress={advance}
-        />
+      <View style={styles.dots}>
+        {BEATS.map((b, i) => (
+          <SpringPressable
+            key={b.key}
+            onPress={() => setBeat(i)}
+            haptic="selection"
+            feedback="highlight"
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={`Step ${i + 1} of ${BEATS.length}`}
+            accessibilityState={{ selected: i === beat }}
+          >
+            <View style={[styles.dot, i === beat && styles.dotActive]} />
+          </SpringPressable>
+        ))}
       </View>
-    </LinearGradient>
+    </OnboardingFrame>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  skipRow: { alignItems: 'flex-end', paddingHorizontal: space.xl },
-  skipBtn: { paddingVertical: space.sm, paddingHorizontal: space.sm },
-  skipText: { ...text.callout, color: palette.content[2] },
-
-  pager: { flex: 1 },
-  panel: { flex: 1, justifyContent: 'center', paddingHorizontal: space.xxl },
-  artWrap: { minHeight: 230, alignItems: 'center', justifyContent: 'center' },
-  copy: { gap: space.md, marginTop: space.xxl },
-  panelTitle: { ...text.hero, color: palette.content[0], textAlign: 'center' },
-  panelBody: {
-    ...text.body,
-    color: palette.content[1],
+  // A fixed stage, so the caption and dots don't jump as beats of different
+  // heights swap in.
+  stage: { minHeight: 360, alignItems: 'center', justifyContent: 'center' },
+  scene: { alignItems: 'center', justifyContent: 'center', width: '100%' },
+  caption: {
+    ...text.heading,
+    color: palette.content[0],
     textAlign: 'center',
-    lineHeight: 25,
+    minHeight: 56,
   },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: space.md },
+  dot: { width: 6, height: 6, borderRadius: radius.full, backgroundColor: palette.ink[4] },
+  dotActive: { width: 22, backgroundColor: palette.accent.glow },
 
-  // ── "It takes both of you" ────────────────────────────────────────────────
-  bothRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  sealedCard: {
-    width: 104,
-    height: 116,
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    backgroundColor: palette.ink[2],
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
+  photo: { maxWidth: 340 },
+  locks: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: space.md,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
-  sealedName: { ...text.caption },
-  bothLink: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.full,
-    backgroundColor: tint.heart(0.14),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // ── The three prompts ─────────────────────────────────────────────────────
-  artList: { gap: space.sm, width: '100%', maxWidth: 260 },
-  artRow: {
+  lock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
+    gap: space.xs + 2,
+    paddingVertical: space.xs + 2,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    backgroundColor: tint.night(0.72),
+    borderWidth: 1,
+    borderColor: tint.cream(0.12),
+  },
+  lockText: { ...text.caption },
+
+  togetherStack: { width: '100%', alignItems: 'center' },
+
+  opened: {
+    width: '90%',
+    maxWidth: 320,
+    marginTop: -64,
+    ...elevation.raised,
     backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: palette.ink[4],
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md + 2,
+    borderColor: tint.heart(0.28),
+    padding: space.xl,
+    gap: space.md,
   },
-  artRowText: { ...text.label, flex: 1 },
-  artDot: { width: 8, height: 8, borderRadius: radius.full },
-
-  footer: { paddingHorizontal: space.xxl, gap: space.xl, alignItems: 'center' },
-  dots: { flexDirection: 'row', gap: space.sm },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: radius.full,
-    backgroundColor: palette.ink[4],
+  openedHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  openedPrompt: { ...text.label, color: palette.accent.heart },
+  openedFrom: { ...text.caption, color: palette.content[2], marginLeft: 'auto' },
+  openedText: { ...text.prose, color: palette.content[0] },
+  voice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    alignSelf: 'flex-start',
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: tint.moon(0.3),
+    backgroundColor: tint.cream(0.04),
   },
-  dotActive: { backgroundColor: palette.accent.glow, width: 22 },
+  bars: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  bar: { width: 3, borderRadius: radius.full, backgroundColor: palette.partners.b },
+  voiceTime: { ...text.caption, color: palette.partners.b },
 });

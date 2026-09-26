@@ -211,7 +211,9 @@ function EntitlementGuard({ children }: { children: React.ReactNode }) {
 
   if (destination === 'loading') return null;
   if (destination === 'auth') return <Redirect href="/(onboarding)/auth" />;
-  if (destination === 'onboarding') return <Redirect href="/(onboarding)/welcome" />;
+  // The entry gate works out *where* onboarding picks up (`onboardingResume`) —
+  // someone mid-funnel with a trial running resumes at sign-in, not the quiz.
+  if (destination === 'onboarding') return <Redirect href="/" />;
   if (destination === 'paywall') return <Redirect href={'/(modals)/paywall?gate=1' as never} />;
   return <>{children}</>;
 }

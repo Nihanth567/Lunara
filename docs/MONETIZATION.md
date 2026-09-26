@@ -17,7 +17,7 @@ runtime rather than hardcoding them.
 |---|---|
 | **Identifier** | `premium` |
 | **Declared in** | `lib/purchases.ts` → `ENTITLEMENT_ID` |
-| **Granted by** | any active weekly / monthly / yearly subscription, **including one still inside its free trial** |
+| **Granted by** | an active weekly or yearly subscription, **including one still inside its free trial** |
 
 **Console work — this is a rename.** The entitlement used to be `lunara_pro`.
 If the RevenueCat dashboard still calls it that, every customer reads as
@@ -34,35 +34,64 @@ day-18 reminder.
 
 | Package | Product ID | Price | Intro |
 |---|---|---|---|
-| Weekly (**default**) | `lunara_premium_weekly` | $4.99 / week | 21-day free trial |
-| Yearly (secondary) | `lunara_premium_yearly` | $59.99 / year | 21-day free trial |
-| Monthly (optional) | `lunara_premium_monthly` | $9.99 / month | 21-day free trial |
+| Weekly (**default**) | `lunara_premium_weekly` | $2.99 / week | 21-day free trial |
+| Yearly (secondary) | `lunara_premium_yearly` | $48 / year | 21-day free trial |
+
+These are the only two products the app expects. Monthly is no longer sold: if
+a monthly product exists, leave it out of the offering. The paywall drops it
+even if it is there.
 
 Declared for reference in `lib/purchases.ts` → `PRODUCT_IDS`. **No price or
-trial length is hardcoded anywhere in the client.** Every number on the paywall
-comes from the store via RevenueCat, so it stays correct in every storefront and
-currency, and the trial label is derived from `introPrice` — the button never
-promises a trial the store is not actually offering on the selected plan.
+trial length is hardcoded in the paywall.** Every number on it comes from the
+store via RevenueCat, so it stays correct in every storefront and currency, and
+the trial label is derived from `introPrice` — the button never promises a
+trial the store is not actually offering on the selected plan. The one written
+price is the Terms of Service (`app/(modals)/terms.tsx`), which Apple requires
+in prose; keep it in step with this table by hand.
 
 **Console work:** create the products in App Store Connect / Google Play with a
 21-day introductory free trial, then map them into RevenueCat.
+
+**Check before configuring the trial:** App Store Connect offers free trials in
+fixed lengths (3 days; 1 or 2 weeks; 1, 2, 3 or 6 months; 1 year), and 21 days
+may not be among them. If it isn't, choose the nearest length and update
+`TRIAL_DAYS`, the Terms and this document to match. The paywall itself needs no
+change: it reads the trial from the store and says "Start 2-week free trial" or
+"Start 1-month free trial" on its own.
+
+### Yearly discount
+
+| | |
+|---|---|
+| Weekly, annualised | $2.99 × 52 = $155.48 |
+| Yearly | $48.00 |
+| Saving | 69% (69.1%, rounded down) |
+| Yearly, per week | ≈ $0.92 |
+
+The paywall does not hardcode "Save 69%". `yearlySavingsPercent()` in
+`lib/pricing.ts` computes it from the two prices the store returns, rounding
+down so the badge never claims more than the prices give, and hides the badge
+when there is no saving. The per-week figure is RevenueCat's own
+`pricePerWeekString`. Both are tested in `lib/pricing.test.ts`.
 
 ---
 
 ## 3. Offering
 
 - Offering identifier: `default`
-- Must contain **weekly** and **yearly** at minimum; monthly optional.
+- Must contain **weekly** and **yearly**. Nothing else is listed.
 
 **Package order and default selection are enforced in the client**, in
 `lib/purchases.ts` → `packageRank()` / `defaultPackage()`: weekly first and
-pre-selected, then yearly, then monthly. This does not depend on the dashboard's
-ordering, so a console change cannot silently revert it.
+pre-selected, then yearly. Anything else in the offering is left unlisted. If
+the weekly package is missing, nothing is pre-selected rather than defaulting
+to yearly. None of this depends on the dashboard's ordering, so a console change
+cannot silently revert it.
 
 ### Why weekly is the default
 
 This inverts the previous paywall, which sorted annual to the top and called
-`setSelected(annual)` — so the default path was a $59.99 commitment from someone
+`setSelected(annual)` — so the default path was a year's commitment from someone
 who had not yet finished a single night.
 
 The reason is revenue, not taste. Across Adapty's 2026 sample (~16k apps, ~$3B):
@@ -118,6 +147,59 @@ there is nothing to read and nothing to sell, so gating would make the app
 impossible to open rather than protect revenue. A **production** build with a
 missing key still gates, loudly, because that is a misconfiguration someone
 needs to notice. Both conditions are required; there is a test for each.
+
+---
+
+## 4a. The onboarding funnel — selling before sign-in
+
+New couples meet the paywall at the end of onboarding, **before** they sign in:
+
+welcome (promise) → intro (the magic) → fox → quiz ×6 → belief → notifications
+→ building → **paywall** → sign in → name (if Apple didn't give one) → pairing
+→ Tonight.
+
+The paywall opens as `/(modals)/paywall?gate=1&source=onboarding`: no close
+button, no swipe-down, and a successful trial or restore goes to the late
+sign-in rather than the app. Its quiet exit is "Already have an account? Sign
+in", for someone who subscribed on another phone.
+
+### How a purchase survives the late sign-in
+
+The partner who never pays is unlocked by the payer's **profile**
+(`bool_or(profiles.is_subscribed)`), so the purchase has to land on a profile
+that is still the payer's after they sign in.
+
+1. `building` calls `startAnonymousAccount()` — a Supabase anonymous user, with
+   a profile made by `handle_new_user`. RevenueCat is configured with its user
+   id.
+2. The purchase is made on that id; the webhook finds the profile by it.
+3. The late sign-in calls `linkIdentity` with the Apple/Google token instead of
+   `signInWithIdToken`, so the user id — profile, purchase, entitlement — does
+   not change.
+4. If linking fails (the identity already has an account, or manual linking is
+   off), sign-in proceeds normally and `carryPurchaseToAccount()` logs
+   RevenueCat into the new account and restores, moving the receipt across.
+
+**Console work (Supabase → Authentication):**
+
+- **Anonymous sign-ins: on.** Already required for the guest partner join.
+- **Manual linking: on.** Without it every late sign-in takes the fallback in
+  step 4, which works but costs a Restore (and on iOS, possibly an Apple ID
+  prompt).
+
+### The invited partner
+
+Skips the funnel entirely — welcome's "Your partner sent you a code?" or an
+invite link goes straight to pairing. They were invited by someone who has
+already paid, so the gate lets them in on the couple flag.
+
+### Resuming
+
+Someone who closes the app mid-funnel resumes from what is true of the device,
+not a remembered screen — `onboardingResume()` in `lib/accessGate.ts`, tested
+alongside the gate. The case it exists for: a trial started, app closed before
+sign-in. They resume at sign-in, not at the quiz and a paywall for the
+subscription they already hold.
 
 ---
 
@@ -195,14 +277,19 @@ right place.
 
 | Slot | Text |
 |---|---|
-| Headline | Keep your nights together |
-| Lede | One of you unlocks Lunara for both. 21 days free. |
-| Benefit 1 | Your nightly ritual and the reveal you open together |
+| Headline | Keep your nights together *(or "Start tonight, together" for a couple with no nights yet)* |
+| Lede | One of you unlocks Lunara for both. 21 days free. *(the trial half only when the selected plan has one)* |
+| Benefit 1 | A private nightly ritual, and the reveal you open together |
 | Benefit 2 | Every night you have kept — with voice notes, and your fox |
 | Benefit 3 | A streak that belongs to both of you, not to whoever paid |
+| Benefit 4 | Gentle Grow tips, once you've both opened the night |
 | Coverage | One of you subscribes and Lunara opens for both of you. Your partner never pays, and never sees a paywall. |
-| Yearly badge | Best if you're in it for the long run · {price}/mo |
-| CTA | Start {n}-Day Free Trial *(derived from the store)* |
+| Weekly plan | Then {price}/week · cancel anytime |
+| Yearly plan | {price}/year · Save {n}% |
+| Yearly badge | {price per week}/week, billed yearly |
+| CTA | Start 21-day free trial *(length derived from the store)* |
+| Under the CTA | No payment due now. Cancel anytime. *(+ "We'll remind you before your trial ends." when notifications are on)* |
+| Onboarding exit | Already have an account? Sign in |
 | Footer | Restore purchases · Terms · Privacy · Apple EULA |
 
 Benefits come from `PREMIUM_FEATURES` in `lib/entitlements.ts`, where each entry

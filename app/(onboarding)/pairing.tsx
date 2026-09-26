@@ -20,7 +20,8 @@ import { SpringPressable } from '@/components/SpringPressable';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { haptic } from '@/lib/haptics';
 import { GuestSignInError, useApp } from '@/context/AppContext';
-import { maybeAskForNotifications } from '@/services/notifications';
+import { getNotificationPermissionStatus, maybeAskForNotifications } from '@/services/notifications';
+import { readOnboardingFunnel } from '@/hooks/useOnboardingFunnel';
 import { toDateKey } from '@/lib/streak';
 import { hitSlopFor, pressScale, radius } from '@/constants/tokens';
 import { palette, tint } from '@/constants/colors';
@@ -40,23 +41,35 @@ type Mode = 'choose' | 'create' | 'join';
  *
  * ─── Why pairing is the last screen ──────────────────────────────────────────
  *
- * It used to be followed by a tutorial, a "who pays" explainer and a Premium
- * preview: three screens between someone finishing setup and seeing the thing
- * they signed up for. Every one of them was a screen about the app rather than
- * the app, and the last of them pushed a paywall at a person who had not yet
- * had a single good night in the product. Nothing sells a couples app like the
- * first mutual reveal, and nothing kills one like being charged before it.
+ * The purchaser arrives here at the end of the funnel — promise → the magic →
+ * fox → quiz → belief → notifications → building → paywall → late sign-in —
+ * with a trial already running, and the invite is the last thing between them
+ * and the real loop. It is explicit on purpose: Lunara is incomplete with one
+ * person in it, and this is the screen that says so with a code in hand.
  *
- * So the chain is now promise → fox → both of you → auth → invite, and this is
- * the door. The three cut screens still exist and are still routable; they are
- * simply no longer in the way. Premium is introduced later, from inside the
- * product, once there is something to be premium *about*.
+ * The invited partner arrives here first, from an invite link or the welcome
+ * screen's "Your partner sent you a code?", and skips the funnel and its
+ * paywall: the person who invited them has already paid for both.
+ *
+ * The old tutorial, "who pays" and Premium preview screens still exist and are
+ * still routable; the funnel replaced what they were for.
  */
 async function finishOnboarding(
   registerPushToken: () => Promise<void>,
   completeOnboarding: () => Promise<void>,
 ): Promise<void> {
-  await maybeAskForNotifications(registerPushToken);
+  // The purchaser was already asked on the funnel's notifications screen; ask
+  // again a minute later and it stops being a question. They still get their
+  // token registered if they said yes. The invited partner never saw that
+  // screen, so this is where they are asked.
+  const { notificationsAsked } = await readOnboardingFunnel();
+  if (notificationsAsked) {
+    if ((await getNotificationPermissionStatus().catch(() => 'denied')) === 'granted') {
+      await registerPushToken().catch(() => {});
+    }
+  } else {
+    await maybeAskForNotifications(registerPushToken);
+  }
   await completeOnboarding();
 }
 
@@ -81,8 +94,13 @@ export default function PairingScreen() {
     registerPushToken,
   } = useApp();
   // `code` arrives from an invite link (lunara://join/<code> → app/join/[code].tsx);
-  // `intent=invite` from signing in after choosing "Invite my partner".
-  const { code: invitedCode, intent } = useLocalSearchParams<{ code?: string; intent?: string }>();
+  // `intent=invite` from signing in after choosing "Invite my partner";
+  // `mode=join` from the welcome screen's "Your partner sent you a code?".
+  const { code: invitedCode, intent, mode: modeParam } = useLocalSearchParams<{
+    code?: string;
+    intent?: string;
+    mode?: string;
+  }>();
   const prefilled = normalizeInviteCode(invitedCode);
 
   /**
@@ -95,7 +113,7 @@ export default function PairingScreen() {
   // Someone who followed an invite link came here to join, not to choose —
   // open straight onto the join form with their code already in it, so all
   // that's left is the one tap they came for.
-  const [mode, setMode] = useState<Mode>(prefilled ? 'join' : 'choose');
+  const [mode, setMode] = useState<Mode>(prefilled || modeParam === 'join' ? 'join' : 'choose');
   const [inviteCode, setInviteCode] = useState('');
   const [joinCode, setJoinCode] = useState(prefilled);
   const [guestName, setGuestName] = useState(user?.name ?? '');
@@ -429,6 +447,9 @@ export default function PairingScreen() {
       >
          <Animated.View style={styles.header}>
           <Text style={styles.title}>Join your partner{'\n'}or invite them?</Text>
+          <Text style={styles.subtitle}>
+            Lunara works when both of you are here. Your partner joins free with your code.
+          </Text>
         </Animated.View>
 
          <Animated.View style={styles.options}>
@@ -465,19 +486,24 @@ export default function PairingScreen() {
           </SpringPressable>
         </Animated.View>
 
-        {/* `marginTop: 'auto'` in a grown container pins this to the bottom edge. */}
-        <SpringPressable
-          onPress={handleDemoMode}
-          style={styles.demoLink}
-          disabled={loading}
-          dimWhenDisabled={false}
-          feedback="highlight"
-          hitSlop={8}
-        >
-          <Text style={styles.demoLinkText}>
-            {loading ? 'Setting up demo…' : 'Explore in demo mode'}
-          </Text>
-        </SpringPressable>
+        {/* `marginTop: 'auto'` in a grown container pins this to the bottom edge.
+            Only for someone without an account: a person who has just signed
+            in after starting a trial has a real partner to invite, and the
+            demo would replace their couple with a scripted one. */}
+        {joinsAsGuest && (
+          <SpringPressable
+            onPress={handleDemoMode}
+            style={styles.demoLink}
+            disabled={loading}
+            dimWhenDisabled={false}
+            feedback="highlight"
+            hitSlop={8}
+          >
+            <Text style={styles.demoLinkText}>
+              {loading ? 'Setting up demo…' : 'Explore in demo mode'}
+            </Text>
+          </SpringPressable>
+        )}
       </ScrollView>
     </LinearGradient>
   );

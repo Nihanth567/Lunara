@@ -51,7 +51,7 @@ untracked by git, so "no tracked files" is not a safe check. Recover with
 
 There is no ESLint script wired up, and no test framework — the test files
 (`lib/*.test.ts`: streak, companion, accessGate, togetherPoints, dailyPrompts,
-weeklyRecap, nudge) run on Node's built-in `node --test`. `npm run
+weeklyRecap, nudge, pricing, onboardingQuiz) run on Node's built-in `node --test`. `npm run
 typecheck` plus `npm test` is the gate. Note: `supabase/functions/**` (Deno edge functions) always report `tsc`
 errors (remote URL imports, `Deno` global) — those are **pre-existing and
 expected**; ignore them and only care about errors in app code.
@@ -60,12 +60,18 @@ expected**; ignore them and only care about errors in app code.
 
 ```
 app/                 Expo Router routes
-  index.tsx          entry gate → redirects to onboarding or (app)
-  (onboarding)/      welcome → intro → auth → profile-setup → pairing (5 steps).
-                     `pairing` is the last one and calls `completeOnboarding()`.
-                     `tutorial` / `who-pays` / `pro-preview` still exist and are
-                     routable but are deliberately NOT on the path — Premium is
-                     introduced later, from inside the product.
+  index.tsx          entry gate → onboarding (resumed via `onboardingResume`),
+                     paywall, or (app)
+  (onboarding)/      the conversion funnel: welcome (promise) → intro (the
+                     magic) → fox → quiz (6 questions, one route) → belief →
+                     notifications → building → paywall (gate mode) → auth
+                     (late, links to the anonymous account) → profile-setup
+                     (only if no name) → pairing. `pairing` is the last one and
+                     calls `completeOnboarding()`. The invited partner skips
+                     straight to pairing (welcome's "Join them", or an invite
+                     link) — no quiz, no paywall. `tutorial` / `who-pays` /
+                     `pro-preview` still exist and are routable but are NOT on
+                     the path.
   (app)/             the 4 native tabs:
     index.tsx          "Tonight"  — the nightly ritual
     list.tsx           "List"     — the shared list
@@ -80,13 +86,16 @@ components/          shared UI (cards, StarField, LunaraButton, GlassCard, …) 
                      interaction primitives: SpringPressable, ScreenLoading,
                      EmptyState, KeyboardAwareScrollViewCompat
 context/AppContext.tsx   the single source of truth for auth/couple/entries/keepsakes
-hooks/               useColors, useGrowth, useGrowCheckBack, useNudge
+hooks/               useColors, useGrowth, useGrowCheckBack, useNudge,
+                     useOnboardingFunnel
 lib/                 supabase client, entitlements, purchases, widget, growth data,
                      voiceNotes (Storage upload/signed URLs), moments helpers,
                      list.ts (shared-list rules — completion, ordering),
                      companion.ts (fox state machine), reactions.ts (the shared
                      reaction table — reveal writes it, moment reads it),
-                     paywallMoment.ts (when Premium may be offered),
+                     pricing.ts (trial phrase + yearly saving, from store
+                     prices), onboardingQuiz.ts (quiz questions + the lines
+                     their answers change),
                      dailyPrompts.ts (tonight's question per card),
                      weeklyRecap.ts (which nights "Your week" reads back),
                      nudge.ts (Tonight's phases + the single growth nudge rule),
@@ -128,15 +137,20 @@ targets/widget/      SwiftUI WidgetKit extension
 - **Entitlements**: `isPro(couple)` (`lib/entitlements.ts`) is the single gate.
   One subscription unlocks Premium for both partners. Route locked features to
   `/(modals)/paywall`.
-- **When Premium may be *offered*** is a separate question from what it gates,
-  and it has its own rule: `shouldOfferPremium()` in `lib/paywallMoment.ts`
-  (with `usePaywallMoment()` for the per-device "already asked" flag). One
-  proactive prompt, in the afterglow of a *finished* night, only after three
-  shared nights, only once. Never before the first mutual reveal and never
-  mid-ritual. Locked features still route to the paywall on tap — that is the
-  person asking, not us. The rules are tested in `lib/paywallMoment.test.ts`;
-  if one starts failing, ask whether you are about to sell to someone who
-  hasn't seen the product yet.
+- **Where Premium is sold**: at the end of the onboarding funnel, before
+  sign-in, and at the front gate (`resolveGate` → `paywall`) for anyone
+  signed in and unentitled. There is no free product and no in-app upsell
+  moment (`lib/paywallMoment.ts` was removed). The funnel sells *before*
+  sign-in, which only works because of how the account is carried:
+  `building` calls `startAnonymousAccount()`, RevenueCat is configured with
+  that anonymous user id, the webhook marks that profile subscribed, and the
+  late sign-in *links* Apple/Google to the same user (`linkIdentity`) instead
+  of creating a new one. If linking fails, sign-in falls back to a normal one
+  and `carryPurchaseToAccount()` restores the receipt onto the new account.
+  Never make the late sign-in create a fresh user without that — the partner's
+  access comes from the payer's profile. Quiz answers are local-only
+  (`hooks/useOnboardingFunnel.ts`) and no personalised line may claim the app
+  does something it doesn't (tested in `lib/onboardingQuiz.test.ts`).
 - **Tonight is a state machine, and growth gets ONE slot.** `tonightPhase()` in
   `lib/nudge.ts` names the phase (`not_started → writing → waiting →
   ready_to_reveal → revealed`); the screen renders one thing per phase. Every

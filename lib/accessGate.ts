@@ -122,3 +122,55 @@ export function resolveGate({
 
   return 'paywall';
 }
+
+/**
+ * Where an unfinished onboarding picks up again.
+ *
+ * `resolveGate` answers `onboarding` for anyone who hasn't finished it, and
+ * used to send them all back to the first screen. Since the paywall moved to
+ * the middle of onboarding that is no longer safe: someone who started a trial
+ * and then closed the app before signing in would have been walked through the
+ * whole quiz again, up to a paywall for a subscription they already hold. So
+ * the resume point comes from what is actually true of the device, not from a
+ * stored "last screen":
+ *
+ * - **No session** — nothing started yet. The beginning.
+ * - **A couple already exists** — a partner who joined, or a pairing whose last
+ *   step didn't save. Nothing left to ask; just finish.
+ * - **Anonymous, no couple** — the purchaser mid-funnel. The one question is
+ *   whether they have paid: if so, the late sign-in; if not, the beginning.
+ *   "Not known yet" waits rather than guessing, for the same reason the gate
+ *   does.
+ * - **Signed in, no couple** — name first if there isn't one, then pairing.
+ */
+export type ResumeStep = 'loading' | 'welcome' | 'signIn' | 'profile' | 'pairing' | 'finish';
+
+export interface ResumeInput {
+  hasSession: boolean;
+  /** A Supabase anonymous account — the funnel's pre-sign-in account, or a guest partner. */
+  isAnonymous: boolean;
+  hasName: boolean;
+  hasCouple: boolean;
+  /** RevenueCat's answer on this device: a trial or subscription bought here. */
+  deviceEntitled: boolean;
+  purchasesReady: boolean;
+}
+
+export function onboardingResume({
+  hasSession,
+  isAnonymous,
+  hasName,
+  hasCouple,
+  deviceEntitled,
+  purchasesReady,
+}: ResumeInput): ResumeStep {
+  if (!hasSession) return 'welcome';
+  if (hasCouple) return 'finish';
+  if (isAnonymous) {
+    if (deviceEntitled) return 'signIn';
+    if (!purchasesReady) return 'loading';
+    return 'welcome';
+  }
+  if (!hasName) return 'profile';
+  return 'pairing';
+}

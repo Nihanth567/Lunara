@@ -208,7 +208,8 @@ afternoon here.
    Authorization header value must match the `REVENUECAT_WEBHOOK_SECRET`
    function secret (set it via `supabase secrets set` or the dashboard).
 5. Configure RevenueCat with `appUserID` = the Supabase auth user id (already
-   done in `lib/purchases.ts`) and create an entitlement named `lunara_pro`.
+   done in `lib/purchases.ts`) and create an entitlement named `premium`, with
+   the products and offering listed in `docs/MONETIZATION.md`.
 6. **Grow guidance (OpenAI)**: the function itself lives in
    `supabase/functions/grow-guidance/` — deploy it with
    `supabase functions deploy grow-guidance --project-ref lumixwmobjvlzgqrdjak`.

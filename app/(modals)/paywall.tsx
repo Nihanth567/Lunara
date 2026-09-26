@@ -19,6 +19,7 @@ import {
   restore,
 } from '@/lib/purchases';
 import { PREMIUM_FEATURES, coupleCoverageSummary } from '@/lib/entitlements';
+import { trialDays, trialLength, yearlySavingsPercent } from '@/lib/pricing';
 import { useApp } from '@/context/AppContext';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -35,20 +36,19 @@ const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev
  * longer keeps its own copy of the list.
  */
 
-/** A free intro period, as RevenueCat reports it — never assumed. */
+/** "21-day free trial", from the store's own intro offer — never assumed. */
 function trialLabel(pkg: PurchasesPackage): string | null {
   const intro = pkg.product.introPrice;
   if (!intro || intro.price !== 0) return null;
-  const unit = intro.periodUnit.charAt(0) + intro.periodUnit.slice(1).toLowerCase();
-  const label = intro.periodNumberOfUnits === 1 ? unit : `${unit}s`;
-  return `${intro.periodNumberOfUnits}-${label} Free Trial`;
+  const length = trialLength(intro.periodUnit, intro.periodNumberOfUnits);
+  return length ? `${length} free trial` : null;
 }
 
 function periodSuffix(pkg: PurchasesPackage): string {
   if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return '/year';
   if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return '/month';
   // Weekly is the default plan now, so the one package whose price used to
-  // render bare — "$4.99" with no period at all — is the one most people see.
+  // render bare — "$2.99" with no period at all — is the one most people see.
   if (pkg.packageType === PACKAGE_TYPE.WEEKLY) return '/week';
   return '';
 }
@@ -71,8 +71,7 @@ function planLabel(pkg: PurchasesPackage | null): string {
 function trialDaysOf(pkg: PurchasesPackage | null): number | undefined {
   const intro = pkg?.product.introPrice;
   if (!intro || intro.price !== 0) return undefined;
-  const per = intro.periodUnit === 'WEEK' ? 7 : intro.periodUnit === 'MONTH' ? 30 : 1;
-  return intro.periodNumberOfUnits * per;
+  return trialDays(intro.periodUnit, intro.periodNumberOfUnits) ?? undefined;
 }
 
 function periodNoun(pkg: PurchasesPackage): string {
@@ -126,7 +125,14 @@ export default function PaywallScreen() {
    * subscriber's only way back in is through it.
    */
   const isGate = gate === '1';
-  const { refreshSharedState, refreshEntitlement, canPurchase, couple, signOut } = useApp();
+  const {
+    refreshSharedState,
+    refreshEntitlement,
+    canPurchase,
+    couple,
+    signOut,
+    notificationSettings,
+  } = useApp();
   // The fox on this screen shows the couple's real streak, so the thing being
   // sold is visibly *theirs* rather than a stock illustration of a product.
   const streak = couple?.currentStreak ?? 0;
@@ -144,9 +150,6 @@ export default function PaywallScreen() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
-  // Onboarding has already completed by the time this screen is reached from
-  // there, so closing or finishing here should land in the app, not pop back
-  // into the (now-stale) onboarding stack.
   const dismiss = () => {
     if (isGate) {
       // Nothing to dismiss to. Recorded rather than silently ignored, because
@@ -155,18 +158,26 @@ export default function PaywallScreen() {
       track('paywall_dismiss_blocked', { plan: planLabel(selected), paired: canPurchase });
       return;
     }
-    if (fromOnboarding) {
-      router.replace('/(app)/' as never);
-      if (couple) {
-        router.push('/keepsakes?intro=1' as never);
-      }
-    } else {
-      router.back();
-    }
+    router.back();
+  };
+
+  /**
+   * Where a successful purchase or restore goes.
+   *
+   * From onboarding (`source=onboarding`, always opened in gate mode) the paywall
+   * sits *before* sign-in: the trial is running on an anonymous account, so the
+   * next stop is the late sign-in that makes that account permanent, then
+   * pairing. From the front gate there is nothing underneath, so this is the
+   * moment the app opens. As an upsell, it simply closes.
+   */
+  const afterUnlock = () => {
+    if (fromOnboarding) router.replace('/(onboarding)/auth?after=trial' as never);
+    else if (isGate) router.replace('/(app)/' as never);
+    else dismiss();
   };
 
   useEffect(() => {
-    track('paywall_view', { source: isGate ? 'gate' : fromOnboarding ? 'onboarding' : 'modal', paired: canPurchase });
+    track('paywall_view', { source: fromOnboarding ? 'onboarding' : isGate ? 'gate' : 'modal', paired: canPurchase });
   }, [isGate, fromOnboarding, canPurchase]);
 
   const loadOffering = async () => {
@@ -180,11 +191,13 @@ export default function PaywallScreen() {
       const offering = await getCurrentOffering();
       const available = offering?.availablePackages ?? [];
       setPackages(available);
-      // Weekly, not annual — see `packageRank` in lib/purchases.ts.
+      // Weekly, or nothing — never annual — see `defaultPackage` in lib/purchases.ts.
       setSelected(defaultPackage(available));
-      // In a release build an empty offering is a store that didn't answer,
-      // not a missing configuration — say so and offer to try again.
-      if (available.length === 0 && !__DEV__) setLoadFailed(true);
+      // In a release build an offering with nothing to list is a store that
+      // didn't answer, not a missing configuration — say so and offer to try
+      // again. Counted after filtering, so an offering holding only unlisted
+      // plans (a leftover monthly) doesn't fall through to the developer copy.
+      if (orderPackages(available).length === 0 && !__DEV__) setLoadFailed(true);
     } catch {
       setLoadFailed(true);
     } finally {
@@ -198,13 +211,34 @@ export default function PaywallScreen() {
 
   const orderedPackages = useMemo(() => orderPackages(packages), [packages]);
 
+  /**
+   * The yearly saving against paying weekly for a year, from the two prices
+   * the store actually returned — 69% at $2.99 and $48. Computed rather than
+   * written as "Save 69%", so a price change in one storefront can't leave a
+   * badge claiming a saving that isn't there.
+   */
+  const weeklyPkg = orderedPackages.find((p) => p.packageType === PACKAGE_TYPE.WEEKLY);
+  const yearlyPkg = orderedPackages.find((p) => p.packageType === PACKAGE_TYPE.ANNUAL);
+  const yearlySaving =
+    weeklyPkg && yearlyPkg
+      ? yearlySavingsPercent(weeklyPkg.product.price, yearlyPkg.product.price)
+      : null;
+
   // The button never promises a trial the store isn't offering on the plan the
   // user actually has selected.
+  const selectedTrial = selected ? trialLabel(selected) : null;
   const ctaTitle = !selected
     ? 'Choose a plan'
-    : (trialLabel(selected) ?? null) !== null
-      ? `Start ${trialLabel(selected)}`
+    : selectedTrial
+      ? `Start ${selectedTrial}`
       : `Subscribe — ${selected.product.priceString}${periodSuffix(selected)}`;
+
+  /**
+   * Only a trial the selected plan really carries. This used to fall back to
+   * "21 days free" whenever the store reported none, which is the one promise
+   * the rest of this screen is careful never to make.
+   */
+  const selectedTrialDays = trialDaysOf(selected);
 
   const handlePurchase = async () => {
     if (!selected || purchasing) return;
@@ -239,13 +273,7 @@ export default function PaywallScreen() {
         await refreshEntitlement().catch(() => {});
         await refreshSharedState().catch(() => {});
         track('couple_premium_granted', { plan: planLabel(selected), paired: canPurchase });
-        // In gate mode there is no screen underneath to return to, so this is
-        // the moment the app actually opens.
-        if (isGate) {
-          router.replace('/(app)/' as never);
-        } else {
-          dismiss();
-        }
+        afterUnlock();
       } else {
         haptic.error();
         Alert.alert(
@@ -279,13 +307,9 @@ export default function PaywallScreen() {
         await refreshSharedState().catch(() => {});
         // Only once it actually found something — firing on entry counted every
         // tap of the button as a successful restore.
-        track('restore_completed', { source: isGate ? 'gate' : 'modal' });
+        track('restore_completed', { source: fromOnboarding ? 'onboarding' : isGate ? 'gate' : 'modal' });
         haptic.success();
-        if (isGate) {
-          router.replace('/(app)/' as never);
-        } else {
-          dismiss();
-        }
+        afterUnlock();
       } else {
         haptic.error();
         Alert.alert(
@@ -354,9 +378,12 @@ export default function PaywallScreen() {
             {hasHistory ? 'Keep your nights together' : 'Start tonight, together'}
           </Text>
           <Text style={styles.lede}>
-            {hasHistory
-              ? `One of you unlocks Lunara for both. ${trialDaysOf(selected) ?? 21} days free.`
-              : `One of you unlocks Lunara for both. Free for ${trialDaysOf(selected) ?? 21} days — long enough to find out if it's yours.`}
+            One of you unlocks Lunara for both.
+            {selectedTrialDays
+              ? hasHistory
+                ? ` ${selectedTrialDays} days free.`
+                : ` Free for ${selectedTrialDays} days — long enough to find out if it's yours.`
+              : ''}
           </Text>
           <Text style={styles.subtitle}>{priceSentence(selected)}</Text>
           <View style={styles.coversBadge}>
@@ -421,7 +448,14 @@ export default function PaywallScreen() {
               const isAnnual = pkg.packageType === PACKAGE_TYPE.ANNUAL;
               const isWeekly = pkg.packageType === PACKAGE_TYPE.WEEKLY;
               const trial = trialLabel(pkg);
-              const perMonth = pkg.product.pricePerMonthString;
+              // RevenueCat's own localised figure: about $0.92 at $48 a year.
+              const perWeek = pkg.product.pricePerWeekString;
+              // "Then $2.99/week · cancel anytime" / "$48/year · Save 69%".
+              const planLine = isWeekly
+                ? `${trial ? 'Then ' : ''}${pkg.product.priceString}/week · cancel anytime`
+                : isAnnual
+                  ? `${pkg.product.priceString}/year${yearlySaving ? ` · Save ${yearlySaving}%` : ''}`
+                  : `${pkg.product.priceString}${periodSuffix(pkg)}`;
 
               return (
                 <SpringPressable
@@ -441,12 +475,9 @@ export default function PaywallScreen() {
                           <Text style={styles.trialBadgeText}>{trial}</Text>
                         </View>
                       )}
-                      {isAnnual && (
+                      {isAnnual && perWeek && (
                         <View style={styles.valueBadge}>
-                          <Text style={styles.valueBadgeText}>
-                            Best if you&apos;re in it for the long run
-                            {perMonth ? ` • ${perMonth}/mo` : ''}
-                          </Text>
+                          <Text style={styles.valueBadgeText}>{perWeek}/week, billed yearly</Text>
                         </View>
                       )}
                     </View>
@@ -456,10 +487,7 @@ export default function PaywallScreen() {
                       <Text style={styles.packageTitle}>
                         {isAnnual ? 'Yearly' : isWeekly ? 'Weekly' : pkg.product.title || pkg.identifier}
                       </Text>
-                      <Text style={styles.packagePrice}>
-                        {pkg.product.priceString}
-                        {periodSuffix(pkg)}
-                      </Text>
+                      <Text style={styles.packagePrice}>{planLine}</Text>
                     </View>
                     <View style={[styles.radio, isSelected && styles.radioSelected]}>
                       {isSelected && <View style={styles.radioDot} />}
@@ -478,7 +506,32 @@ export default function PaywallScreen() {
             loading={purchasing}
             disabled={!selected || !canPurchase}
           />
-          {!isGate ? (
+          {/*
+            Trial safety, said where the finger is. Only on a plan that really
+            carries a trial, and the reminder line only when notifications are
+            on — the day-18 notice is a local notification, and it can't be
+            promised to someone who turned them off.
+          */}
+          {selectedTrial ? (
+            <Text style={styles.trialSafety}>
+              No payment due now. Cancel anytime.
+              {notificationSettings.enabled ? ' We’ll remind you before your trial ends.' : ''}
+            </Text>
+          ) : null}
+          {fromOnboarding ? (
+            // Onboarding's quiet exit: the person who already subscribed on
+            // another phone. Signing in finds their account; Restore, above,
+            // finds their purchase.
+            <SpringPressable
+              feedback="highlight"
+              haptic="none"
+              onPress={() => router.push('/(onboarding)/auth' as never)}
+              disabled={purchasing}
+              style={styles.freeBtn}
+            >
+              <Text style={styles.freeText}>Already have an account? Sign in</Text>
+            </SpringPressable>
+          ) : !isGate ? (
             <SpringPressable
               onPress={dismiss}
               disabled={purchasing}
@@ -756,6 +809,7 @@ const styles = StyleSheet.create({
   footer: { gap: 4, marginTop: 12 },
   freeBtn: { alignItems: 'center', paddingVertical: 10 },
   freeText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: palette.content[1] },
+  trialSafety: { ...text.caption, color: palette.content[1], textAlign: 'center' },
   restoreBtn: { alignItems: 'center', paddingVertical: 4, marginTop: 6 },
   restoreText: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1] },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },

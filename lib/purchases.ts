@@ -6,7 +6,7 @@ import Purchases, {
 } from 'react-native-purchases';
 
 /**
- * The single entitlement. Any active weekly / monthly / yearly subscription —
+ * The single entitlement. An active weekly or yearly subscription —
  * including one still inside its introductory free trial — grants it.
  *
  * Renamed from `lunara_pro`. If the RevenueCat dashboard still calls it
@@ -23,10 +23,13 @@ export const ENTITLEMENT_ID = 'premium';
  * nothing in the client hardcodes a price. Prices, trial length and
  * localisation all come from the store via RevenueCat, because a price written
  * into an app binary is a price that goes stale in a region you do not watch.
+ *
+ * At launch: weekly $2.99 and yearly $48, each with a 21-day free trial.
+ * Monthly is no longer sold; if the offering still carries one, the paywall
+ * leaves it unlisted (see `packageRank`).
  */
 export const PRODUCT_IDS = {
   weekly: 'lunara_premium_weekly',
-  monthly: 'lunara_premium_monthly',
   yearly: 'lunara_premium_yearly',
 } as const;
 
@@ -149,7 +152,7 @@ export function entitlementExpiry(customerInfo: CustomerInfo): string | null {
  *
  * This inverts what the paywall used to do. The previous version sorted annual
  * to the top and called `setSelected(annual)`, so the default path was a
- * $59.99 commitment from somebody who had not yet finished a single night.
+ * year's commitment from somebody who had not yet finished a single night.
  *
  * The reason to change it is revenue, not taste: across Adapty's 2026 sample
  * (~16k apps, ~$3B), weekly-with-trial returns roughly $7 per user on day one
@@ -160,31 +163,39 @@ export function entitlementExpiry(customerInfo: CustomerInfo): string | null {
  *
  * Annual is still *offered* — a couple who knows they want this should be able
  * to say so and pay less — it is simply no longer the silent default.
+ *
+ * Those two are the only plans sold. Anything else the offering carries — a
+ * leftover monthly, a custom package — ranks `null` and is left unlisted
+ * rather than featured, so the paywall shows exactly what the pricing names.
  */
-export function packageRank(pkg: PurchasesPackage): number {
+export function packageRank(pkg: PurchasesPackage): number | null {
   switch (pkg.packageType) {
     case PACKAGE_TYPE.WEEKLY:
       return 0;
     case PACKAGE_TYPE.ANNUAL:
       return 1;
-    case PACKAGE_TYPE.MONTHLY:
-      return 2;
     default:
-      return 3;
+      return null;
   }
 }
 
-/** The plan list, weekly first. */
+/** The plans the paywall lists: weekly, then yearly, and nothing else. */
 export function orderPackages(packages: PurchasesPackage[]): PurchasesPackage[] {
-  return [...packages].sort((a, b) => packageRank(a) - packageRank(b));
+  return packages
+    .filter((pkg) => packageRank(pkg) !== null)
+    .sort((a, b) => (packageRank(a) ?? 0) - (packageRank(b) ?? 0));
 }
 
 /**
- * The package that should be selected when the paywall opens: weekly if the
- * offering has one, otherwise whatever ranks highest. Never silently annual.
+ * The plan selected when the paywall opens: weekly, or nothing.
+ *
+ * This used to fall through to "whatever ranks next", so an offering missing
+ * its weekly package silently pre-selected the yearly commitment — the exact
+ * default the ordering above exists to prevent. With no weekly, nothing is
+ * pre-selected and the person picks.
  */
 export function defaultPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
-  return orderPackages(packages)[0] ?? null;
+  return packages.find((pkg) => pkg.packageType === PACKAGE_TYPE.WEEKLY) ?? null;
 }
 
 /**

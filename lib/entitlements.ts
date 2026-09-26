@@ -56,7 +56,7 @@ export interface PremiumFeature {
 export const PREMIUM_FEATURES: PremiumFeature[] = [
   {
     icon: 'moon-outline',
-    text: 'Your nightly ritual and the reveal you open together',
+    text: 'A private nightly ritual, and the reveal you open together',
     short: 'your nightly ritual',
     gate: 'app/index.tsx — requireEntitlement gate',
   },
@@ -71,6 +71,12 @@ export const PREMIUM_FEATURES: PremiumFeature[] = [
     text: 'A streak that belongs to both of you, not to whoever paid',
     short: 'your shared streak',
     gate: 'context/AppContext — couple.isSubscribed is bool_or across members',
+  },
+  {
+    icon: 'leaf-outline',
+    text: 'Gentle Grow tips, once you’ve both opened the night',
+    short: 'Grow tips',
+    gate: 'app/index.tsx gate; lib/nudge.ts shows them only after the reveal',
   },
 ];
 

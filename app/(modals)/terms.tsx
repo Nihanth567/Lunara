@@ -31,9 +31,10 @@ const SECTIONS: TermsSection[] = [
     // package that may not have loaded.
     //
     // It must be kept in step by hand with the App Store Connect / Play Console
-    // products. If those say anything other than $3/month and $30/year, this
-    // line is the thing that's wrong.
-    body: 'Lunara Pro offers optional auto-renewing subscriptions ($30/year or $3/month), which may include a 7-day free trial. Charges are billed directly to your Apple ID account upon trial expiration unless canceled at least 24 hours prior in your iOS Account Settings.',
+    // products and with docs/MONETIZATION.md. If those say anything other than
+    // $2.99/week and $48/year with a 21-day free trial, this line is the thing
+    // that's wrong.
+    body: 'Lunara Premium is an auto-renewing subscription, billed weekly ($2.99/week) or yearly ($48/year), each with a 21-day free trial for new subscribers. One subscription covers both partners in a couple. Prices are in US dollars; your local price is shown before you confirm. Payment is charged to your Apple ID account when the free trial ends, and the subscription renews automatically unless canceled at least 24 hours before the end of the current period in your iOS Account Settings.',
   },
   {
     heading: '3. General Disclaimer',

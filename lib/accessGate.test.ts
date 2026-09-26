@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveGate, type GateInput } from './accessGate.ts';
+import { onboardingResume, resolveGate, type GateInput, type ResumeInput } from './accessGate.ts';
 
 /**
  * These protect the front door.
@@ -94,4 +94,47 @@ test('the demo sandbox is never gated, in production too', () => {
 
 test('demo does not rescue a real couple that simply has not paid', () => {
   assert.equal(resolveGate(base({ isDemo: false })), 'paywall');
+});
+
+// ─── Resuming an unfinished onboarding ───────────────────────────────────────
+
+function resume(over: Partial<ResumeInput> = {}): ResumeInput {
+  return {
+    hasSession: true,
+    isAnonymous: true,
+    hasName: false,
+    hasCouple: false,
+    deviceEntitled: false,
+    purchasesReady: true,
+    ...over,
+  };
+}
+
+test('a fresh install starts at the beginning', () => {
+  assert.equal(onboardingResume(resume({ hasSession: false })), 'welcome');
+});
+
+test('someone who paid and closed the app resumes at sign-in, not the quiz', () => {
+  // The expensive mistake: walking a paying customer back through the quiz to
+  // a paywall for the subscription they already hold.
+  assert.equal(onboardingResume(resume({ deviceEntitled: true })), 'signIn');
+});
+
+test('an anonymous account that has not paid starts over', () => {
+  assert.equal(onboardingResume(resume()), 'welcome');
+});
+
+test('"not known yet" waits instead of guessing', () => {
+  assert.equal(onboardingResume(resume({ purchasesReady: false })), 'loading');
+});
+
+test('a couple that already exists just finishes', () => {
+  // A guest partner who joined, or a pairing whose last write didn't land.
+  assert.equal(onboardingResume(resume({ hasCouple: true })), 'finish');
+  assert.equal(onboardingResume(resume({ isAnonymous: false, hasCouple: true })), 'finish');
+});
+
+test('signed in without a couple: name first, then pairing', () => {
+  assert.equal(onboardingResume(resume({ isAnonymous: false })), 'profile');
+  assert.equal(onboardingResume(resume({ isAnonymous: false, hasName: true })), 'pairing');
 });

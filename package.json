@@ -16,12 +16,14 @@
     "submit:ios": "eas submit --platform ios",
     "test:streak": "node --test lib/streak.test.ts",
     "test:companion": "node --test lib/companion.test.ts",
-    "test": "node --test lib/streak.test.ts lib/companion.test.ts lib/accessGate.test.ts lib/togetherPoints.test.ts lib/dailyPrompts.test.ts lib/weeklyRecap.test.ts lib/nudge.test.ts",
+    "test": "node --test lib/streak.test.ts lib/companion.test.ts lib/accessGate.test.ts lib/togetherPoints.test.ts lib/dailyPrompts.test.ts lib/weeklyRecap.test.ts lib/nudge.test.ts lib/pricing.test.ts lib/onboardingQuiz.test.ts",
     "test:gate": "node --test lib/accessGate.test.ts",
     "test:points": "node --test lib/togetherPoints.test.ts",
     "test:prompts": "node --test lib/dailyPrompts.test.ts",
     "test:recap": "node --test lib/weeklyRecap.test.ts",
-    "test:nudge": "node --test lib/nudge.test.ts"
+    "test:nudge": "node --test lib/nudge.test.ts",
+    "test:pricing": "node --test lib/pricing.test.ts",
+    "test:quiz": "node --test lib/onboardingQuiz.test.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.0",

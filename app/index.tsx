@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { ScreenLoading } from '@/components/ScreenLoading';
 import { isPro } from '@/lib/entitlements';
 import { hasStoreKey } from '@/lib/purchases';
-import { resolveGate } from '@/lib/accessGate';
+import { onboardingResume, resolveGate } from '@/lib/accessGate';
 
 /**
  * The entry gate.
@@ -31,7 +31,18 @@ import { resolveGate } from '@/lib/accessGate';
  */
 export default function Index() {
   const router = useRouter();
-  const { isLoading, onboardingComplete, sessionExpired, couple, purchasesReady } = useApp();
+  const {
+    isLoading,
+    onboardingComplete,
+    sessionExpired,
+    couple,
+    purchasesReady,
+    hasSession,
+    isGuest,
+    user,
+    deviceEntitled,
+    completeOnboarding,
+  } = useApp();
 
   const destination = resolveGate({
     isLoading,
@@ -44,6 +55,18 @@ export default function Index() {
     isDemo: couple?.isDemoMode ?? false,
   });
 
+  // Where an unfinished onboarding picks up — worked out from what is true of
+  // the device, not a remembered screen. Only consulted when the gate says
+  // `onboarding`.
+  const resume = onboardingResume({
+    hasSession,
+    isAnonymous: isGuest,
+    hasName: Boolean(user?.name?.trim()),
+    hasCouple: Boolean(couple) && !(couple?.isDemoMode ?? false),
+    deviceEntitled,
+    purchasesReady,
+  });
+
   useEffect(() => {
     switch (destination) {
       case 'loading':
@@ -52,7 +75,27 @@ export default function Index() {
         router.replace('/(onboarding)/auth');
         return;
       case 'onboarding':
-        router.replace('/(onboarding)/welcome');
+        switch (resume) {
+          case 'loading':
+            return;
+          case 'welcome':
+            router.replace('/(onboarding)/welcome');
+            return;
+          case 'signIn':
+            router.replace('/(onboarding)/auth?after=trial' as never);
+            return;
+          case 'profile':
+            router.replace('/(onboarding)/profile-setup');
+            return;
+          case 'pairing':
+            router.replace('/(onboarding)/pairing');
+            return;
+          case 'finish':
+            // Already in a couple — only the flag is missing. Setting it
+            // re-runs the gate, which then routes to the app or the paywall.
+            completeOnboarding().catch(() => router.replace('/(onboarding)/welcome'));
+            return;
+        }
         return;
       case 'paywall':
         // `gate=1` is what makes the paywall non-dismissible: there is nothing
@@ -62,7 +105,7 @@ export default function Index() {
       case 'app':
         router.replace('/(app)/' as never);
     }
-  }, [destination]);
+  }, [destination, resume]);
 
   // The breathing orb, arriving only if the answer takes long enough to need
   // one — most cold starts resolve before it would have faded in.
