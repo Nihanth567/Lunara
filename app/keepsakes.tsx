@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, Keyboard, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { SpringPressable } from '@/components/SpringPressable';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { haptic } from '@/lib/haptics';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
 import { useApp } from '@/context/AppContext';
 import { partnerLabel } from '@/lib/partner';
-import { radius } from '@/constants/tokens';
-import { palette } from '@/constants/colors';
+import { duration, hitSlopFor, pressScale, radius } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
 
 /**
  * The colour a keepsake question is tagged with, by index. Every value is a
@@ -58,34 +60,41 @@ function QuestionCard({
 
   const handleSave = async () => {
     if (!draft.trim() || saving) return;
+    Keyboard.dismiss();
     setSaving(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
       await onSave(draft.trim());
+      // Only once it has actually saved — this used to buzz "success" on the
+      // tap, then fail silently with the editor still open.
+      haptic.success();
       setEditing(false);
+    } catch {
+      haptic.error();
+      Alert.alert(
+        'That didn’t save',
+        'Your answer is still here — check your connection and try once more.',
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={[styles.card, { borderColor: `${accent}40` }]}>
+    <Animated.View entering={FadeIn.duration(duration.base)} style={[styles.card, { borderColor: `${accent}40` }]}>
       <View style={styles.cardHeader}>
         <Ionicons name={icon as any} size={18} color={accent} />
         <Text style={[styles.cardPrompt, { color: accent }]}>{prompt}</Text>
       </View>
 
       {!mySubmitted && !editing && (
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setEditing(true);
-          }}
+        <SpringPressable
+          onPress={() => setEditing(true)}
           style={styles.answerPrompt}
+          scaleTo={pressScale.card}
         >
           <Text style={styles.helperText}>{helper}</Text>
           <Text style={[styles.answerPromptText, { color: accent }]}>Write your answer</Text>
-        </Pressable>
+        </SpringPressable>
       )}
 
       {editing && (
@@ -95,18 +104,35 @@ function QuestionCard({
             value={draft}
             onChangeText={setDraft}
             placeholder="Take your time..."
-            placeholderTextColor="rgba(247, 241, 232,0.25)"
+            placeholderTextColor={tint.cream(0.25)}
             multiline
             style={styles.input}
             autoFocus
           />
           <View style={styles.editActions}>
-            <Pressable onPress={() => { setEditing(false); setDraft(myAnswer); }} style={styles.cancelBtn}>
+            <SpringPressable
+              onPress={() => {
+                Keyboard.dismiss();
+                setEditing(false);
+                setDraft(myAnswer);
+              }}
+              style={styles.cancelBtn}
+              feedback="highlight"
+            >
               <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
-            <Pressable onPress={handleSave} disabled={!draft.trim() || saving} style={[styles.saveBtn, { backgroundColor: accent }]}>
-              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
-            </Pressable>
+            </SpringPressable>
+            <SpringPressable
+              onPress={handleSave}
+              disabled={!draft.trim() || saving}
+              // Saving is busy, not unavailable — only an empty answer dims.
+              dimWhenDisabled={!draft.trim()}
+              // Success fires once the save lands, not on the tap.
+              haptic="none"
+              accessibilityState={{ busy: saving }}
+              style={[styles.saveBtn, { backgroundColor: accent }]}
+            >
+              <Text style={styles.saveText}>{saving ? 'Saving…' : 'Save'}</Text>
+            </SpringPressable>
           </View>
         </View>
       )}
@@ -116,9 +142,14 @@ function QuestionCard({
           <View style={styles.answerBlock}>
             <View style={styles.answerMetaRow}>
               <Text style={styles.answerOwner}>You</Text>
-              <Pressable onPress={() => setEditing(true)}>
+              <SpringPressable
+                onPress={() => setEditing(true)}
+                feedback="highlight"
+                hitSlop={hitSlopFor(20)}
+                accessibilityLabel="Edit your answer"
+              >
                 <Text style={[styles.editLink, { color: accent }]}>Edit</Text>
-              </Pressable>
+              </SpringPressable>
             </View>
             <Text style={styles.answerText}>{myAnswer}</Text>
           </View>
@@ -153,7 +184,6 @@ export default function KeepsakesScreen() {
   const answeredCount = keepsakes.filter((k) => k.mySubmitted).length;
 
   const handleContinue = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const shouldShowPaywall = isIntro && whoPays === 'me' && couple && !couple.isDemoMode && !couple.isSubscribed;
     if (shouldShowPaywall) {
       router.replace('/(modals)/paywall');
@@ -166,12 +196,22 @@ export default function KeepsakesScreen() {
     <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
       {!isIntro && (
-        <Pressable style={[styles.closeButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <SpringPressable
+          style={[styles.closeButton, { top: insets.top + 12 }]}
+          onPress={() => router.back()}
+          scaleTo={pressScale.icon}
+          hitSlop={hitSlopFor(38)}
+          accessibilityLabel="Close"
+        >
           <Ionicons name="close" size={22} color={palette.content[1]} />
-        </Pressable>
+        </SpringPressable>
       )}
 
-      <ScrollView
+      {/* Long answers, multiline: the field being written follows its caret
+          above the keyboard, with the Save row kept in view beneath it. */}
+      <KeyboardAwareScrollViewCompat
+        bottomOffset={56}
+        keyboardDismissMode="interactive"
         contentContainerStyle={[styles.content, { paddingTop: insets.top + (isIntro ? 24 : 60), paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
@@ -180,7 +220,7 @@ export default function KeepsakesScreen() {
           <Text style={styles.title}>Your Keepsake</Text>
           <Text style={styles.subtitle}>
             {isIntro
-              ? `A few small questions about ${partnerName} — answer at your own pace, whenever it feels right.ht. Nothing here is timed.`
+              ? `A few small questions about ${partnerName} — answer at your own pace, whenever it feels right. Nothing here is timed.`
               : 'The little things you both keep close, gathered in one soft place.'}
           </Text>
         </View>
@@ -214,9 +254,9 @@ export default function KeepsakesScreen() {
                 onPress={handleContinue}
               />
               {answeredCount === 0 && (
-                <Pressable onPress={handleContinue} style={styles.skipBtn}>
+                <SpringPressable onPress={handleContinue} style={styles.skipBtn} feedback="highlight">
                   <Text style={styles.skipText}>Skip for now — I&apos;ll come back to this</Text>
-                </Pressable>
+                </SpringPressable>
               )}
             </>
           ) : (
@@ -225,7 +265,7 @@ export default function KeepsakesScreen() {
             </Text>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
     </LinearGradient>
   );
 }
@@ -245,10 +285,10 @@ const styles = StyleSheet.create({
   },
   content: { paddingHorizontal: 22, gap: 28 },
   header: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
-  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
+  title: { fontSize: 26, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0] },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     textAlign: 'center',
     lineHeight: 21,
@@ -263,39 +303,39 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardPrompt: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', lineHeight: 21 },
-  helperText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], lineHeight: 17 },
+  cardPrompt: { flex: 1, fontSize: 14, fontFamily: 'Nunito_700Bold', lineHeight: 21 },
+  helperText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2], lineHeight: 17 },
   answerPrompt: { gap: 6 },
-  answerPromptText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium' },
+  answerPromptText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold' },
   editArea: { gap: 10 },
   input: {
     backgroundColor: palette.ink[1],
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(247, 241, 232,0.1)',
+    borderColor: tint.cream(0.1),
     padding: 14,
     minHeight: 90,
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[0],
     textAlignVertical: 'top',
     paddingTop: Platform.OS === 'android' ? 14 : 14,
   },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, alignItems: 'center' },
   cancelBtn: { paddingVertical: 8, paddingHorizontal: 4 },
-  cancelText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  cancelText: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
   saveBtn: { paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.lg },
-  saveText: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.ink[0] },
+  saveText: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: palette.ink[0] },
   answersStack: { gap: 12 },
   answerBlock: { gap: 4 },
   answerMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  answerOwner: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[2], textTransform: 'uppercase', letterSpacing: 0.5 },
-  editLink: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
-  answerText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
+  answerOwner: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: palette.content[2], textTransform: 'uppercase', letterSpacing: 0.5 },
+  editLink: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
+  answerText: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1], lineHeight: 21 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  waitingText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], flex: 1, lineHeight: 17 },
+  waitingText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2], flex: 1, lineHeight: 17 },
   footer: { gap: 12, alignItems: 'center' },
-  footerNote: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  footerNote: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
   skipBtn: { paddingVertical: 6 },
-  skipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  skipText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
 });

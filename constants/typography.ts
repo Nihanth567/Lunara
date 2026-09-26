@@ -11,28 +11,27 @@ import { Platform, type TextStyle } from 'react-native';
  * dense screens felt flat and undesigned. A scale with deliberate gaps does the
  * work that a hundred near-identical sizes cannot.
  *
- * ─── Why two families ────────────────────────────────────────────────────────
+ * ─── Why one rounded family ─────────────────────────────────────────────────
  *
- * Everything was Inter. Inter is an excellent interface face and the single
- * most over-used typeface in software — it is the visual default of every
- * generated UI, which is exactly why an all-Inter product reads as untouched by
- * a designer. It also has no voice, and Lunara is a product people write to
- * their partner in at 11pm.
+ * **Nunito**, everywhere. Its terminals are rounded, which is most of what
+ * makes a typeface read as *cozy* rather than *designed* — the same reason the
+ * friendliest consumer apps (Cal AI, Finch) set their headlines in a soft,
+ * heavy sans instead of a serif. It replaced Fraunces + Plus Jakarta Sans: a
+ * sharp serif over a geometric sans looked considered, but it felt like an
+ * editorial product, and this is one two people open in bed at 11pm.
  *
- * `display` — **Fraunces**. A variable serif drawn with real optical sizing:
- *   its `opsz` axis thickens hairlines and opens counters at small sizes, so it
- *   stays legible where a high-contrast serif like Playfair (the reflexive
- *   "elegant" pick, and by now its own kind of default) would shatter. Warm,
- *   slightly idiosyncratic, and it does something Inter cannot: it makes the
- *   couple's own words look like they matter.
+ * One family also means one less decision on every screen. Hierarchy comes
+ * from weight and size alone:
  *
- * `sans` — **Plus Jakarta Sans**. Geometric-humanist with a taller x-height
- *   than Inter, so labels and metadata hold up at 12–13px on a dark ground. It
- *   carries the interface without competing with the serif.
+ *   800 ExtraBold — display, titles, big numbers
+ *   700 Bold      — headings, buttons, labels
+ *   600 SemiBold  — captions and small labels (Nunito runs light, so small
+ *                   text on a dark ground needs the extra weight)
+ *   500 Medium    — the couple's own words, read back
+ *   400 Regular   — running text and inputs
  *
- * Reserve the serif for display, numerals and the couple's own writing. Every
- * control, label and piece of chrome stays sans. A serif on a button is the
- * other way to look amateur.
+ * Still not Inter: Inter is the visual default of generated UI, and it has no
+ * warmth at all.
  *
  * ─── Tracking ────────────────────────────────────────────────────────────────
  *
@@ -44,14 +43,14 @@ import { Platform, type TextStyle } from 'react-native';
  */
 
 export const fonts = {
-  /** Fraunces — display, numerals, and the couple's own words. */
-  display: 'Fraunces_600SemiBold',
-  displayLight: 'Fraunces_400Regular',
-  /** Plus Jakarta Sans — every control, label, and piece of chrome. */
-  sans: 'PlusJakartaSans_400Regular',
-  sansMedium: 'PlusJakartaSans_500Medium',
-  sansSemiBold: 'PlusJakartaSans_600SemiBold',
-  sansBold: 'PlusJakartaSans_700Bold',
+  /** Display, titles and numerals. */
+  display: 'Nunito_800ExtraBold',
+  /** The couple's own words, read back. */
+  displayLight: 'Nunito_500Medium',
+  sans: 'Nunito_400Regular',
+  sansMedium: 'Nunito_600SemiBold',
+  sansSemiBold: 'Nunito_700Bold',
+  sansBold: 'Nunito_800ExtraBold',
 } as const;
 
 /**
@@ -119,9 +118,8 @@ export const type = {
   } satisfies TextStyle,
 
   /**
-   * The couple's own writing, wherever it is being read back. Serif on purpose:
-   * their words are the content, not chrome, and should not be set in the same
-   * face as a settings row.
+   * The couple's own writing, wherever it is being read back. Larger and a
+   * touch heavier than body, so their words read as the content, not chrome.
    */
   prose: {
     fontFamily: fonts.displayLight,
@@ -180,7 +178,7 @@ export const type = {
 
 /**
  * Lining figures for anything that changes in place — a streak counter, a
- * timer, a stat that ticks up. Fraunces' numerals are proportional, so without
+ * timer, a stat that ticks up. Nunito's numerals are proportional, so without
  * this a "9" narrower than a "0" makes the whole row jitter on every update.
  */
 export const tabularNumerals: TextStyle = {

@@ -3,7 +3,6 @@ import React, { useMemo, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +11,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { SpringPressable } from '@/components/SpringPressable';
 import { palette } from '@/constants/colors';
 import {
   DATE_IDEAS,
@@ -86,16 +85,10 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
               {DATE_IDEAS.length} ideas across Cozy, Outdoor & Conversational themes
             </Text>
           </View>
-          <Pressable
-            style={styles.unlockBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onUnlock();
-            }}
-          >
+          <SpringPressable style={styles.unlockBtn} onPress={onUnlock}>
             <Ionicons name="sparkles" size={16} color={palette.ink[0]} />
             <Text style={styles.unlockText}>Unlock Full Date Night Playbook with Lunara Pro</Text>
-          </Pressable>
+          </SpringPressable>
         </View>
       )}
 
@@ -105,11 +98,13 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
             {DATE_THEMES.map((t) => {
               const active = t === theme;
               return (
-                <Pressable
+                <SpringPressable
                   key={t}
                   style={[styles.themeChip, active && styles.themeChipActive]}
+                  haptic="selection"
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
                   onPress={() => {
-                    Haptics.selectionAsync();
                     setTheme(t);
                     setPage(0);
                   }}
@@ -120,7 +115,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
                     color={active ? palette.content[0] : palette.content[1]}
                   />
                   <Text style={[styles.themeChipText, active && styles.themeChipTextActive]}>{t}</Text>
-                </Pressable>
+                </SpringPressable>
               );
             })}
           </View>
@@ -159,7 +154,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24, gap: 12 },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[2],
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -179,30 +174,30 @@ const styles = StyleSheet.create({
   ideaHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   ideaTheme: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[1],
     letterSpacing: 0.3,
     flex: 1,
   },
   ideaDuration: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
   },
   ideaTitle: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[0],
   },
   ideaDesc: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },
 
   lockRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 4 },
-  lockText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  lockText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
   unlockBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -218,7 +213,7 @@ const styles = StyleSheet.create({
   },
   unlockText: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.ink[0],
     textAlign: 'center',
     flexShrink: 1,
@@ -240,7 +235,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(247, 241, 232,0.4)',
     backgroundColor: 'rgba(247, 241, 232,0.16)',
   },
-  themeChipText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
+  themeChipText: { fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: palette.content[1] },
   themeChipTextActive: { color: palette.content[0] },
 
   dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginTop: 12 },

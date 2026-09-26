@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
-import { radius } from '@/constants/tokens';
+import { SpringPressable } from '@/components/SpringPressable';
+import { pressScale, radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
 
 const SECTIONS: { heading: string; body?: string; bullets?: { label: string; text: string }[] }[] = [
@@ -48,13 +49,15 @@ export default function PrivacyScreen() {
   return (
     <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
       <StarField />
-      <Pressable
+      <SpringPressable
         style={[styles.closeButton, { top: insets.top + 12 }]}
         onPress={() => router.back()}
         hitSlop={10}
+        scaleTo={pressScale.icon}
+        accessibilityLabel="Close"
       >
         <Ionicons name="close" size={22} color={palette.content[1]} />
-      </Pressable>
+      </SpringPressable>
 
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 }]}
@@ -111,11 +114,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   content: { paddingHorizontal: 26 },
-  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0], marginBottom: 4 },
-  effectiveDate: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[2], marginBottom: 24 },
+  title: { fontSize: 26, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0], marginBottom: 4 },
+  effectiveDate: { fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: palette.content[2], marginBottom: 24 },
   section: { marginBottom: 22, gap: 8 },
-  heading: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
-  body: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
+  heading: { fontSize: 16, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
+  body: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1], lineHeight: 21 },
   bulletList: { gap: 10, marginTop: 2 },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   bulletDot: {
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.content[1],
     marginTop: 7,
   },
-  bulletText: { flex: 1, fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], lineHeight: 21 },
-  bulletLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
+  bulletText: { flex: 1, fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1], lineHeight: 21 },
+  bulletLabel: { fontFamily: 'Nunito_700Bold', color: palette.content[1] },
   link: { color: palette.content[1], textDecorationLine: 'underline' },
 });

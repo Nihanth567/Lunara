@@ -1,5 +1,6 @@
 import type { DailyEntry } from '@/context/AppContext';
 import { promptAccent } from '@/constants/colors';
+import { dailyPrompt } from '@/lib/dailyPrompts';
 
 /**
  * Small pure helpers shared by the Moments list and a single moment's detail
@@ -55,11 +56,16 @@ export function formatMomentDateLong(dateStr: string): string {
 export interface MomentSection {
   key: 'grateful' | 'cute' | 'grow';
   title: string;
+  /** The question that card asked on this night. */
+  question: string;
   color: string;
   mine: string;
   theirs: string;
   myVoice: string | null;
   theirVoice: string | null;
+  /** Lengths, so a past night's players read "0:14" rather than "Voice note". */
+  myVoiceDurationMs: number | null;
+  theirVoiceDurationMs: number | null;
 }
 
 /** Both partners' answers for a night, grouped by prompt, in ritual order. */
@@ -67,30 +73,39 @@ export function momentSections(entry: DailyEntry): MomentSection[] {
   return [
     {
       key: 'grateful',
+      question: dailyPrompt('grateful', entry.date),
       title: 'Grateful',
       color: promptAccent.grateful,
       mine: entry.grateful,
       theirs: entry.partnerGrateful,
       myVoice: entry.voiceGrateful ?? null,
       theirVoice: entry.partnerVoiceGrateful ?? null,
+      myVoiceDurationMs: entry.voiceGratefulDurationMs ?? null,
+      theirVoiceDurationMs: entry.partnerVoiceGratefulDurationMs ?? null,
     },
     {
       key: 'cute',
+      question: dailyPrompt('cute', entry.date),
       title: 'Cute',
       color: promptAccent.cute,
       mine: entry.cute,
       theirs: entry.partnerCute,
       myVoice: entry.voiceCute ?? null,
       theirVoice: entry.partnerVoiceCute ?? null,
+      myVoiceDurationMs: entry.voiceCuteDurationMs ?? null,
+      theirVoiceDurationMs: entry.partnerVoiceCuteDurationMs ?? null,
     },
     {
       key: 'grow',
+      question: dailyPrompt('grow', entry.date),
       title: 'Grow',
       color: promptAccent.grow,
       mine: entry.grow,
       theirs: entry.partnerGrow,
       myVoice: entry.voiceGrow ?? null,
       theirVoice: entry.partnerVoiceGrow ?? null,
+      myVoiceDurationMs: entry.voiceGrowDurationMs ?? null,
+      theirVoiceDurationMs: entry.partnerVoiceGrowDurationMs ?? null,
     },
   ];
 }

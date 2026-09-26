@@ -24,6 +24,7 @@ import {
 } from '@/lib/streak';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
 import type { VoiceSlot } from '@/lib/voiceNotes';
+import { togetherPoints as computeTogetherPoints } from '@/lib/togetherPoints';
 import { isGrowFollowUpResponse, type GrowFollowUpResponse } from '@/lib/growCheckBack';
 import {
   withDoneState,
@@ -68,6 +69,19 @@ export class NotSignedInError extends Error {
   constructor() {
     super('Your session has expired. Sign in again to save tonight.');
     this.name = 'NotSignedInError';
+  }
+}
+
+/**
+ * The joining partner's account couldn't be created — as opposed to their
+ * invite code not working, which `join_couple` reports as a plain Error. Kept
+ * apart so the join form never tells someone their partner's code is wrong
+ * when the code was never even tried.
+ */
+export class GuestSignInError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GuestSignInError';
   }
 }
 
@@ -200,6 +214,12 @@ export interface Couple {
   inviteCode: string;
   isDemoMode: boolean;
   isSubscribed: boolean;
+  /**
+   * One point per night both partners finished. Derived from `entries` the same
+   * way `currentStreak` is — see `lib/togetherPoints.ts` for why this is never
+   * a counter.
+   */
+  togetherPoints: number;
 }
 
 export interface DailyEntry {
@@ -226,6 +246,17 @@ export interface DailyEntry {
   partnerVoiceGrateful?: string | null;
   partnerVoiceCute?: string | null;
   partnerVoiceGrow?: string | null;
+  /**
+   * Length of each recording in milliseconds, captured at record time so a
+   * player can show "0:14" before it has resolved a signed URL. Null for notes
+   * recorded before the column existed, which render as they always did.
+   */
+  voiceGratefulDurationMs?: number | null;
+  voiceCuteDurationMs?: number | null;
+  voiceGrowDurationMs?: number | null;
+  partnerVoiceGratefulDurationMs?: number | null;
+  partnerVoiceCuteDurationMs?: number | null;
+  partnerVoiceGrowDurationMs?: number | null;
   /** Reply to the next-day Grow check-back about this day's Grow note. */
   growFollowUp?: GrowFollowUpResponse | null;
   partnerGrowFollowUp?: GrowFollowUpResponse | null;
@@ -243,6 +274,9 @@ interface EntryRow {
   voice_grateful: string | null;
   voice_cute: string | null;
   voice_grow: string | null;
+  voice_grateful_duration_ms: number | null;
+  voice_cute_duration_ms: number | null;
+  voice_grow_duration_ms: number | null;
   grow_followup: string | null;
 }
 
@@ -290,6 +324,11 @@ interface AppContextType {
   realtimeConnected: boolean;
   whoPays: 'me' | 'partner' | 'later' | null;
   user: User | null;
+  /**
+   * Signed in with an anonymous account made by `joinCoupleAsGuest` — a partner
+   * who joined with just a name and a code. Never true for Apple or Google.
+   */
+  isGuest: boolean;
   couple: Couple | null;
   entries: DailyEntry[];
   todayEntry: DailyEntry | null;
@@ -317,6 +356,12 @@ interface AppContextType {
   setCouple: (couple: Couple) => Promise<void>;
   createCouple: () => Promise<Couple>;
   joinCouple: (inviteCode: string) => Promise<Couple>;
+  /**
+   * Join a partner's couple with only a name and their code: creates an
+   * anonymous account if there is no session yet, then redeems the code.
+   * Throws `GuestSignInError` if the account couldn't be made.
+   */
+  joinCoupleAsGuest: (name: string, inviteCode: string) => Promise<void>;
   /**
    * Re-read profile + couple from the server. Returns what the account already
    * has, so a sign-in can route a returning user past onboarding instead of
@@ -350,7 +395,7 @@ interface AppContextType {
   submitTodayEntry: (updates?: Partial<DailyEntry>) => Promise<void>;
   revealTodayEntry: () => Promise<void>;
   setMyReaction: (reaction: string) => Promise<void>;
-  setVoiceNote: (slot: VoiceSlot, path: string | null) => Promise<void>;
+  setVoiceNote: (slot: VoiceSlot, path: string | null, durationMs?: number | null) => Promise<void>;
   setGrowFollowUp: (date: string, response: GrowFollowUpResponse) => Promise<void>;
   saveKeepsakeAnswer: (questionKey: string, answer: string) => Promise<void>;
   /**
@@ -459,6 +504,12 @@ function emptyEntry(date: string, isDemoMode = false): DailyEntry {
     partnerVoiceGrateful: null,
     partnerVoiceCute: null,
     partnerVoiceGrow: null,
+    voiceGratefulDurationMs: null,
+    voiceCuteDurationMs: null,
+    voiceGrowDurationMs: null,
+    partnerVoiceGratefulDurationMs: null,
+    partnerVoiceCuteDurationMs: null,
+    partnerVoiceGrowDurationMs: null,
     growFollowUp: null,
     partnerGrowFollowUp: null,
   };
@@ -694,6 +745,12 @@ function mergeEntryRows(rows: EntryRow[], userId: string, revealedDates: Set<str
       partnerVoiceGrateful: partner?.voice_grateful ?? null,
       partnerVoiceCute: partner?.voice_cute ?? null,
       partnerVoiceGrow: partner?.voice_grow ?? null,
+      voiceGratefulDurationMs: mine?.voice_grateful_duration_ms ?? null,
+      voiceCuteDurationMs: mine?.voice_cute_duration_ms ?? null,
+      voiceGrowDurationMs: mine?.voice_grow_duration_ms ?? null,
+      partnerVoiceGratefulDurationMs: partner?.voice_grateful_duration_ms ?? null,
+      partnerVoiceCuteDurationMs: partner?.voice_cute_duration_ms ?? null,
+      partnerVoiceGrowDurationMs: partner?.voice_grow_duration_ms ?? null,
       growFollowUp: isGrowFollowUpResponse(mine?.grow_followup) ? mine.grow_followup : null,
       partnerGrowFollowUp: isGrowFollowUpResponse(partner?.grow_followup) ? partner.grow_followup : null,
     };
@@ -702,7 +759,7 @@ function mergeEntryRows(rows: EntryRow[], userId: string, revealedDates: Set<str
 
 /** The column set every entry read asks for — one list, three call sites. */
 const ENTRY_COLUMNS =
-  'couple_id, date, user_id, grateful, cute, grow, submitted, reaction, voice_grateful, voice_cute, voice_grow, grow_followup';
+  'couple_id, date, user_id, grateful, cute, grow, submitted, reaction, voice_grateful, voice_cute, voice_grow, voice_grateful_duration_ms, voice_cute_duration_ms, voice_grow_duration_ms, grow_followup';
 
 /**
  * The column set every entry write sends. Kept in one place so a new field
@@ -722,6 +779,9 @@ function entryUpsertPayload(coupleId: string, date: string, userId: string, entr
     voice_grateful: entry.voiceGrateful ?? null,
     voice_cute: entry.voiceCute ?? null,
     voice_grow: entry.voiceGrow ?? null,
+    voice_grateful_duration_ms: entry.voiceGratefulDurationMs ?? null,
+    voice_cute_duration_ms: entry.voiceCuteDurationMs ?? null,
+    voice_grow_duration_ms: entry.voiceGrowDurationMs ?? null,
   };
 }
 
@@ -875,6 +935,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         inviteCode: coupleRow.invite_code,
         isDemoMode: false,
         isSubscribed: coupleRow.is_subscribed,
+        togetherPoints: coupleRow.together_points ?? 0,
       });
 
       const [{ data: entryRows }, { data: keepsakeRows }, { data: listRows }] = await Promise.all([
@@ -1288,18 +1349,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * realtime event, so an effect would have to race it forever. A computed
    * value simply wins every time.
    */
+  /**
+   * One point per completed night, derived from the same entries the streak is.
+   *
+   * `Math.max` against the server's value rather than replacing it: `entries`
+   * is the couple's full history in normal operation, but a cold start renders
+   * once before it arrives, and a client that has loaded nothing must not
+   * briefly show a couple that they have zero nights together. The server's
+   * number is never larger than the truth, so the larger of the two is always
+   * the better answer.
+   */
+  const togetherPointsValue = React.useMemo(
+    () => computeTogetherPoints(entries),
+    [entries],
+  );
+
   const couple = React.useMemo(() => {
     if (!baseCouple) return null;
     return {
       ...baseCouple,
       currentStreak: streakState.current,
       longestStreak: Math.max(streakState.longest, baseCouple.longestStreak),
+      togetherPoints: Math.max(togetherPointsValue, baseCouple.togetherPoints),
       // Either half can unlock Pro: the server value covers the partner who
       // didn't pay, the RevenueCat value covers the one who did — immediately,
       // and without waiting for a webhook that a restore never sends.
       isSubscribed: baseCouple.isSubscribed || proEntitlement,
     };
-  }, [baseCouple, proEntitlement, streakState.current, streakState.longest]);
+  }, [baseCouple, proEntitlement, streakState.current, streakState.longest, togetherPointsValue]);
 
   /**
    * Keep the iOS home screen widget in sync. The status mirrors exactly what
@@ -1478,6 +1555,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteCode: data.invite_code,
       isDemoMode: false,
       isSubscribed: false,
+      // A couple that was created a moment ago has no completed nights.
+      togetherPoints: 0,
     };
   }, [session, user, refreshSharedState]);
 
@@ -1497,8 +1576,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteCode: data.invite_code,
       isDemoMode: false,
       isSubscribed: false,
+      // A couple that was created a moment ago has no completed nights.
+      togetherPoints: 0,
     };
   }, [session, user, refreshSharedState]);
+
+  /**
+   * The joining partner's way in: a name and the code, and nothing else.
+   *
+   * Apple and Google stay with the person who starts the couple. The one who
+   * joins is arriving on an invitation, so asking them to choose an identity
+   * provider first is a wall between them and the thing they were sent. They
+   * get a Supabase anonymous account instead — a real `authenticated` user, so
+   * every RLS policy, the reveal gate and `join_couple` treat them exactly like
+   * anyone else. The name rides in the sign-up metadata, which is where
+   * `handle_new_user` reads it when it creates the profile row.
+   *
+   * The trade is that the account lives on this install: a guest who deletes
+   * the app has no way back in.
+   *
+   * Everything here runs off the session supabase just returned, not the
+   * `session`/`user` state — those only update on the next render, which is
+   * why this can't reuse `joinCouple`. A session left over from an earlier try
+   * (a mistyped code) is reused rather than minting a second account per
+   * attempt.
+   */
+  const joinCoupleAsGuest = useCallback(async (name: string, inviteCode: string): Promise<void> => {
+    const trimmedName = name.trim();
+    const { data: existing } = await supabase.auth.getSession();
+    let userId = existing.session?.user.id ?? null;
+
+    if (!userId) {
+      const { data, error } = await supabase.auth.signInAnonymously({
+        options: { data: { name: trimmedName } },
+      });
+      if (error || !data.user) {
+        throw new GuestSignInError(error?.message ?? 'Could not set up your account.');
+      }
+      userId = data.user.id;
+    } else {
+      // They may have changed their name between attempts.
+      await supabase.from('profiles').update({ name: trimmedName }).eq('id', userId);
+    }
+
+    const { error } = await supabase.rpc('join_couple', {
+      p_invite_code: inviteCode.trim().toUpperCase(),
+      p_user_name: trimmedName,
+    });
+    if (error) throw new Error(error.message);
+    await loadRemoteProfileAndCouple(userId);
+  }, [loadRemoteProfileAndCouple]);
 
   // ─── Ritual entries ───────────────────────────────────────────────────────
 
@@ -1609,9 +1736,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * already happened (lib/voiceNotes.ts) — this only persists the resulting
    * path, so it rides the same write path and reveal gate as the text.
    */
-  const setVoiceNote = useCallback(async (slot: VoiceSlot, path: string | null) => {
+  const setVoiceNote = useCallback(async (
+    slot: VoiceSlot,
+    path: string | null,
+    durationMs?: number | null,
+  ) => {
     const field = slot === 'grateful' ? 'voiceGrateful' : slot === 'cute' ? 'voiceCute' : 'voiceGrow';
-    await updateTodayEntry({ [field]: path } as Partial<DailyEntry>);
+    // The duration is written in the same update as the path, never after it.
+    // Two writes would leave a window where a note exists with no length, and
+    // that window is exactly when the partner's realtime refresh lands.
+    const durationField = `${field}DurationMs` as const;
+    await updateTodayEntry({
+      [field]: path,
+      // Clearing a note clears its duration with it, so a re-record can't
+      // inherit the previous take's length.
+      [durationField]: path === null ? null : (durationMs ?? null),
+    } as Partial<DailyEntry>);
   }, [updateTodayEntry]);
 
   /**
@@ -1978,6 +2118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         realtimeConnected,
         whoPays,
         user,
+        isGuest: session?.user.is_anonymous === true,
         couple,
         entries,
         todayEntry,
@@ -1993,6 +2134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setCouple,
         createCouple,
         joinCouple,
+        joinCoupleAsGuest,
         refreshSharedState,
         refreshEntries,
         refreshEntitlement,

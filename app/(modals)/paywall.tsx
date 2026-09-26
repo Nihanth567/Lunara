@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, Linking } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { PACKAGE_TYPE, type PurchasesPackage } from 'react-native-purchases';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
-import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { ScreenLoading } from '@/components/ScreenLoading';
+import { SpringPressable } from '@/components/SpringPressable';
 import {
   defaultPackage,
   getCurrentOffering,
@@ -21,7 +21,8 @@ import {
 import { PREMIUM_FEATURES, coupleCoverageSummary } from '@/lib/entitlements';
 import { useApp } from '@/context/AppContext';
 import { track } from '@/lib/analytics';
-import { radius, space } from '@/constants/tokens';
+import { haptic } from '@/lib/haptics';
+import { hitSlopFor, pressScale, radius, space } from '@/constants/tokens';
 import { gradients, palette, tint } from '@/constants/colors';
 import { type as text } from '@/constants/typography';
 
@@ -134,6 +135,13 @@ export default function PaywallScreen() {
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [selected, setSelected] = useState<PurchasesPackage | null>(null);
   const [loading, setLoading] = useState(true);
+  /**
+   * The plans didn't arrive. Previously a network failure here fell through to
+   * the "plans aren't configured yet — add products in RevenueCat" branch: a
+   * message for the developer, shown to someone trying to pay, with no way to
+   * ask again.
+   */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
   // Onboarding has already completed by the time this screen is reached from
@@ -161,22 +169,31 @@ export default function PaywallScreen() {
     track('paywall_view', { source: isGate ? 'gate' : fromOnboarding ? 'onboarding' : 'modal', paired: canPurchase });
   }, [isGate, fromOnboarding, canPurchase]);
 
+  const loadOffering = async () => {
+    if (!isPurchasesConfigured()) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLoadFailed(false);
+    try {
+      const offering = await getCurrentOffering();
+      const available = offering?.availablePackages ?? [];
+      setPackages(available);
+      // Weekly, not annual — see `packageRank` in lib/purchases.ts.
+      setSelected(defaultPackage(available));
+      // In a release build an empty offering is a store that didn't answer,
+      // not a missing configuration — say so and offer to try again.
+      if (available.length === 0 && !__DEV__) setLoadFailed(true);
+    } catch {
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      if (!isPurchasesConfigured()) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const offering = await getCurrentOffering();
-        const available = offering?.availablePackages ?? [];
-        setPackages(available);
-        // Weekly, not annual — see `packageRank` in lib/purchases.ts.
-        setSelected(defaultPackage(available));
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void loadOffering();
   }, []);
 
   const orderedPackages = useMemo(() => orderPackages(packages), [packages]);
@@ -215,7 +232,7 @@ export default function PaywallScreen() {
           plan: planLabel(selected),
           trialDays: trialDaysOf(selected),
         });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic.success();
         // Unlock from RevenueCat's own answer, right now. `refreshSharedState`
         // only reads the server mirror, which the webhook hasn't written yet —
         // relying on it alone left a paying customer looking at a paywall.
@@ -230,6 +247,7 @@ export default function PaywallScreen() {
           dismiss();
         }
       } else {
+        haptic.error();
         Alert.alert(
           'Almost there',
           'The store completed your purchase but hasn’t confirmed it yet. Give it a moment, then tap Restore Purchases.',
@@ -237,7 +255,11 @@ export default function PaywallScreen() {
       }
     } catch (error: any) {
       if (!error?.userCancelled) {
-        Alert.alert('Could not complete purchase', error?.message ?? 'Please try again.');
+        haptic.error();
+        Alert.alert(
+          'That didn’t go through',
+          `${error?.message ?? 'The store didn’t complete the purchase.'} Try again whenever you’re ready.`,
+        );
       }
     } finally {
       setPurchasing(false);
@@ -258,19 +280,21 @@ export default function PaywallScreen() {
         // Only once it actually found something — firing on entry counted every
         // tap of the button as a successful restore.
         track('restore_completed', { source: isGate ? 'gate' : 'modal' });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic.success();
         if (isGate) {
           router.replace('/(app)/' as never);
         } else {
           dismiss();
         }
       } else {
+        haptic.error();
         Alert.alert(
           'No active subscription found',
           'Restore looked for a previous purchase on this account but did not find one.',
         );
       }
     } catch (error: any) {
+      haptic.error();
       Alert.alert('Could not restore purchases', error?.message ?? 'Please try again.');
     } finally {
       setPurchasing(false);
@@ -293,13 +317,15 @@ export default function PaywallScreen() {
       <Stack.Screen options={{ gestureEnabled: !isGate }} />
       <StarField />
       {!isGate && (
-        <Pressable
+        <SpringPressable
           style={[styles.closeButton, { top: insets.top + 12 }]}
           onPress={dismiss}
-          hitSlop={10}
+          hitSlop={hitSlopFor(40)}
+          scaleTo={pressScale.icon}
+          accessibilityLabel="Close"
         >
           <Ionicons name="close" size={22} color={palette.content[1]} />
-        </Pressable>
+        </SpringPressable>
       )}
 
       <ScrollView
@@ -362,14 +388,9 @@ export default function PaywallScreen() {
         </View>
 
         {loading ? (
-          <View style={{ alignItems: 'center', marginVertical: 32 }}>
-            <ThinkingOrb
-              state="working"
-              size={64}
-              theme="dark"
-              accessibilityLabel="Loading Lunara Premium"
-            />
-          </View>
+          // The app's one wait: it fades in after a beat, so plans that come
+          // back quickly never flash a loader on the way to the list.
+          <ScreenLoading fullScreen={false} accessibilityLabel="Loading Lunara Premium" />
         ) : !canPurchase ? (
           <View style={styles.demoNotice}>
             <Ionicons name="people-outline" size={16} color={palette.content[1]} />
@@ -378,7 +399,18 @@ export default function PaywallScreen() {
               it unlocks once your partner has joined you — nothing to pay for until then.
             </Text>
           </View>
+        ) : loadFailed ? (
+          <View style={styles.loadFailed}>
+            <Text style={styles.loadFailedText}>
+              The plans didn&apos;t load — the connection may have dropped.
+            </Text>
+            <SpringPressable onPress={() => void loadOffering()} style={styles.retryBtn}>
+              <Ionicons name="refresh" size={15} color={palette.accent.glow} />
+              <Text style={styles.retryText}>Try again</Text>
+            </SpringPressable>
+          </View>
         ) : orderedPackages.length === 0 ? (
+          // Development only: a release build treats this as `loadFailed`.
           <Text style={styles.noOfferings}>
             Subscription plans aren&apos;t configured yet. Add products in RevenueCat and they&apos;ll appear here.
           </Text>
@@ -392,13 +424,15 @@ export default function PaywallScreen() {
               const perMonth = pkg.product.pricePerMonthString;
 
               return (
-                <Pressable
+                <SpringPressable
                   key={pkg.identifier}
                   style={[styles.packageOption, isSelected && styles.packageOptionSelected]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSelected(pkg);
-                  }}
+                  scaleTo={pressScale.card}
+                  // Choosing between plans is a selection, not a tap.
+                  haptic="selection"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  onPress={() => setSelected(pkg)}
                 >
                   {(isWeekly || isAnnual) && (
                     <View style={styles.badgeRow}>
@@ -431,7 +465,7 @@ export default function PaywallScreen() {
                       {isSelected && <View style={styles.radioDot} />}
                     </View>
                   </View>
-                </Pressable>
+                </SpringPressable>
               );
             })}
           </View>
@@ -445,9 +479,15 @@ export default function PaywallScreen() {
             disabled={!selected || !canPurchase}
           />
           {!isGate ? (
-            <Pressable onPress={dismiss} disabled={purchasing} style={styles.freeBtn}>
+            <SpringPressable
+              onPress={dismiss}
+              disabled={purchasing}
+              feedback="highlight"
+              haptic="none"
+              style={styles.freeBtn}
+            >
               <Text style={styles.freeText}>Not now</Text>
-            </Pressable>
+            </SpringPressable>
           ) : (
             /*
               The gate has no close button, which means somebody who signed in
@@ -457,7 +497,9 @@ export default function PaywallScreen() {
               one. Sign-out is the exit; it is deliberately the quietest control
               here.
             */
-            <Pressable
+            <SpringPressable
+              feedback="highlight"
+              haptic="none"
               onPress={() => {
                 Alert.alert(
                   'Use a different account?',
@@ -474,7 +516,13 @@ export default function PaywallScreen() {
                         // to leave — this route does not re-route itself.
                         signOut()
                           .then(() => router.replace('/' as never))
-                          .catch(() => {});
+                          .catch(() => {
+                            haptic.error();
+                            Alert.alert(
+                              'Couldn’t sign out',
+                              'Something got in the way just now. Check your connection and try once more.',
+                            );
+                          });
                       },
                     },
                   ],
@@ -484,11 +532,16 @@ export default function PaywallScreen() {
               style={styles.freeBtn}
             >
               <Text style={styles.freeText}>Use a different account</Text>
-            </Pressable>
+            </SpringPressable>
           )}
-          <Pressable onPress={handleRestore} disabled={purchasing} style={styles.restoreBtn}>
+          <SpringPressable
+            onPress={handleRestore}
+            disabled={purchasing}
+            feedback="highlight"
+            style={styles.restoreBtn}
+          >
             <Text style={styles.restoreText}>Restore purchases</Text>
-          </Pressable>
+          </SpringPressable>
           {/*
             Guideline 3.1.2 requires a subscription screen to link the licence
             terms and the privacy policy. "Terms of Service" alone did not
@@ -497,17 +550,35 @@ export default function PaywallScreen() {
             here, which is what Review looks for.
           */}
           <View style={styles.legalRow}>
-            <Pressable onPress={() => router.push('/(modals)/terms')}>
+            <SpringPressable
+              onPress={() => router.push('/(modals)/terms')}
+              feedback="highlight"
+              haptic="none"
+              accessibilityRole="link"
+              hitSlop={12}
+            >
               <Text style={styles.legalText}>Terms</Text>
-            </Pressable>
+            </SpringPressable>
             <Text style={styles.legalDivider}>·</Text>
-            <Pressable onPress={() => Linking.openURL(APPLE_EULA_URL)}>
+            <SpringPressable
+              onPress={() => void Linking.openURL(APPLE_EULA_URL).catch(() => {})}
+              feedback="highlight"
+              haptic="none"
+              accessibilityRole="link"
+              hitSlop={12}
+            >
               <Text style={styles.legalText}>EULA</Text>
-            </Pressable>
+            </SpringPressable>
             <Text style={styles.legalDivider}>·</Text>
-            <Pressable onPress={() => router.push('/(modals)/privacy')}>
+            <SpringPressable
+              onPress={() => router.push('/(modals)/privacy')}
+              feedback="highlight"
+              haptic="none"
+              accessibilityRole="link"
+              hitSlop={12}
+            >
               <Text style={styles.legalText}>Privacy Policy</Text>
-            </Pressable>
+            </SpringPressable>
           </View>
         </View>
       </ScrollView>
@@ -580,7 +651,7 @@ const styles = StyleSheet.create({
   guaranteeText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
     lineHeight: 17,
   },
@@ -593,15 +664,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  featureText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], flex: 1 },
+  featureText: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1], flex: 1 },
   noOfferings: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
     textAlign: 'center',
     lineHeight: 19,
     marginVertical: 24,
   },
+  loadFailed: { alignItems: 'center', gap: space.md, marginVertical: space.xl },
+  loadFailedText: { ...text.callout, color: palette.content[1], textAlign: 'center' },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    minHeight: 44,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.full,
+    borderCurve: 'continuous',
+    backgroundColor: tint.glow(0.1),
+    borderWidth: 1,
+    borderColor: tint.glow(0.28),
+  },
+  retryText: { ...text.label, fontSize: 14, color: palette.accent.glow },
   demoNotice: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -617,7 +703,7 @@ const styles = StyleSheet.create({
   demoNoticeText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },
@@ -643,7 +729,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(247, 241, 232,0.3)',
   },
-  trialBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
+  trialBadgeText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: palette.content[1] },
   valueBadge: {
     backgroundColor: 'rgba(255, 184, 107,0.16)',
     borderRadius: radius.sm,
@@ -652,10 +738,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 184, 107,0.32)',
   },
-  valueBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.accent.glow },
+  valueBadgeText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: palette.accent.glow },
   packageRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  packageTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
-  packagePrice: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1], marginTop: 2 },
+  packageTitle: { fontSize: 16, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
+  packagePrice: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1], marginTop: 2 },
   radio: {
     width: 22,
     height: 22,
@@ -669,10 +755,10 @@ const styles = StyleSheet.create({
   radioDot: { width: 11, height: 11, borderRadius: radius.sm, backgroundColor: palette.accent.glow },
   footer: { gap: 4, marginTop: 12 },
   freeBtn: { alignItems: 'center', paddingVertical: 10 },
-  freeText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
+  freeText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: palette.content[1] },
   restoreBtn: { alignItems: 'center', paddingVertical: 4, marginTop: 6 },
-  restoreText: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
+  restoreText: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[1] },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  legalText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2], textDecorationLine: 'underline' },
+  legalText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2], textDecorationLine: 'underline' },
   legalDivider: { fontSize: 12, color: palette.ink[4] },
 });

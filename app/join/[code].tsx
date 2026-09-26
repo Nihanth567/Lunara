@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,13 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
 import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { SpringPressable } from '@/components/SpringPressable';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
 import {
   isWellFormedInviteCode,
   normalizeInviteCode,
-  stashPendingInvite,
 } from '@/lib/inviteLinks';
 
 /**
@@ -27,8 +27,9 @@ import {
  * to join a couple that could drift apart. All this does is work out *where*
  * the tap should land, which depends entirely on who is holding the phone:
  *
- *   signed in, no couple   → pairing, join form, code already filled in
- *   not signed in          → sign-in, with the code kept for the far side
+ *   no couple              → pairing, join form, code already filled in —
+ *                            signed out, that form also asks for a name and
+ *                            makes a guest account; no Apple or Google
  *   already paired         → a warm "you're already here", not a failed join
  *   malformed code         → a warm way to type it by hand
  *
@@ -42,7 +43,7 @@ export default function JoinDeepLink() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { code } = useLocalSearchParams<{ code?: string }>();
-  const { isLoading, couple, user } = useApp();
+  const { isLoading, couple } = useApp();
   const [outcome, setOutcome] = useState<Outcome>('working');
 
   const normalized = normalizeInviteCode(code);
@@ -64,21 +65,14 @@ export default function JoinDeepLink() {
         return;
       }
 
-      // Cold start: no account yet. Keep the code so sign-in can hand it back
-      // rather than dropping them on an empty pairing form.
-      if (!user) {
-        await stashPendingInvite(normalized);
-        if (cancelled) return;
-        router.replace('/(onboarding)/auth' as never);
-        return;
-      }
-
+      // Signed in or not, the join form is where this lands: a partner joining
+      // with a code gives a name there instead of signing in.
       if (cancelled) return;
       router.replace(`/(onboarding)/pairing?code=${encodeURIComponent(normalized)}` as never);
     })();
 
     return () => { cancelled = true; };
-  }, [couple, isLoading, normalized, router, user]);
+  }, [couple, isLoading, normalized, router]);
 
   if (outcome === 'working') {
     return (
@@ -136,9 +130,13 @@ export default function JoinDeepLink() {
             }
           />
           {malformed && (
-            <Pressable style={styles.secondary} onPress={() => router.replace('/(app)/' as never)}>
+            <SpringPressable
+              style={styles.secondary}
+              feedback="highlight"
+              onPress={() => router.replace('/(app)/' as never)}
+            >
               <Text style={styles.secondaryText}>Not now</Text>
-            </Pressable>
+            </SpringPressable>
           )}
         </View>
       </View>
@@ -164,19 +162,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     textAlign: 'center',
     lineHeight: 21,
   },
   actions: { alignSelf: 'stretch', marginTop: 14, gap: 4 },
   secondary: { alignItems: 'center', paddingVertical: 12 },
-  secondaryText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
+  secondaryText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: palette.content[1] },
 });

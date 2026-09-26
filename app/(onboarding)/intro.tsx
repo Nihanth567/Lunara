@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   ScrollView,
   useWindowDimensions,
   type NativeSyntheticEvent,
@@ -12,13 +11,15 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
+import { SpringPressable } from '@/components/SpringPressable';
+import { haptic } from '@/lib/haptics';
 import { LunaraButton } from '@/components/LunaraButton';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
 import { gradients, palette, tint } from '@/constants/colors';
-import { radius, space, hitSlopFor } from '@/constants/tokens';
+import { radius, space, hitSlopFor, duration } from '@/constants/tokens';
 import { type as text } from '@/constants/typography';
 
 /**
@@ -112,19 +113,19 @@ const PANELS = [
     key: 'fox',
     art: FoxArt,
     title: 'Meet your fox',
-    body: 'Not yours. Not theirs. Yours together — and it brightens on the nights you both turn up.',
+    body: 'It glows a little brighter every night you both show up.',
   },
   {
     key: 'both',
     art: BothOfYouArt,
     title: 'It takes both of you',
-    body: 'What you write stays sealed until your person writes theirs. Then it opens at the same time, for both of you.',
+    body: 'Your answers stay sealed until you’ve both answered. Then they open together.',
   },
   {
     key: 'ritual',
     art: RitualArt,
     title: 'Three small questions',
-    body: 'Something grateful, something cute, something to grow. Two minutes, once a night.',
+    body: 'Type them or say them out loud. About two minutes a night.',
   },
 ] as const;
 
@@ -141,14 +142,14 @@ export default function IntroScreen() {
     const next = Math.round(e.nativeEvent.contentOffset.x / width);
     if (next !== page) {
       setPage(next);
-      Haptics.selectionAsync();
+      // Once per page settled, never per frame of the swipe.
+      haptic.selection();
     }
   };
 
   const advance = () => {
     if (isLast) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push('/(onboarding)/auth');
+      router.push('/(onboarding)/pairing');
       return;
     }
     // Set the page as well as scrolling to it. `onMomentumScrollEnd` fires for
@@ -169,13 +170,15 @@ export default function IntroScreen() {
       <StarField />
 
       <View style={[styles.skipRow, { paddingTop: insets.top + space.md }]}>
-        <Pressable
-          onPress={() => router.push('/(onboarding)/auth')}
+        <SpringPressable
+          onPress={() => router.push('/(onboarding)/pairing')}
           hitSlop={hitSlopFor(32)}
           style={styles.skipBtn}
+          feedback="highlight"
+          accessibilityLabel="Skip the intro"
         >
           <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
+        </SpringPressable>
       </View>
 
       <ScrollView
@@ -204,9 +207,11 @@ export default function IntroScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + space.xl }]}>
         <View style={styles.dots}>
+          {/* The active dot stretches into place rather than jumping. */}
           {PANELS.map((panel, i) => (
-            <View
+            <Animated.View
               key={panel.key}
+              layout={LinearTransition.duration(duration.fast)}
               style={[styles.dot, i === page && styles.dotActive]}
             />
           ))}

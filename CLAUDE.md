@@ -8,7 +8,11 @@ A couples app with two halves that deliberately behave in opposite ways.
 
 **The ritual (private until mutual).** Each partner privately answers three
 prompts — **Grateful**, **Cute**, **Grow** — and once *both* have submitted for
-that date, they reveal together.
+that date, they reveal together. An answer can be typed **or spoken**: a voice
+note on its own completes a card. The three cards never change, but the
+question each one asks rotates nightly (`lib/dailyPrompts.ts`, derived from the
+date). "Your week" (`app/weekly-recap.tsx`, from Moments) reads the last seven
+finished nights back as four short lists.
 
 **The shared list (visible immediately).** One list both partners read and write
 in real time. Each person has their own colour; an item can be finished by
@@ -31,7 +35,7 @@ never has to be. Dark-mode-only, warm plum "candlelight" aesthetic.
 ```bash
 npx expo start            # dev server
 npm run typecheck         # tsc --noEmit — run this before finishing any change
-npm test                  # all three suites (streak, companion, paywall moment)
+npm test                  # every suite in lib/*.test.ts
 npm run test:streak       # node --test lib/streak.test.ts — the streak rules
 npm run ios / android / web
 npx expo prebuild -p ios --clean   # regenerate native projects (needed for widget work)
@@ -45,9 +49,9 @@ Removing it fails the build with "Build input file cannot be found". It is
 untracked by git, so "no tracked files" is not a safe check. Recover with
 `cd ios && pod install`, which re-runs codegen.
 
-There is no ESLint script wired up, and no test framework — the three test
-files (`lib/streak.test.ts`, `lib/companion.test.ts`,
-`lib/paywallMoment.test.ts`) run on Node's built-in `node --test`. `npm run
+There is no ESLint script wired up, and no test framework — the test files
+(`lib/*.test.ts`: streak, companion, accessGate, togetherPoints, dailyPrompts,
+weeklyRecap, nudge) run on Node's built-in `node --test`. `npm run
 typecheck` plus `npm test` is the gate. Note: `supabase/functions/**` (Deno edge functions) always report `tsc`
 errors (remote URL imports, `Deno` global) — those are **pre-existing and
 expected**; ignore them and only care about errors in app code.
@@ -70,16 +74,24 @@ app/                 Expo Router routes
   (modals)/          paywall, privacy, terms  (presentation: modal)
   reveal.tsx         full-screen reveal flow
   moment/[date].tsx  one past night in full — both partners + voice playback
+  weekly-recap.tsx   "Your week" — grateful / cute / working on / how to grow
   keepsakes.tsx      shared long-form Q&A
-components/          shared UI (cards, StarField, LunaraButton, GlassCard, …)
+components/          shared UI (cards, StarField, LunaraButton, GlassCard, …) and the
+                     interaction primitives: SpringPressable, ScreenLoading,
+                     EmptyState, KeyboardAwareScrollViewCompat
 context/AppContext.tsx   the single source of truth for auth/couple/entries/keepsakes
-hooks/               useColors, useGrowth, useGrowCheckBack
+hooks/               useColors, useGrowth, useGrowCheckBack, useNudge
 lib/                 supabase client, entitlements, purchases, widget, growth data,
                      voiceNotes (Storage upload/signed URLs), moments helpers,
                      list.ts (shared-list rules — completion, ordering),
                      companion.ts (fox state machine), reactions.ts (the shared
                      reaction table — reveal writes it, moment reads it),
-                     paywallMoment.ts (when Premium may be offered)
+                     paywallMoment.ts (when Premium may be offered),
+                     dailyPrompts.ts (tonight's question per card),
+                     weeklyRecap.ts (which nights "Your week" reads back),
+                     nudge.ts (Tonight's phases + the single growth nudge rule),
+                     haptics.ts (the one haptic vocabulary),
+                     permissions.ts (ask-with-a-reason before any system prompt)
 constants/           colors.ts (design tokens), keepsakeQuestions.ts
 services/            notifications.ts (local + push scheduling)
 supabase/functions/  Deno edge functions (send-nudge, grow-guidance, webhooks)
@@ -125,6 +137,16 @@ targets/widget/      SwiftUI WidgetKit extension
   person asking, not us. The rules are tested in `lib/paywallMoment.test.ts`;
   if one starts failing, ask whether you are about to sell to someone who
   hasn't seen the product yet.
+- **Tonight is a state machine, and growth gets ONE slot.** `tonightPhase()` in
+  `lib/nudge.ts` names the phase (`not_started → writing → waiting →
+  ready_to_reveal → revealed`); the screen renders one thing per phase. Every
+  growth surface — next-day follow-ups (Grow check-back, tip follow-up),
+  tonight's Grow guidance, the daily tip — goes through `pickNudge()` and draws
+  in `components/SingleNudgeSlot.tsx`, highest priority only, in that order.
+  Follow-ups may show on a new day's first visit or after the reveal; guidance
+  and tips only after the reveal; **nothing while writing, waiting, or before
+  the reveal is opened.** Don't render a growth card anywhere else on Tonight
+  or on the reveal — add a `NudgeKind` instead. Tested in `lib/nudge.test.ts`.
 - **Widget sync**: any change to streak / ritual-complete state should flow
   through `updateWidgetData()` in `lib/widget.ts` (already wired in an
   `AppContext` effect).
@@ -164,9 +186,11 @@ targets/widget/      SwiftUI WidgetKit extension
   Backgrounds come from `gradients` — `screen` normally, `warm` once both
   partners are in a night, `reveal` on the reveal. One definition, not an
   inline stop array per screen.
-  Type is **Fraunces** (display/serif, the couple's own words) + **Plus Jakarta
-  Sans** (all chrome) — *not* Inter, which `constants/typography.ts` rejects by
-  name. Use the 8-step scale in that file (12·14·16·18·22·26·34·44) and never
+  Type is **Nunito** everywhere — one rounded family, chosen because it reads
+  as *cozy*; hierarchy comes from weight (800 display · 700 headings/labels ·
+  600 small text · 500 the couple's words · 400 body). *Not* Inter, which
+  `constants/typography.ts` rejects by name. Use `fonts` / `type` from that
+  file rather than writing a `fontFamily` string. Use the 8-step scale in that file (12·14·16·18·22·26·34·44) and never
   invent a size between steps; `label` and `overline` are styles, not sizes.
   The three documented exceptions are the tab-bar labels (iOS convention), the
   welcome wordmark, and `WidgetHomeScreenPreview` (a scale model).
@@ -178,9 +202,36 @@ targets/widget/      SwiftUI WidgetKit extension
   in art that is a different animal — read the note in that file first.
 - **Copy voice**: gentle, warm, never prescriptive or gamified-pushy. Match the
   existing microcopy tone ("A gentle way forward", "No pressure — …").
-- **Haptics**: `Haptics.selectionAsync()` on tab/segment changes,
-  `impactAsync(Light)` on taps, `notificationAsync(Success)` on positive
-  completion.
+- **Haptics**: never import `expo-haptics` directly — use `haptic` from
+  `lib/haptics.ts`, which names each buzz by meaning: `tap`, `selection`
+  (tabs, segments, plans), `success` (only once the thing has *landed* — saved,
+  sent, purchased — never on the tap that starts it), `error` (soft Warning,
+  not Error), `reaction`, `recordStart`/`recordStop`, `unlock`,
+  `revealSequence`. No haptics on scroll or keystrokes.
+- **Press feedback**: every tappable thing is a `SpringPressable`
+  (`components/SpringPressable.tsx`) — spring press/release from
+  `spring`/`pressScale` in tokens, its own tap/selection haptic, dims when
+  disabled, and drops the scale (keeps the dim) under Reduce Motion. Use
+  `feedback="highlight"` for grouped rows and text links, `scaleTo=
+  pressScale.card` for big surfaces, `pressScale.icon` for icon buttons.
+  `LunaraButton` is built on it. Don't write a raw `Pressable` for a control.
+- **Motion**: transitions come from `duration`/`spring` in tokens and stay in
+  roughly 200–450ms; only the reveal wash uses `duration.reveal`. Prefer
+  Reanimated `entering={FadeIn.duration(duration.base)}` for a state or card
+  arriving. Reanimated animations honour Reduce Motion by default; purely
+  decorative motion (confetti) renders nothing under it.
+- **Keyboard**: any screen with a `TextInput` scrolls in
+  `KeyboardAwareScrollViewCompat` (react-native-keyboard-controller) with a
+  `bottomOffset` that keeps the field's action in view — not
+  `KeyboardAvoidingView`. Dismiss on submit.
+- **Waiting, empty, failing**: `ScreenLoading` (the breathing orb, fades in
+  after a beat) for a whole-screen wait; `EmptyState` (art, one title, one
+  line, one action) for nothing-here-yet. Every write that can throw is caught
+  and says so in a sentence with a way to retry — no `void promise` on a
+  mutation.
+- **Permissions**: ask through `askWithReason()` in `lib/permissions.ts` — one
+  sentence of why before the system dialog, and a button to Settings once it
+  has been declined.
 - **Screens** wrap content in `<LinearGradient>` + `<StarField />` and pad with
   `useSafeAreaInsets()` (`insets.top + 16` top, `insets.bottom + 90` bottom for
   the tab bar; add `+67/+34` on web — see existing screens).

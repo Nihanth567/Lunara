@@ -52,6 +52,7 @@ export type Database = {
           longest_streak: number
           member_count: number
           start_date: string
+          together_points: number
         }
         Insert: {
           created_at?: string
@@ -61,6 +62,7 @@ export type Database = {
           longest_streak?: number
           member_count?: number
           start_date?: string
+          together_points?: number
         }
         Update: {
           created_at?: string
@@ -70,6 +72,7 @@ export type Database = {
           longest_streak?: number
           member_count?: number
           start_date?: string
+          together_points?: number
         }
         Relationships: []
       }
@@ -87,8 +90,11 @@ export type Database = {
           updated_at: string
           user_id: string
           voice_cute: string | null
+          voice_cute_duration_ms: number | null
           voice_grateful: string | null
+          voice_grateful_duration_ms: number | null
           voice_grow: string | null
+          voice_grow_duration_ms: number | null
         }
         Insert: {
           couple_id: string
@@ -103,8 +109,11 @@ export type Database = {
           updated_at?: string
           user_id: string
           voice_cute?: string | null
+          voice_cute_duration_ms?: number | null
           voice_grateful?: string | null
+          voice_grateful_duration_ms?: number | null
           voice_grow?: string | null
+          voice_grow_duration_ms?: number | null
         }
         Update: {
           couple_id?: string
@@ -119,8 +128,11 @@ export type Database = {
           updated_at?: string
           user_id?: string
           voice_cute?: string | null
+          voice_cute_duration_ms?: number | null
           voice_grateful?: string | null
+          voice_grateful_duration_ms?: number | null
           voice_grow?: string | null
+          voice_grow_duration_ms?: number | null
         }
         Relationships: [
           {
@@ -288,6 +300,7 @@ export type Database = {
           longest_streak: number
           member_count: number
           start_date: string
+          together_points: number
         }
         SetofOptions: {
           from: "*"
@@ -306,6 +319,7 @@ export type Database = {
           longest_streak: number
           partner_name: string
           start_date: string
+          together_points: number
         }[]
       }
       join_couple: {
@@ -318,6 +332,7 @@ export type Database = {
           longest_streak: number
           member_count: number
           start_date: string
+          together_points: number
         }
         SetofOptions: {
           from: "*"

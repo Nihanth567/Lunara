@@ -5,6 +5,7 @@ import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
@@ -32,7 +33,7 @@ function Piece({ index, trigger, onLast }: { index: number; trigger: number; onL
     progress.value = 0;
     progress.value = withDelay(
       (index % 5) * 18,
-      withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }, (finished) => {
+      withTiming(1, { duration: 720, easing: Easing.out(Easing.cubic) }, (finished) => {
         if (finished && index === PIECES - 1 && onLast) runOnJS(onLast)();
       }),
     );
@@ -62,7 +63,10 @@ function Piece({ index, trigger, onLast }: { index: number; trigger: number; onL
 
 /** Small, self-contained celebratory burst — no native deps. */
 export function ConfettiBurst({ trigger, onDone }: Props) {
-  if (trigger === 0) return null;
+  // Pure decoration, so Reduce Motion gets none of it — not sixteen pieces
+  // snapped straight to their faded-out end state.
+  const reduceMotion = useReducedMotion();
+  if (trigger === 0 || reduceMotion) return null;
   return (
     <View pointerEvents="none" style={styles.container}>
       {Array.from({ length: PIECES }).map((_, i) => (

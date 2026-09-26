@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   withRepeat,
   withTiming,
   withDelay,
@@ -29,8 +30,11 @@ const PHONE_HEIGHT = PHONE_WIDTH * 2.05;
 function PhonePreview() {
   const float = useSharedValue(0);
   const glow = useSharedValue(0.35);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    // Decorative and endless — under Reduce Motion the phone simply sits still.
+    if (reduceMotion) return;
     float.value = withRepeat(
       withTiming(1, { duration: 3400, easing: Easing.inOut(Easing.sin) }),
       -1,
@@ -44,7 +48,7 @@ function PhonePreview() {
         true,
       ),
     );
-  }, [float, glow]);
+  }, [float, glow, reduceMotion]);
 
   const floatStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -6 + float.value * 12 }],
@@ -187,7 +191,7 @@ const styles = StyleSheet.create({
     top: 38,
     alignSelf: 'center',
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
   },
   widgetCard: {
@@ -214,28 +218,28 @@ const styles = StyleSheet.create({
   },
   widgetLabel: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[0],
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   widgetMessage: {
     fontSize: 12.5,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[0],
     lineHeight: 17,
   },
   copy: { alignItems: 'center', gap: 10, paddingHorizontal: 8 },
   title: {
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     textAlign: 'center',
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     textAlign: 'center',
     lineHeight: 22,
@@ -243,7 +247,7 @@ const styles = StyleSheet.create({
   footer: { width: '100%', gap: 10, alignItems: 'center' },
   covers: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[1],
     textAlign: 'center',
   },

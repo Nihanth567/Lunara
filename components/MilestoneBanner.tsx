@@ -1,4 +1,4 @@
-import { radius } from '@/constants/tokens';
+import { duration, radius, spring } from '@/constants/tokens';
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
@@ -47,8 +47,8 @@ export function MilestoneBanner({ milestone }: MilestoneBannerProps) {
   const scale = useSharedValue(0.92);
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 700 });
-    scale.value = withSpring(1, { damping: 14, stiffness: 120 });
+    opacity.value = withTiming(1, { duration: duration.base });
+    scale.value = withSpring(1, spring.settle);
   }, []);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -84,12 +84,12 @@ const styles = StyleSheet.create({
   },
   dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 2 },
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: palette.accent.streak },
-  title: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0], textAlign: 'center',
+  title: { fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0], textAlign: 'center',
     letterSpacing: -0.4,
   },
   body: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     textAlign: 'center',
     lineHeight: 19,

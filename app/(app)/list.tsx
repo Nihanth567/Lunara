@@ -1,31 +1,25 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Pressable,
   TextInput,
   Platform,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { StarField } from '@/components/StarField';
+import { SpringPressable } from '@/components/SpringPressable';
+import { EmptyState } from '@/components/EmptyState';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { haptic } from '@/lib/haptics';
 import { useApp } from '@/context/AppContext';
 import { partnerLabel, isPartnerJoined } from '@/lib/partner';
 import { listProgress, type ListItem } from '@/lib/list';
 import { gradients, palette } from '@/constants/colors';
-import { radius, space, hitSlopFor } from '@/constants/tokens';
+import { radius, space, hitSlopFor, pressScale } from '@/constants/tokens';
 import { type as text } from '@/constants/typography';
 
 /**
@@ -86,27 +80,19 @@ function Row({
   onDelete: () => void;
   onToggleShared: () => void;
 }) {
-  // The "little hit of satisfaction": the row gives under the tap and springs
-  // back. Small enough to feel like the surface responding rather than an
-  // animation playing at you.
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const handleToggle = () => {
-    scale.value = withSequence(
-      withTiming(0.97, { duration: 90 }),
-      withTiming(1, { duration: 140 }),
-    );
     // A completed item is worth more than a selection tick; a half-done shared
     // item is genuinely only half-done, so it stays at the lighter feedback.
+    //
+    // The one place success fires on the tap rather than after the write: a
+    // checkbox has to answer the instant it is touched, and waiting a round
+    // trip for the buzz makes it feel broken. If the write then fails, the
+    // screen says so (`toggle` below) and the tick goes back.
     const willComplete = item.needsBoth && partnerPaired
       ? !item.checkedByMe && item.checkedByPartner
       : !item.checkedByMe;
-    if (willComplete) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    if (willComplete) haptic.success();
+    else haptic.tap();
     onToggle();
   };
 
@@ -114,72 +100,82 @@ function Row({
   const partnerWentFirst = item.needsBoth && partnerPaired && !item.checkedByMe && item.checkedByPartner;
 
   return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        style={[styles.row, item.done && styles.rowDone]}
-        onPress={handleToggle}
-        onLongPress={onDelete}
-        delayLongPress={400}
-      >
-        <Checkbox checked={item.checkedByMe} color={personColor(true)} />
+    // The row gives under the tap and springs back — the "little hit of
+    // satisfaction", on the same springs as every other control.
+    <SpringPressable
+      style={[styles.row, item.done && styles.rowDone]}
+      onPress={handleToggle}
+      onLongPress={onDelete}
+      delayLongPress={400}
+      scaleTo={pressScale.card}
+      haptic="none"
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: item.checkedByMe }}
+      accessibilityLabel={item.title}
+      accessibilityHint="Double-tap to tick. Hold to remove."
+    >
+      <Checkbox checked={item.checkedByMe} color={personColor(true)} />
 
-        <View style={styles.rowMain}>
-          <Text
-            style={[styles.rowTitle, item.done && styles.rowTitleDone]}
-            numberOfLines={2}
-          >
-            {item.title}
+      <View style={styles.rowMain}>
+        <Text
+          style={[styles.rowTitle, item.done && styles.rowTitleDone]}
+          numberOfLines={2}
+        >
+          {item.title}
+        </Text>
+        {item.note.length > 0 && (
+          <Text style={styles.rowNote} numberOfLines={2}>{item.note}</Text>
+        )}
+
+        <View style={styles.rowMeta}>
+          {/* Who added it — the dot is the whole label. */}
+          <View style={[styles.authorDot, { backgroundColor: personColor(item.createdByMe) }]} />
+          <Text style={styles.rowMetaText}>
+            {item.createdByMe ? 'You added this' : `${partnerName} added this`}
           </Text>
-          {item.note.length > 0 && (
-            <Text style={styles.rowNote} numberOfLines={2}>{item.note}</Text>
-          )}
 
-          <View style={styles.rowMeta}>
-            {/* Who added it — the dot is the whole label. */}
-            <View style={[styles.authorDot, { backgroundColor: personColor(item.createdByMe) }]} />
-            <Text style={styles.rowMetaText}>
-              {item.createdByMe ? 'You added this' : `${partnerName} added this`}
-            </Text>
-
-            {item.needsBoth && (
-              <View style={styles.sharedTag}>
-                <Ionicons name="people" size={11} color={palette.content[2]} />
-                <Text style={styles.sharedTagText}>Both</Text>
-              </View>
-            )}
-          </View>
-
-          {/* "See in real time who did what." */}
-          {waitingOnPartner && (
-            <Text style={[styles.rowStatus, { color: palette.content[2] }]}>
-              Done on your side — waiting for {partnerName}
-            </Text>
-          )}
-          {partnerWentFirst && (
-            <Text style={[styles.rowStatus, { color: palette.partners.b }]}>
-              {partnerName} got this one — your turn
-            </Text>
-          )}
-          {!item.needsBoth && item.checkedByPartner && !item.checkedByMe && (
-            <Text style={[styles.rowStatus, { color: palette.partners.b }]}>
-              {partnerName} did this
-            </Text>
+          {item.needsBoth && (
+            <View style={styles.sharedTag}>
+              <Ionicons name="people" size={11} color={palette.content[2]} />
+              <Text style={styles.sharedTagText}>Both</Text>
+            </View>
           )}
         </View>
 
-        <Pressable
-          onPress={onToggleShared}
-          hitSlop={hitSlopFor(28)}
-          style={styles.sharedToggle}
-        >
-          <Ionicons
-            name={item.needsBoth ? 'people' : 'person-outline'}
-            size={16}
-            color={item.needsBoth ? palette.accent.glow : palette.ink[4]}
-          />
-        </Pressable>
-      </Pressable>
-    </Animated.View>
+        {/* "See in real time who did what." */}
+        {waitingOnPartner && (
+          <Text style={[styles.rowStatus, { color: palette.content[2] }]}>
+            Done on your side — waiting for {partnerName}
+          </Text>
+        )}
+        {partnerWentFirst && (
+          <Text style={[styles.rowStatus, { color: palette.partners.b }]}>
+            {partnerName} got this one — your turn
+          </Text>
+        )}
+        {!item.needsBoth && item.checkedByPartner && !item.checkedByMe && (
+          <Text style={[styles.rowStatus, { color: palette.partners.b }]}>
+            {partnerName} did this
+          </Text>
+        )}
+      </View>
+
+      <SpringPressable
+        onPress={onToggleShared}
+        hitSlop={hitSlopFor(28)}
+        scaleTo={pressScale.icon}
+        haptic="selection"
+        style={styles.sharedToggle}
+        accessibilityLabel={item.needsBoth ? 'Needs both of you' : 'Either of you can finish this'}
+        accessibilityHint="Changes who needs to tick it"
+      >
+        <Ionicons
+          name={item.needsBoth ? 'people' : 'person-outline'}
+          size={16}
+          color={item.needsBoth ? palette.accent.glow : palette.ink[4]}
+        />
+      </SpringPressable>
+    </SpringPressable>
   );
 }
 
@@ -196,6 +192,7 @@ export default function ListScreen() {
 
   const [draft, setDraft] = useState('');
   const [draftShared, setDraftShared] = useState(false);
+  const composerRef = useRef<TextInput>(null);
 
   const partnerPaired = isPartnerJoined(couple);
   const partnerName = partnerLabel(couple, 'Your partner');
@@ -204,21 +201,46 @@ export default function ListScreen() {
   const topPad = insets.top + (Platform.OS === 'web' ? 67 : 0);
   const bottomPad = insets.bottom + 90 + (Platform.OS === 'web' ? 34 : 0);
 
+  /**
+   * Every list write throws on failure, and every one of them used to be
+   * `void`-ed — so an add, a tick or a delete that never reached the server
+   * simply didn't happen, with nothing on screen to say so. Now each one says
+   * so in a sentence and, where there is something to give back, gives it back.
+   */
+  const reportListFailure = (what: string) => {
+    haptic.error();
+    Alert.alert('That didn’t sync', `${what} Check your connection and try once more.`);
+  };
+
   const submit = async () => {
     const value = draft.trim();
     if (!value) return;
+    const shared = draftShared;
     // Cleared before the await so a slow network can't eat a fast second entry.
     setDraft('');
     setDraftShared(false);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await addListItem(value, { needsBoth: draftShared });
+    try {
+      await addListItem(value, { needsBoth: shared });
+    } catch {
+      // Hand the words back rather than making someone retype them — unless
+      // they've already started the next one.
+      setDraft((current) => (current.length === 0 ? value : current));
+      setDraftShared((current) => current || shared);
+      reportListFailure(`“${value}” wasn’t added.`);
+    }
   };
 
   const confirmDelete = (item: ListItem) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic.tap();
     Alert.alert(item.title, 'Remove this from your list?', [
       { text: 'Keep it', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => { void deleteListItem(item.id); } },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          deleteListItem(item.id).catch(() => reportListFailure(`“${item.title}” is still on the list.`));
+        },
+      },
     ]);
   };
 
@@ -229,105 +251,110 @@ export default function ListScreen() {
       style={styles.container}
     >
       <StarField />
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <KeyboardAwareScrollViewCompat
+        keyboardDismissMode="interactive"
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: topPad + 16, paddingBottom: bottomPad },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: topPad + 16, paddingBottom: bottomPad },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Our list</Text>
-            <Text style={styles.subtitle}>
-              {total === 0
-                ? 'The everyday things, somewhere you can both see them'
-                : `${done} of ${total} done${partnerPaired ? ` · with ${partnerName}` : ''}`}
-            </Text>
-          </View>
-
-          {/* Composer sits at the top: adding is the most common action here,
-              and burying it behind a floating button costs a tap every time. */}
-          <View style={styles.composer}>
-            <TextInput
-              style={styles.composerInput}
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="Add something…"
-              placeholderTextColor={palette.content[2]}
-              returnKeyType="done"
-              onSubmitEditing={submit}
-              maxLength={140}
-            />
-            <Pressable
-              onPress={() => {
-                Haptics.selectionAsync();
-                setDraftShared((v) => !v);
-              }}
-              hitSlop={hitSlopFor(32)}
-              style={[styles.composerShared, draftShared && styles.composerSharedOn]}
-            >
-              <Ionicons
-                name={draftShared ? 'people' : 'person-outline'}
-                size={16}
-                color={draftShared ? palette.ink[0] : palette.content[2]}
-              />
-            </Pressable>
-            <Pressable
-              onPress={submit}
-              disabled={draft.trim().length === 0}
-              hitSlop={hitSlopFor(32)}
-              style={[styles.composerAdd, draft.trim().length === 0 && styles.composerAddOff]}
-            >
-              <Ionicons name="arrow-up" size={18} color={palette.ink[0]} />
-            </Pressable>
-          </View>
-          <Text style={styles.composerHint}>
-            {draftShared
-              ? 'Only done once you both tick it'
-              : 'Either of you can check this off'}
+        <View style={styles.header}>
+          <Text style={styles.title}>Our list</Text>
+          <Text style={styles.subtitle}>
+            {total === 0
+              ? 'The everyday things, somewhere you can both see them'
+              : `${done} of ${total} done${partnerPaired ? ` · with ${partnerName}` : ''}`}
           </Text>
+        </View>
 
-          {listItems.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Nothing here yet</Text>
-              <Text style={styles.emptyBody}>
-                Groceries, the thing you keep forgetting to book, the trip you
-                keep talking about. Add one and {partnerPaired ? partnerName : 'your partner'} sees
-                it straight away.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {listItems.map((item) => (
-                <Row
-                  key={item.id}
-                  item={item}
-                  partnerName={partnerName}
-                  partnerPaired={partnerPaired}
-                  onToggle={() => { void toggleListItem(item.id); }}
-                  onDelete={() => confirmDelete(item)}
-                  onToggleShared={() => {
-                    Haptics.selectionAsync();
-                    void updateListItem(item.id, { needsBoth: !item.needsBoth });
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Composer sits at the top: adding is the most common action here,
+            and burying it behind a floating button costs a tap every time. */}
+        <View style={styles.composer}>
+          <TextInput
+            ref={composerRef}
+            style={styles.composerInput}
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Add something…"
+            placeholderTextColor={palette.content[2]}
+            returnKeyType="done"
+            onSubmitEditing={submit}
+            maxLength={140}
+            accessibilityLabel="Add something to your list"
+          />
+          <SpringPressable
+            onPress={() => setDraftShared((v) => !v)}
+            hitSlop={hitSlopFor(32)}
+            scaleTo={pressScale.icon}
+            haptic="selection"
+            style={[styles.composerShared, draftShared && styles.composerSharedOn]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: draftShared }}
+            accessibilityLabel="Needs both of you"
+          >
+            <Ionicons
+              name={draftShared ? 'people' : 'person-outline'}
+              size={16}
+              color={draftShared ? palette.ink[0] : palette.content[2]}
+            />
+          </SpringPressable>
+          <SpringPressable
+            onPress={submit}
+            disabled={draft.trim().length === 0}
+            // Draws its own "off" state.
+            dimWhenDisabled={false}
+            hitSlop={hitSlopFor(32)}
+            scaleTo={pressScale.icon}
+            style={[styles.composerAdd, draft.trim().length === 0 && styles.composerAddOff]}
+            accessibilityLabel="Add"
+          >
+            <Ionicons name="arrow-up" size={18} color={palette.ink[0]} />
+          </SpringPressable>
+        </View>
+        <Text style={styles.composerHint}>
+          {draftShared
+            ? 'Only done once you both tick it'
+            : 'Either of you can check this off'}
+        </Text>
+
+        {listItems.length === 0 ? (
+          <EmptyState
+            icon="list-outline"
+            title="Nothing here yet"
+            body={`Groceries, the trip you keep talking about — add one and ${partnerPaired ? partnerName : 'your partner'} sees it straight away.`}
+            action={{ label: 'Add the first one', onPress: () => composerRef.current?.focus() }}
+          />
+        ) : (
+          <View style={styles.list}>
+            {listItems.map((item) => (
+              <Row
+                key={item.id}
+                item={item}
+                partnerName={partnerName}
+                partnerPaired={partnerPaired}
+                onToggle={() => {
+                  toggleListItem(item.id).catch(() =>
+                    reportListFailure(`Your tick on “${item.title}” didn’t save.`),
+                  );
+                }}
+                onDelete={() => confirmDelete(item)}
+                onToggleShared={() => {
+                  updateListItem(item.id, { needsBoth: !item.needsBoth }).catch(() =>
+                    reportListFailure(`“${item.title}” didn’t change.`),
+                  );
+                }}
+              />
+            ))}
+          </View>
+        )}
+      </KeyboardAwareScrollViewCompat>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  flex: { flex: 1 },
   scroll: { paddingHorizontal: 22 },
 
   header: { marginBottom: space.xl, gap: space.xs },
@@ -425,12 +452,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  emptyState: { alignItems: 'center', paddingTop: 48, gap: space.md },
-  emptyTitle: { ...text.heading, color: palette.content[0] },
-  emptyBody: {
-    ...text.callout,
-    color: palette.content[2],
-    textAlign: 'center',
-    lineHeight: 22,
-  },
 });

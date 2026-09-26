@@ -4,6 +4,7 @@ import { palette } from '@/constants/colors';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useReducedMotion,
   withRepeat,
   withTiming,
   withDelay,
@@ -35,10 +36,13 @@ const STAR_DATA = Array.from({ length: 14 }, (_, i) => ({
 }));
 
 /** Individual animated star — own hook, avoids map-inside-hook rule */
-function Star({ data }: { data: (typeof STAR_DATA)[0] }) {
+function Star({ data, reduceMotion }: { data: (typeof STAR_DATA)[0]; reduceMotion: boolean }) {
   const opacity = useSharedValue(data.baseOpacity);
 
   useEffect(() => {
+    // Behind every screen and never-ending, so under Reduce Motion the stars
+    // hold still at their resting brightness rather than twinkling.
+    if (reduceMotion) return;
     opacity.value = withDelay(
       data.delay,
       withRepeat(
@@ -50,7 +54,7 @@ function Star({ data }: { data: (typeof STAR_DATA)[0] }) {
         true
       )
     );
-  }, []);
+  }, [reduceMotion]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -73,10 +77,11 @@ function Star({ data }: { data: (typeof STAR_DATA)[0] }) {
 
 /** Renders a soft field of twinkling stars behind content */
 export function StarField() {
+  const reduceMotion = useReducedMotion();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {STAR_DATA.map((d) => (
-        <Star key={d.id} data={d} />
+        <Star key={d.id} data={d} reduceMotion={reduceMotion} />
       ))}
     </View>
   );

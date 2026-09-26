@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
+import { SpringPressable } from '@/components/SpringPressable';
 import { gradients, glow, palette, tint } from '@/constants/colors';
 import { type as text } from '@/constants/typography';
 import { radius, space } from '@/constants/tokens';
@@ -61,9 +62,11 @@ export default function WelcomeScreen() {
       actions.value = 1;
       return;
     }
+    // One short arrival, then the way in a beat behind it. Both were 620ms,
+    // which on the very first screen reads as the app taking its time.
     const ease = Easing.out(Easing.cubic);
-    enter.value = withTiming(1, { duration: 620, easing: ease });
-    actions.value = withDelay(180, withTiming(1, { duration: 620, easing: ease }));
+    enter.value = withTiming(1, { duration: 420, easing: ease });
+    actions.value = withDelay(140, withTiming(1, { duration: 420, easing: ease }));
   }, [actions, enter, reduceMotion]);
 
   const enterStyle = useAnimatedStyle(() => ({
@@ -103,30 +106,28 @@ export default function WelcomeScreen() {
         <Animated.View style={[styles.masthead, enterStyle]}>
           <Text style={styles.wordmark}>Lunara</Text>
           <Text style={styles.tagline}>
-            A little fox you keep lit together. Three questions a night — written
-            apart, opened at the same time.
+            Three little questions a night. Answered apart, opened together.
           </Text>
         </Animated.View>
 
         <Animated.View style={[styles.actions, actionsStyle]}>
-          <Pressable
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+          <SpringPressable
+            style={styles.cta}
             onPress={() => router.push('/(onboarding)/intro' as never)}
-            accessibilityRole="button"
           >
             <Text style={styles.ctaText}>Start tonight</Text>
             <Ionicons name="arrow-forward" size={17} color={palette.ink[0]} />
-          </Pressable>
+          </SpringPressable>
 
-          <Pressable
+          <SpringPressable
             onPress={() => router.push('/(onboarding)/auth')}
             style={styles.signInRow}
             hitSlop={10}
-            accessibilityRole="button"
+            feedback="highlight"
           >
             <Text style={styles.signInText}>Already have an account?</Text>
             <Text style={styles.signInAction}> Sign in</Text>
-          </Pressable>
+          </SpringPressable>
         </Animated.View>
       </View>
     </LinearGradient>
@@ -172,14 +173,13 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     ...glow.primary,
   },
-  ctaPressed: { opacity: 0.86 },
   ctaText: { ...text.label, color: palette.ink[0] },
 
   signInRow: { flexDirection: 'row' },
   signInText: { ...text.callout, color: palette.content[2] },
   signInAction: {
     ...text.callout,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.accent.glow,
   },
 });

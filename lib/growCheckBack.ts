@@ -53,7 +53,13 @@ export function isGrowFollowUpResponse(value: unknown): value is GrowFollowUpRes
 // ─── Which day is pending ────────────────────────────────────────────────────
 
 /** Don't resurface a check-back about a night that's already receded. */
-export const CHECK_BACK_MAX_AGE_DAYS = 3;
+/**
+ * The check-back is a next-day question and nothing more (lib/nudge.ts): it is
+ * offered the day after guidance was shown, once, and then it's gone. It used
+ * to linger for three days, which is how an unanswered question turns into a
+ * chore.
+ */
+export const CHECK_BACK_MAX_AGE_DAYS = 1;
 
 /** The subset of an entry this selector needs — keeps it independent of AppContext. */
 export interface CheckBackCandidate {

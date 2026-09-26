@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useApp } from '@/context/AppContext';
-import { ThinkingOrb } from '@/components/ThinkingOrb';
-import { palette } from '@/constants/colors';
+import { ScreenLoading } from '@/components/ScreenLoading';
 import { isPro } from '@/lib/entitlements';
 import { hasStoreKey } from '@/lib/purchases';
 import { resolveGate } from '@/lib/accessGate';
@@ -66,20 +64,7 @@ export default function Index() {
     }
   }, [destination]);
 
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: palette.ink[0],
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {/* "Breathing" — a slow morphing ring — for the one moment nobody has
-          asked the app to do anything yet; it's just working out where they
-          go. The other three spots below pick a state that matches what's
-          actually happening; this one is ambient on purpose. */}
-      <ThinkingOrb state="breathing" size={64} theme="dark" accessibilityLabel="Loading Lunara" />
-    </View>
-  );
+  // The breathing orb, arriving only if the answer takes long enough to need
+  // one — most cold starts resolve before it would have faded in.
+  return <ScreenLoading accessibilityLabel="Loading Lunara" />;
 }

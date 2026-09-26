@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   statusTime: {
     fontSize: 10,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: 'rgba(247, 241, 232,0.85)',
   },
   statusIcons: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   widgetHeader: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   widgetBrand: {
     fontSize: 9,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     letterSpacing: 1.1,
     color: palette.content[1],
   },
@@ -257,17 +257,17 @@ const styles = StyleSheet.create({
   widgetNumber: {
     fontSize: 30,
     lineHeight: 34,
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
   },
   widgetCaption: {
     fontSize: 9,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[2],
   },
   widgetStatus: {
     fontSize: 9,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.accent.streak,
   },
   fade: {

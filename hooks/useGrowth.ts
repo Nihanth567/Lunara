@@ -1,27 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { todayKey, toDateKey } from '@/lib/streak';
-import {
-  buildWeeklyRecap,
-  getDailyGrowthTip,
-  type GrowthTip,
-  type WeeklyRecap,
-} from '@/lib/growth';
+import { getDailyGrowthTip, type GrowthTip } from '@/lib/growth';
 
 /**
- * Local, device-side state for the growth module: which daily tips have been
- * seen, how the next-day follow-up was answered, and the Connection Streak that
- * grows each time a couple actually tries a tip. Kept in AsyncStorage rather
- * than the server so it works in demo mode and needs no migration.
+ * Local, device-side state for the growth nudges: which daily tips a couple
+ * chose to try, how the next-day follow-up was answered, which nudges were
+ * waved off, and the Connection Streak that grows each time they actually try
+ * one. Kept in AsyncStorage rather than the server so it works in demo mode and
+ * needs no migration.
+ *
+ * Nothing here decides *what* shows — that is `pickNudge` in lib/nudge.ts, and
+ * `useNudge` wires the two together.
  */
 
 const KEYS = {
   VIEWED_TIPS: 'lunara_growth_viewed_tips_v1',
   FOLLOW_UPS: 'lunara_growth_follow_ups_v1',
   CONNECTION_STREAK: 'lunara_growth_connection_streak_v1',
+  DISMISSED_NUDGES: 'lunara_growth_dismissed_nudges_v1',
 };
 
-export type FollowUpResponse = 'yes' | 'later';
+/** "later" is the "Not yet" button; "skip" clears it without an answer. */
+export type FollowUpResponse = 'yes' | 'later' | 'skip';
 
 interface ViewedTip {
   tipId: string;
@@ -54,13 +55,17 @@ function daysBetween(a: string, b: string): number {
 export interface UseGrowthResult {
   /** Today's growth tip (deterministic per date). */
   todayTip: GrowthTip;
-  /** True once the Tonight screen has surfaced today's tip. */
+  /**
+   * True once the couple chose "I'll try it" on today's tip. (The storage key
+   * says "viewed" — it predates the choice — but tomorrow's follow-up now only
+   * asks about a tip someone actually picked.)
+   */
   todayTipViewed: boolean;
   markTodayTipViewed: () => void;
 
   /**
-   * Set when yesterday's tip was viewed and the follow-up hasn't been answered
-   * yet — drives the next-day follow-up card on Tonight.
+   * Set when yesterday's tip was picked and the follow-up hasn't been answered
+   * yet — the `tipFollowUp` nudge.
    */
   pendingFollowUp: { date: string; tip: GrowthTip } | null;
   respondToFollowUp: (response: FollowUpResponse) => void;
@@ -68,8 +73,12 @@ export interface UseGrowthResult {
   connectionStreak: number;
   longestConnectionStreak: number;
 
-  /** Weekly recap for the Us tab; `completedPromptDates` comes from app entries. */
-  getWeeklyRecap: (completedPromptDates: string[]) => WeeklyRecap;
+  /**
+   * Nudges waved off with "Not now", or offered once and left — keyed like
+   * `tip:2026-09-24`. A dismissed nudge never comes back.
+   */
+  isNudgeDismissed: (key: string) => boolean;
+  dismissNudge: (key: string) => void;
 
   ready: boolean;
 }
@@ -78,6 +87,7 @@ export function useGrowth(): UseGrowthResult {
   const [viewedTips, setViewedTips] = useState<Record<string, ViewedTip>>({});
   const [followUps, setFollowUps] = useState<Record<string, FollowUpResponse>>({});
   const [streak, setStreak] = useState<ConnectionStreakState>(EMPTY_STREAK);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   const today = todayStr();
@@ -86,14 +96,16 @@ export function useGrowth(): UseGrowthResult {
   useEffect(() => {
     (async () => {
       try {
-        const [v, f, s] = await Promise.all([
+        const [v, f, s, d] = await Promise.all([
           AsyncStorage.getItem(KEYS.VIEWED_TIPS),
           AsyncStorage.getItem(KEYS.FOLLOW_UPS),
           AsyncStorage.getItem(KEYS.CONNECTION_STREAK),
+          AsyncStorage.getItem(KEYS.DISMISSED_NUDGES),
         ]);
         if (v) setViewedTips(JSON.parse(v));
         if (f) setFollowUps(JSON.parse(f));
         if (s) setStreak({ ...EMPTY_STREAK, ...JSON.parse(s) });
+        if (d) setDismissed(JSON.parse(d));
       } catch {
         // First run or unreadable storage — defaults are fine.
       } finally {
@@ -144,18 +156,17 @@ export function useGrowth(): UseGrowthResult {
     [pendingFollowUp, today],
   );
 
-  const getWeeklyRecap = useCallback(
-    (completedPromptDates: string[]) =>
-      buildWeeklyRecap({
-        today,
-        viewedTipDates: Object.keys(viewedTips),
-        triedTipDates: Object.entries(followUps)
-          .filter(([, r]) => r === 'yes')
-          .map(([d]) => d),
-        completedPromptDates,
-      }),
-    [today, viewedTips, followUps],
-  );
+  const dismissNudge = useCallback((key: string) => {
+    setDismissed((prev) => {
+      if (prev.includes(key)) return prev;
+      // Keys are dated and only recent ones can matter, so keep the list short.
+      const next = [...prev, key].slice(-40);
+      AsyncStorage.setItem(KEYS.DISMISSED_NUDGES, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const isNudgeDismissed = useCallback((key: string) => dismissed.includes(key), [dismissed]);
 
   return {
     todayTip,
@@ -165,7 +176,8 @@ export function useGrowth(): UseGrowthResult {
     respondToFollowUp,
     connectionStreak: streak.count,
     longestConnectionStreak: streak.longest,
-    getWeeklyRecap,
+    isNudgeDismissed,
+    dismissNudge,
     ready,
   };
 }

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { SpringPressable } from '@/components/SpringPressable';
 import { useApp } from '@/context/AppContext';
 import { radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
@@ -64,7 +64,6 @@ export default function TutorialScreen() {
    * optional, and so is the permission itself.
    */
   const pickTime = async (hour: number, minute: number) => {
-    Haptics.selectionAsync();
     await setNotificationSettings({
       ...notificationSettings,
       enabled: true,
@@ -75,7 +74,7 @@ export default function TutorialScreen() {
 
   const handleNext = async () => {
     if (!isLast) {
-      Haptics.selectionAsync();
+      // No haptic here: LunaraButton already fires its tap.
       setStep((s) => s + 1);
       return;
     }
@@ -145,30 +144,32 @@ export default function TutorialScreen() {
                   notificationSettings.reminderHour === hour &&
                   notificationSettings.reminderMinute === minute;
                 return (
-                  <Pressable
+                  <SpringPressable
                     key={`${hour}:${minute}`}
                     style={[styles.chip, active && styles.chipActive]}
                     onPress={() => pickTime(hour, minute)}
-                    accessibilityRole="button"
+                    haptic="selection"
+                    accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                   >
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>
                       {formatReminderTime(hour, minute)}
                     </Text>
-                  </Pressable>
+                  </SpringPressable>
                 );
               })}
             </View>
-            <Pressable
+            <SpringPressable
               onPress={() =>
                 setNotificationSettings({ ...notificationSettings, enabled: false }).catch(() => {})
               }
+              feedback="highlight"
               hitSlop={8}
             >
               <Text style={styles.skip}>
                 {notificationSettings.enabled ? 'No reminder, thanks' : 'Reminders are off'}
               </Text>
-            </Pressable>
+            </SpringPressable>
           </Animated.View>
         )}
 
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
   block: { gap: 14 },
   eyebrow: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: palette.content[2],
@@ -220,13 +221,13 @@ const styles = StyleSheet.create({
     fontSize: 34,
     lineHeight: 44,
     letterSpacing: -0.8,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
   },
   body: {
     fontSize: 16,
     lineHeight: 25,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     maxWidth: 340,
   },
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   quoteText: {
     fontSize: 16,
     lineHeight: 26,
-    fontFamily: 'Fraunces_400Regular',
+    fontFamily: 'Nunito_500Medium',
     color: palette.content[1],
   },
 
@@ -254,13 +255,13 @@ const styles = StyleSheet.create({
   },
   ruleTitle: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[0],
   },
   ruleBody: {
     fontSize: 14,
     lineHeight: 21,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
   },
 
@@ -281,13 +282,13 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[1],
   },
   chipTextActive: { color: palette.content[0] },
   skip: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
     paddingTop: 2,
   },

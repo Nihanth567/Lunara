@@ -20,7 +20,7 @@ export type VoiceSlot = 'grateful' | 'cute' | 'grow';
 export const VOICE_BUCKET = 'voice-notes';
 
 /** Long enough for a real thought, short enough to stay a note and not a monologue. */
-export const VOICE_NOTE_MAX_SECONDS = 120;
+export const VOICE_NOTE_MAX_SECONDS = 90;
 
 /** How long a playback URL stays valid. Long enough to listen, short enough to not be a handle. */
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -102,6 +102,39 @@ export async function deleteVoiceNote(pathOrUri: string): Promise<void> {
     return;
   }
   await supabase.storage.from(VOICE_BUCKET).remove([pathOrUri]).catch(() => {});
+}
+
+/**
+ * Ask the server to turn one of *your own* recordings into text.
+ *
+ * Returns the transcript, or null if it could not be produced — a missing
+ * OPENAI_API_KEY, a network failure, a demo recording that was never uploaded,
+ * or speech the model could not make out. Every one of those is the same thing
+ * to a caller: there is no text to offer, carry on with what they typed.
+ *
+ * Transcription is never allowed to become load-bearing. It exists so someone
+ * can speak a sentence and then edit it, and the written line has to stay
+ * exactly as good without it — which is why this returns null rather than
+ * throwing, and why nothing in the ritual awaits it before submitting.
+ *
+ * Demo recordings live only on the device and were never uploaded, so there is
+ * nothing for the server to read; they return null without a round trip.
+ */
+export async function transcribeVoiceNote(pathOrUri: string): Promise<string | null> {
+  if (isLocalVoiceNote(pathOrUri)) return null;
+
+  try {
+    const { data, error } = await supabase.functions.invoke('transcribe-voice', {
+      body: { path: pathOrUri },
+    });
+    if (error) return null;
+    const transcript = (data as { transcript?: unknown } | null)?.transcript;
+    if (typeof transcript !== 'string') return null;
+    const trimmed = transcript.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
 }
 
 /** `0:07`, `1:42` — duration for a recorder or player readout. */

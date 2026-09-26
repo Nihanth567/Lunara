@@ -10,12 +10,12 @@ import {
   Modal,
   Linking,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated from 'react-native-reanimated';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 // SDK 54 ships the new File/Paths API on expo-file-system; the legacy subpath is
 // the supported route for the string helpers and is what this one export needs.
 import * as FileSystem from 'expo-file-system/legacy';
@@ -23,15 +23,15 @@ import * as Sharing from 'expo-sharing';
 import { StarField } from '@/components/StarField';
 import { MoonPhaseIndicator } from '@/components/MoonPhaseIndicator';
 import { DateNightSection } from '@/components/DateNightSection';
-import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
+import { SpringPressable } from '@/components/SpringPressable';
 import { useApp } from '@/context/AppContext';
-import { useGrowth } from '@/hooks/useGrowth';
 import { isPro, premiumSummary } from '@/lib/entitlements';
 import { isPartnerJoined } from '@/lib/partner';
-import { isSunday } from '@/lib/growth';
+import { haptic } from '@/lib/haptics';
+import { askWithReason } from '@/lib/permissions';
 import { KEEPSAKE_QUESTIONS } from '@/constants/keepsakeQuestions';
-import { radius } from '@/constants/tokens';
-import { palette } from '@/constants/colors';
+import { pressScale, radius, scrim, spring } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
 
 /**
  * Apple's Standard Licensed Application End User License Agreement.
@@ -42,11 +42,7 @@ import { palette } from '@/constants/colors';
  * a document the user cannot open does not satisfy it.
  */
 const APPLE_EULA_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-import {
-  requestNotificationPermissions,
-  getNotificationPermissionStatus,
-  formatReminderTime,
-} from '@/services/notifications';
+import { formatReminderTime } from '@/services/notifications';
 
 // ─── Time presets shown in the picker ─────────────────────────────────────────
 
@@ -80,14 +76,15 @@ function SettingsRow({
   destructive?: boolean;
 }) {
   return (
-    <Pressable
+    // Highlight, not scale: a grouped row shrinking away from its neighbours
+    // reads as the list coming apart. A row with nothing to do is inert.
+    <SpringPressable
       style={styles.settingsRow}
-      onPress={() => {
-        if (onPress) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress();
-        }
-      }}
+      onPress={onPress}
+      disabled={!onPress}
+      dimWhenDisabled={false}
+      feedback="highlight"
+      accessibilityLabel={value ? `${label}, ${value}` : label}
     >
       <Ionicons
           name={icon as any}
@@ -100,7 +97,7 @@ function SettingsRow({
       </Text>
       {value && <Text style={styles.settingsValue}>{value}</Text>}
       {onPress && <Ionicons name="chevron-forward" size={16} color={palette.content[2]} style={{ opacity: 0.7 }} />}
-    </Pressable>
+    </SpringPressable>
   );
 }
 
@@ -138,49 +135,63 @@ function TimePickerModal({
   onClose: () => void;
 }) {
   return (
+    /*
+      The scrim fades and the sheet rises on a spring. `animationType="slide"`
+      slid the whole modal up — dimmed backdrop included — so a grey slab rose
+      from the bottom of the screen behind the sheet, which no native sheet
+      does.
+    */
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Reminder time</Text>
-          <Text style={styles.modalSubtitle}>
-            A notification fires at this time if you haven't shared your thoughts yet.
-          </Text>
-          {TIME_OPTIONS.map((opt) => {
-            const selected = opt.hour === currentHour && opt.minute === currentMinute;
-            return (
-              <Pressable
-                key={opt.label}
-                style={[styles.timeOption, selected && styles.timeOptionSelected]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onSelect(opt.hour, opt.minute);
-                }}
-              >
-                <Text style={[styles.timeOptionText, selected && styles.timeOptionTextSelected]}>
-                  {opt.label}
-                </Text>
-                {selected && (
-                  <Ionicons name="checkmark" size={18} color={palette.content[1]} />
-                )}
-              </Pressable>
-            );
-          })}
+      {/* Neither the scrim nor the sheet is itself an accessibility element:
+          as Pressables they defaulted to `accessible`, which folded every
+          time option into one unreadable VoiceOver stop. */}
+      <Pressable style={styles.modalBackdrop} onPress={onClose} accessible={false}>
+        <Animated.View
+          entering={SlideInDown.springify()
+            .damping(spring.settle.damping)
+            .stiffness(spring.settle.stiffness)}
+        >
           <Pressable
-            style={styles.modalDismiss}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onClose();
-            }}
+            style={styles.modalSheet}
+            onPress={(e) => e.stopPropagation()}
+            accessible={false}
           >
-            <Text style={styles.modalDismissText}>Done</Text>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Reminder time</Text>
+            <Text style={styles.modalSubtitle}>
+              A notification fires at this time if you haven't shared your thoughts yet.
+            </Text>
+            {TIME_OPTIONS.map((opt) => {
+              const selected = opt.hour === currentHour && opt.minute === currentMinute;
+              return (
+                <SpringPressable
+                  key={opt.label}
+                  style={[styles.timeOption, selected && styles.timeOptionSelected]}
+                  feedback="highlight"
+                  haptic="selection"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  onPress={() => onSelect(opt.hour, opt.minute)}
+                >
+                  <Text style={[styles.timeOptionText, selected && styles.timeOptionTextSelected]}>
+                    {opt.label}
+                  </Text>
+                  {selected && (
+                    <Ionicons name="checkmark" size={18} color={palette.content[1]} />
+                  )}
+                </SpringPressable>
+              );
+            })}
+            <SpringPressable style={styles.modalDismiss} onPress={onClose}>
+              <Text style={styles.modalDismissText}>Done</Text>
+            </SpringPressable>
           </Pressable>
-        </Pressable>
+        </Animated.View>
       </Pressable>
     </Modal>
   );
@@ -192,20 +203,10 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, couple, entries, keepsakes, ritualDate, signOut, deleteAccount, exitDemoMode, notificationSettings, setNotificationSettings } = useApp();
-  const { getWeeklyRecap } = useGrowth();
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const proUser = isPro(couple);
-  // The pinned night, not a fresh `todayKey()`. Every other surface agrees on
-  // `ritualDate` for the length of a session; reading the clock here meant the
-  // weekly recap could appear or vanish underneath someone at midnight while
-  // the night they were still writing stayed on Saturday.
-  const showRecap = isSunday(ritualDate);
-  const completedPromptDates = entries
-    .filter((e) => e.submitted && e.partnerSubmitted)
-    .map((e) => e.date);
-  const weeklyRecap = getWeeklyRecap(completedPromptDates);
 
   const goToPaywall = () => router.push('/(modals)/paywall');
 
@@ -215,7 +216,21 @@ export default function ProfileScreen() {
   const streak = couple?.currentStreak ?? 0;
   const longestStreak = couple?.longestStreak ?? 0;
   const daysTogetherCount = daysAgo(couple?.startDate);
-  const totalEntries = entries.filter((e) => e.revealed).length;
+  /**
+   * Nights the two of you finished.
+   *
+   * This was `entries.filter((e) => e.revealed).length`, which counts a
+   * different thing than its label claims. `revealed` is per-device on purpose
+   * — opening the reveal is a thing you do, not a thing that happens to you —
+   * so "nights shared" fell to zero on a reinstall, differed between the two
+   * partners looking at the same history, and read 0 for a couple who had
+   * submitted every night but never tapped through to the reveal screen.
+   *
+   * `togetherPoints` is the same number the fox's chip shows, derived from the
+   * nights both partners actually submitted. One definition, and it is the
+   * couple's rather than the phone's.
+   */
+  const totalEntries = couple?.togetherPoints ?? 0;
 
   const notifEnabled = notificationSettings.enabled;
   const reminderLabel = formatReminderTime(
@@ -223,42 +238,53 @@ export default function ProfileScreen() {
     notificationSettings.reminderMinute,
   );
 
-  // Toggle notifications on/off
+  /**
+   * Reminders on or off.
+   *
+   * Turning them on goes through `askWithReason`: one sentence of what will
+   * actually be sent before the system dialog, and — if they were declined
+   * before — a button straight to Settings. It used to say "please allow
+   * notifications in your device Settings" and leave the person to find them.
+   */
   const handleNotificationsToggle = async () => {
     if (Platform.OS === 'web') {
       Alert.alert('Not supported', 'Push notifications are not available on web.');
       return;
     }
 
-    if (notifEnabled) {
-      // Turn off
-      await setNotificationSettings({ ...notificationSettings, enabled: false });
-    } else {
-      // Request permission then enable
-      const status = await getNotificationPermissionStatus();
-      if (status === 'denied') {
-        Alert.alert(
-          'Notifications blocked',
-          'To enable reminders, please allow notifications for Lunara in your device Settings.',
-        );
+    try {
+      if (notifEnabled) {
+        await setNotificationSettings({ ...notificationSettings, enabled: false });
         return;
       }
-      const granted = await requestNotificationPermissions();
-      if (granted) {
-        await setNotificationSettings({ ...notificationSettings, enabled: true });
-      } else {
-        Alert.alert(
-          'Permission required',
-          'Lunara needs notification permission to send you nightly reminders.',
-        );
-      }
+      const granted = await askWithReason({
+        check: Notifications.getPermissionsAsync,
+        request: Notifications.requestPermissionsAsync,
+        title: 'Turn on your reminder?',
+        reason: `One gentle nudge around ${reminderLabel} if the night is slipping by and you haven’t written yet — never more than that.`,
+        allowLabel: 'Turn it on',
+        blocked: {
+          title: 'Notifications are off for Lunara',
+          body: 'Turn them on in Settings and your nightly reminder will start from tonight.',
+        },
+      });
+      if (!granted) return;
+      await setNotificationSettings({ ...notificationSettings, enabled: true });
+      haptic.success();
+    } catch {
+      haptic.error();
+      Alert.alert('That didn’t change', 'Your reminder setting didn’t save just now. Try again in a moment.');
     }
   };
 
-  // Change the reminder time
   const handleTimeSelect = async (hour: number, minute: number) => {
     setTimePickerVisible(false);
-    await setNotificationSettings({ ...notificationSettings, reminderHour: hour, reminderMinute: minute });
+    try {
+      await setNotificationSettings({ ...notificationSettings, reminderHour: hour, reminderMinute: minute });
+    } catch {
+      haptic.error();
+      Alert.alert('That didn’t change', 'Your reminder time didn’t save just now. Try again in a moment.');
+    }
   };
 
   /**
@@ -295,6 +321,7 @@ export default function ProfileScreen() {
         Alert.alert('Export ready', `Saved to ${path}`);
       }
     } catch {
+      haptic.error();
       Alert.alert('Could not export', 'Something went wrong building your file. Please try again.');
     }
   };
@@ -336,6 +363,7 @@ export default function ProfileScreen() {
                       await deleteAccount();
                       router.replace('/');
                     } catch (error) {
+                      haptic.error();
                       Alert.alert(
                         'Could not delete your account',
                         error instanceof Error && error.message
@@ -369,8 +397,13 @@ export default function ProfileScreen() {
         {
           text: 'Pair for real',
           onPress: async () => {
-            await exitDemoMode();
-            router.replace('/(onboarding)/pairing');
+            try {
+              await exitDemoMode();
+              router.replace('/(onboarding)/pairing');
+            } catch {
+              haptic.error();
+              Alert.alert('Still in the demo', 'Leaving didn’t work just now. Try again in a moment.');
+            }
           },
         },
       ],
@@ -387,8 +420,16 @@ export default function ProfileScreen() {
           text: 'Sign out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/');
+            try {
+              await signOut();
+              router.replace('/');
+            } catch {
+              haptic.error();
+              Alert.alert(
+                'Couldn’t sign out',
+                'Something got in the way just now. Check your connection and try once more.',
+              );
+            }
           },
         },
       ]
@@ -427,15 +468,14 @@ export default function ProfileScreen() {
               <Text style={styles.userPronouns}>{user.pronouns}</Text>
             )}
             {couple?.isDemoMode && (
-              <Pressable
+              <SpringPressable
                 style={styles.demoBadge}
                 onPress={handleExitDemo}
-                accessibilityRole="button"
                 accessibilityLabel="You are in demo mode. Leave the demo and pair with your real partner."
               >
                 <Ionicons name="flask-outline" size={13} color={palette.content[1]} />
                 <Text style={styles.demoBadgeText}>Demo · tap to pair for real</Text>
-              </Pressable>
+              </SpringPressable>
             )}
           </View>
           {couple && (
@@ -480,20 +520,17 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Sunday recap — weekly growth follow-up summary */}
-        {couple && showRecap && (
-          <WeeklyRecapCard recap={weeklyRecap} isPro={proUser} onUnlock={goToPaywall} />
-        )}
+        {/* The weekly recap lives in Moments now ("Your week"), next to the
+            nights it reads back, and shows the couple's words rather than
+            counts of tips seen. */}
 
         {/* Keepsake card */}
         {couple && (
           <Animated.View style={styles.keepsakeCard}>
-            <Pressable
+            <SpringPressable
               style={styles.keepsakeRow}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/keepsakes');
-              }}
+              scaleTo={pressScale.card}
+              onPress={() => router.push('/keepsakes')}
             >
               <View style={styles.keepsakeIcon}>
                 <Ionicons name="heart-outline" size={20} color={palette.accent.glow} />
@@ -505,7 +542,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={palette.content[2]} />
-            </Pressable>
+            </SpringPressable>
           </Animated.View>
         )}
 
@@ -527,15 +564,12 @@ export default function ProfileScreen() {
               </View>
             </View>
             {!couple?.isSubscribed && (
-              <Pressable
+              <SpringPressable
                 style={styles.premiumBtn}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/(modals)/paywall');
-                }}
+                onPress={() => router.push('/(modals)/paywall')}
               >
                 <Text style={styles.premiumBtnText}>Upgrade to Pro</Text>
-              </Pressable>
+              </SpringPressable>
             )}
            </View>
         </Animated.View>
@@ -591,7 +625,7 @@ export default function ProfileScreen() {
               icon="reader-outline"
               label="License Agreement (EULA)"
               color={palette.accent.success}
-              onPress={() => Linking.openURL(APPLE_EULA_URL)}
+              onPress={() => void Linking.openURL(APPLE_EULA_URL).catch(() => {})}
             />
           </View>
         </Animated.View>
@@ -634,7 +668,7 @@ const styles = StyleSheet.create({
   pageHeader: { marginBottom: 20 },
   pageTitle: {
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
   },
 
@@ -664,12 +698,12 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 22,
-    fontFamily: 'PlusJakartaSans_700Bold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.accent.glow,
   },
   userInfo: { flex: 1, gap: 2 },
-  userName: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
-  userPronouns: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
+  userName: { fontSize: 16, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
+  userPronouns: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[1] },
   // Now a control rather than a label, so it carries an icon, real padding and
   // a tap target instead of being a 2pt-tall chip nobody would think to press.
   demoBadge: {
@@ -685,10 +719,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(247, 241, 232,0.3)',
     marginTop: 8,
   },
-  demoBadgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
+  demoBadgeText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: palette.content[1] },
   partnerBadge: { alignItems: 'flex-end', gap: 1 },
-  partnerLabel: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
-  partnerName: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[1] },
+  partnerLabel: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
+  partnerName: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: palette.content[1] },
 
   // Stats
   statsCard: {
@@ -706,13 +740,13 @@ const styles = StyleSheet.create({
   statBlock: { alignItems: 'center', gap: 4, flex: 1 },
   statNumber: {
     fontSize: 34,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     lineHeight: 40,
   },
   statLabel: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
     textAlign: 'center',
   },
@@ -730,7 +764,7 @@ const styles = StyleSheet.create({
   },
   longestStreakText: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
   },
 
@@ -755,8 +789,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  keepsakeTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
-  keepsakeSub: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  keepsakeTitle: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
+  keepsakeSub: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
 
   // Premium
   premiumCard: {
@@ -770,10 +804,10 @@ const styles = StyleSheet.create({
   premiumGradient: { padding: 20, gap: 16, backgroundColor: palette.ink[2] },
   premiumContent: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   premiumText: { flex: 1, gap: 4 },
-  premiumTitle: { fontSize: 16, fontFamily: 'PlusJakartaSans_700Bold', color: palette.content[0] },
+  premiumTitle: { fontSize: 16, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0] },
   premiumBody: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },
@@ -788,7 +822,7 @@ const styles = StyleSheet.create({
   },
   premiumBtnText: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.ink[0],
   },
 
@@ -796,7 +830,7 @@ const styles = StyleSheet.create({
   settingsSection: { marginBottom: 20, gap: 8 },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[2],
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -812,23 +846,23 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(247, 241, 232,0.05)',
+    borderBottomColor: tint.cream(0.05),
   },
   settingsLabel: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[0],
     letterSpacing: 0.1,
   },
   settingsValue: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
   },
   versionText: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.ink[4],
     textAlign: 'center',
     paddingTop: 8,
@@ -838,13 +872,14 @@ const styles = StyleSheet.create({
   // Time picker modal
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: scrim,
     justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: palette.ink[1],
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderCurve: 'continuous',
     paddingHorizontal: 22,
     paddingBottom: 40,
     paddingTop: 12,
@@ -861,14 +896,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 22,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     marginBottom: 6,
     letterSpacing: -0.4,
   },
   modalSubtitle: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
     lineHeight: 19,
     marginBottom: 20,
@@ -890,11 +925,11 @@ const styles = StyleSheet.create({
   },
   timeOptionText: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
   },
   timeOptionTextSelected: {
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[1],
   },
   modalDismiss: {
@@ -907,7 +942,7 @@ const styles = StyleSheet.create({
   },
   modalDismissText: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[0],
   },
 });

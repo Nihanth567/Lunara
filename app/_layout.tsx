@@ -6,19 +6,15 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useFonts } from 'expo-font';
-// Display + numerals + the couple's own writing. Fraunces carries real optical
-// sizing, so it holds together at 13px as well as at 40. See constants/typography.ts.
+// One rounded family for everything — display, the couple's words, and every
+// piece of chrome. See constants/typography.ts for why.
 import {
-  Fraunces_400Regular,
-  Fraunces_600SemiBold,
-} from '@expo-google-fonts/fraunces';
-// Every control, label and piece of chrome.
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-} from '@expo-google-fonts/plus-jakarta-sans';
+  Nunito_400Regular,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from '@expo-google-fonts/nunito';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
@@ -93,6 +89,7 @@ function RootLayoutNav() {
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
       />
       <Stack.Screen name="moment/[date]" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="weekly-recap" options={{ animation: 'slide_from_right' }} />
       {/* Deep-link targets: the widget's lunara://tonight and the invite link's
           lunara://join/<code>. Both redirect rather than render. */}
       <Stack.Screen name="tonight" />
@@ -103,12 +100,11 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Fraunces_400Regular,
-    Fraunces_600SemiBold,
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
+    Nunito_400Regular,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
   });
 
   useEffect(() => {

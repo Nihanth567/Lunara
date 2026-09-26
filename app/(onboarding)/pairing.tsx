@@ -1,27 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
-  Pressable,
   Share,
   ScrollView,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
-import { useApp } from '@/context/AppContext';
+import { SpringPressable } from '@/components/SpringPressable';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { haptic } from '@/lib/haptics';
+import { GuestSignInError, useApp } from '@/context/AppContext';
 import { maybeAskForNotifications } from '@/services/notifications';
 import { toDateKey } from '@/lib/streak';
-import { radius } from '@/constants/tokens';
-import { palette } from '@/constants/colors';
+import { hitSlopFor, pressScale, radius } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
 import {
   INVITE_CODE_LENGTH,
   clearPendingInvite,
@@ -58,6 +60,9 @@ async function finishOnboarding(
   await completeOnboarding();
 }
 
+/** Room under the code field for the Join button: its height plus the gap above it. */
+const JOIN_BUTTON_CLEARANCE = 58 + 28 + 16;
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -65,10 +70,27 @@ function generateId(): string {
 export default function PairingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { createCouple, joinCouple, setCouple, completeOnboarding, registerPushToken } = useApp();
-  // Arrives from an invite link (lunara://join/<code> → app/join/[code].tsx).
-  const { code: invitedCode } = useLocalSearchParams<{ code?: string }>();
+  const {
+    user,
+    isGuest,
+    createCouple,
+    joinCouple,
+    joinCoupleAsGuest,
+    setCouple,
+    completeOnboarding,
+    registerPushToken,
+  } = useApp();
+  // `code` arrives from an invite link (lunara://join/<code> → app/join/[code].tsx);
+  // `intent=invite` from signing in after choosing "Invite my partner".
+  const { code: invitedCode, intent } = useLocalSearchParams<{ code?: string; intent?: string }>();
   const prefilled = normalizeInviteCode(invitedCode);
+
+  /**
+   * The joining partner doesn't sign in with Apple or Google — they give a
+   * name here and an anonymous account is made for them on Join. A guest whose
+   * first code didn't work still has that account, so they keep the name field.
+   */
+  const joinsAsGuest = !user || isGuest;
 
   // Someone who followed an invite link came here to join, not to choose —
   // open straight onto the join form with their code already in it, so all
@@ -76,6 +98,7 @@ export default function PairingScreen() {
   const [mode, setMode] = useState<Mode>(prefilled ? 'join' : 'choose');
   const [inviteCode, setInviteCode] = useState('');
   const [joinCode, setJoinCode] = useState(prefilled);
+  const [guestName, setGuestName] = useState(user?.name ?? '');
   const [loading, setLoading] = useState(false);
   /**
    * Why a join didn't work, shown inline under the field rather than in an
@@ -85,6 +108,8 @@ export default function PairingScreen() {
    * an exceptional one.
    */
   const [joinError, setJoinError] = useState<string | null>(null);
+  /** So "next" on the name field lands in the code field. */
+  const codeInputRef = useRef<TextInput>(null);
 
   /**
    * An invite tapped before signing in. `app/join/[code].tsx` stashed the code
@@ -103,15 +128,34 @@ export default function PairingScreen() {
   }, [prefilled]);
 
   const handleShareCode = () => {
+    // A dismissed share sheet rejects on some platforms; that's a choice, not
+    // a failure, and must not surface as an unhandled promise.
     Share.share({
       message: inviteShareMessage(inviteCode),
       title: 'Join me on Lunara',
-    });
+    }).catch(() => {});
+  };
+
+  /**
+   * The last step of onboarding, from either path. Unguarded, a failed local
+   * write here rejected into nothing and "Continue to app" became a button
+   * that did nothing — on the one tap between someone and the product.
+   */
+  const enterApp = async () => {
+    try {
+      await finishOnboarding(registerPushToken, completeOnboarding);
+      router.replace('/(app)/' as never);
+    } catch {
+      haptic.error();
+      Alert.alert('Almost in', 'Something got in the way opening Lunara. Try once more.');
+    }
   };
 
   const handleCreateCouple = async () => {
-    await finishOnboarding(registerPushToken, completeOnboarding);
-    router.replace('/(app)/' as never);
+    if (loading) return;
+    setLoading(true);
+    await enterApp();
+    setLoading(false);
   };
 
   /**
@@ -124,22 +168,30 @@ export default function PairingScreen() {
   const handleJoinCouple = async () => {
     const code = normalizeInviteCode(joinCode);
     if (!isWellFormedInviteCode(code)) return;
+    if (joinsAsGuest && guestName.trim().length < 2) return;
+    Keyboard.dismiss();
     setLoading(true);
     setJoinError(null);
     try {
-      await joinCouple(code);
-      await clearPendingInvite();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await finishOnboarding(registerPushToken, completeOnboarding);
-      router.replace('/(app)/' as never);
+      if (joinsAsGuest) await joinCoupleAsGuest(guestName, code);
+      else await joinCouple(code);
     } catch (error) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic.error();
       setJoinError(
-        'That code isn’t opening anything on our side. Codes expire once a couple is full, so it may already have been used — ask your partner to share a fresh one from their Lunara.',
+        error instanceof GuestSignInError
+          ? 'We couldn’t set up your place in Lunara just now. Check your connection and try again — your code is still here.'
+          : 'That code isn’t opening anything on our side. Codes expire once a couple is full, so it may already have been used — ask your partner to share a fresh one from their Lunara.',
       );
-    } finally {
       setLoading(false);
+      return;
     }
+    // Joined. Nothing past this point is the code's fault, so a failure here
+    // must not be reported as one — retrying the join would now genuinely fail,
+    // because this person already fills the couple.
+    haptic.success();
+    await clearPendingInvite().catch(() => {});
+    await enterApp();
+    setLoading(false);
   };
 
   const handleStartNewCouple = async () => {
@@ -149,29 +201,66 @@ export default function PairingScreen() {
       setInviteCode(couple.inviteCode);
       setMode('create');
     } catch (error) {
-      Alert.alert('Could not create your invite', error instanceof Error ? error.message : 'Please try again.');
+      haptic.error();
+      Alert.alert(
+        'Your invite didn’t come through',
+        `${error instanceof Error && error.message ? error.message : 'We couldn’t reach Lunara just now.'} Try again in a moment.`,
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Starting a couple is the one path that asks for Apple or Google: the person
+   * who invites holds the account the couple is built around. Signed out (or
+   * only a guest), they sign in first and come back with `intent=invite`.
+   */
+  const handleInvite = () => {
+    if (joinsAsGuest) {
+      router.push('/(onboarding)/auth?intent=invite' as never);
+      return;
+    }
+    void handleStartNewCouple();
+  };
+
+  // Back from sign-in after choosing "Invite my partner": go straight on to the
+  // code they asked for rather than asking the same question twice.
+  const autoInvitedRef = useRef(false);
+  useEffect(() => {
+    if (intent !== 'invite' || autoInvitedRef.current || joinsAsGuest) return;
+    autoInvitedRef.current = true;
+    void handleStartNewCouple();
+  }, [intent, joinsAsGuest]);
+
   const handleDemoMode = async () => {
     setLoading(true);
-    await setCouple({
-      id: generateId(),
-      partnerName: 'Luna',
-      partnerJoined: true,
-      startDate: toDateKey(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-      currentStreak: 7,
-      longestStreak: 7,
-      inviteCode: 'DEMO01',
-      isDemoMode: true,
-      isSubscribed: false,
-    });
+    try {
+      await setCouple({
+        id: generateId(),
+        partnerName: 'Luna',
+        partnerJoined: true,
+        startDate: toDateKey(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
+        currentStreak: 7,
+        longestStreak: 7,
+        inviteCode: 'DEMO01',
+        isDemoMode: true,
+        isSubscribed: false,
+        // Demo seeds seven completed nights; AppContext derives the real total
+        // from those entries, so this is only the value before they load.
+        togetherPoints: 7,
+      });
+    } catch {
+      // Unhandled, a failed local write left this link reading "Setting up
+      // demo..." forever.
+      setLoading(false);
+      haptic.error();
+      Alert.alert('The demo didn’t start', 'Something went wrong setting it up. Try once more.');
+      return;
+    }
     setLoading(false);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await finishOnboarding(registerPushToken, completeOnboarding);
-    router.replace('/(app)/' as never);
+    haptic.success();
+    await enterApp();
   };
 
   // ─── Create mode ───────────────────────────────────────────────────────────
@@ -187,9 +276,15 @@ export default function PairingScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
+          <SpringPressable
+            onPress={() => setMode('choose')}
+            style={styles.backBtn}
+            scaleTo={pressScale.icon}
+            hitSlop={hitSlopFor(30)}
+            accessibilityLabel="Back"
+          >
             <Ionicons name="arrow-back" size={22} color={palette.content[1]} />
-          </Pressable>
+          </SpringPressable>
 
            <Animated.View style={styles.header}>
             <Text style={styles.title}>Share this code{'\n'}with your partner</Text>
@@ -201,16 +296,16 @@ export default function PairingScreen() {
            <Animated.View style={styles.codeCard}>
             <Text style={styles.codeLabel}>Your invite code</Text>
             <Text style={styles.code}>{inviteCode}</Text>
-            <Pressable style={styles.shareButton} onPress={handleShareCode}>
+            <SpringPressable style={styles.shareButton} onPress={handleShareCode}>
               <Ionicons name="share-outline" size={18} color={palette.accent.glow} />
               <Text style={styles.shareText}>Share invite link</Text>
-            </Pressable>
+            </SpringPressable>
           </Animated.View>
 
            <Animated.View style={styles.waitingNote}>
             <Ionicons name="time-outline" size={16} color={palette.content[1]} />
             <Text style={styles.waitingText}>
-              You can keep using Lunara while you wait for your partner to join
+              You can start tonight while you wait
             </Text>
           </Animated.View>
 
@@ -228,17 +323,26 @@ export default function PairingScreen() {
     return (
       <LinearGradient colors={[palette.ink[0], palette.ink[1], palette.ink[3]]} style={styles.container}>
         <StarField />
-        <ScrollView
+        {/* The name field, the code field and the Join button all stay above
+            the keyboard — on a small phone the button used to sit under it. */}
+        <KeyboardAwareScrollViewCompat
+          bottomOffset={JOIN_BUTTON_CLEARANCE}
+          keyboardDismissMode="interactive"
           contentContainerStyle={[
             styles.content,
             { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 40 },
           ]}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
+          <SpringPressable
+            onPress={() => setMode('choose')}
+            style={styles.backBtn}
+            scaleTo={pressScale.icon}
+            hitSlop={hitSlopFor(30)}
+            accessibilityLabel="Back"
+          >
             <Ionicons name="arrow-back" size={22} color={palette.content[1]} />
-          </Pressable>
+          </SpringPressable>
 
            <Animated.View style={styles.header}>
             <Text style={styles.title}>Enter the code{'\n'}from your partner</Text>
@@ -248,7 +352,28 @@ export default function PairingScreen() {
           </Animated.View>
 
            <Animated.View style={styles.joinInput}>
+            {joinsAsGuest && (
+              <View style={styles.nameField}>
+                <Text style={styles.nameLabel}>Your name or nickname</Text>
+                <TextInput
+                  style={styles.nameInput}
+                  value={guestName}
+                  onChangeText={setGuestName}
+                  placeholder="What your partner calls you"
+                  placeholderTextColor={tint.cream(0.22)}
+                  autoCapitalize="words"
+                  autoComplete="given-name"
+                  textContentType="givenName"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => codeInputRef.current?.focus()}
+                  maxLength={40}
+                  autoFocus
+                />
+              </View>
+            )}
             <TextInput
+              ref={codeInputRef}
               style={[styles.codeInput, joinError ? styles.codeInputError : null]}
               value={joinCode}
               onChangeText={(t) => {
@@ -257,11 +382,14 @@ export default function PairingScreen() {
                 if (joinError) setJoinError(null);
               }}
               placeholder="XXXXXX"
-              placeholderTextColor="rgba(247, 241, 232,0.2)"
+              placeholderTextColor={tint.cream(0.2)}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={INVITE_CODE_LENGTH}
-              autoFocus
+              autoFocus={!joinsAsGuest}
+              returnKeyType="join"
+              onSubmitEditing={handleJoinCouple}
+              accessibilityLabel="Invite code"
             />
             {joinError && (
               <View style={styles.joinErrorRow}>
@@ -276,10 +404,12 @@ export default function PairingScreen() {
               title="Join couple"
               onPress={handleJoinCouple}
               loading={loading}
-              disabled={!isWellFormedInviteCode(joinCode)}
+              disabled={
+                !isWellFormedInviteCode(joinCode) || (joinsAsGuest && guestName.trim().length < 2)
+              }
             />
           </Animated.View>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       </LinearGradient>
     );
   }
@@ -292,57 +422,62 @@ export default function PairingScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 40 },
+          styles.chooseContent,
+          { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 16 },
         ]}
         showsVerticalScrollIndicator={false}
       >
          <Animated.View style={styles.header}>
-          <Text style={styles.eyebrow}>Connect</Text>
-          <Text style={styles.title}>Ready to connect{'\n'}with your partner?</Text>
-          <Text style={styles.subtitle}>
-            Create a private shared space, or join one your partner already started
-          </Text>
+          <Text style={styles.title}>Join your partner{'\n'}or invite them?</Text>
         </Animated.View>
 
          <Animated.View style={styles.options}>
-          <Pressable style={styles.bigOption} onPress={handleStartNewCouple} disabled={loading}>
+          <SpringPressable
+            style={styles.bigOption}
+            onPress={handleInvite}
+            disabled={loading}
+            scaleTo={pressScale.card}
+          >
             <View style={styles.bigOptionIcon}>
               <Ionicons name="sparkles-outline" size={28} color={palette.accent.glow} />
             </View>
             <View style={styles.bigOptionText}>
-              <Text style={styles.bigOptionTitle}>Start a new couple</Text>
-              <Text style={styles.bigOptionSub}>Generate an invite code to share</Text>
+              <Text style={styles.bigOptionTitle}>Invite my partner</Text>
+              <Text style={styles.bigOptionSub}>Generate a code to share</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={palette.content[2]} />
-          </Pressable>
+          </SpringPressable>
 
-          <Pressable style={styles.bigOption} onPress={() => setMode('join')}>
+          <SpringPressable
+            style={styles.bigOption}
+            onPress={() => setMode('join')}
+            disabled={loading}
+            scaleTo={pressScale.card}
+          >
             <View style={[styles.bigOptionIcon, styles.iconLavender]}>
               <Ionicons name="enter-outline" size={28} color={palette.content[1]} />
             </View>
             <View style={styles.bigOptionText}>
-              <Text style={styles.bigOptionTitle}>Join an existing couple</Text>
+              <Text style={styles.bigOptionTitle}>I have an invite code</Text>
               <Text style={styles.bigOptionSub}>Enter the code from your partner</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={palette.content[2]} />
-          </Pressable>
+          </SpringPressable>
         </Animated.View>
 
-         <Animated.View style={styles.demoRow}>
-          <View style={styles.divider}>
-            <View style={styles.divLine} />
-            <Text style={styles.divText}>or</Text>
-            <View style={styles.divLine} />
-          </View>
-          <Pressable onPress={handleDemoMode} style={styles.demoBtn} disabled={loading}>
-            {loading ? (
-              <Text style={styles.demoBtnText}>Setting up demo...</Text>
-            ) : (
-              <Text style={styles.demoBtnText}>Explore in demo mode</Text>
-            )}
-          </Pressable>
-          <Text style={styles.demoNote}>Meet Luna — your simulated partner — and try the full experience</Text>
-        </Animated.View>
+        {/* `marginTop: 'auto'` in a grown container pins this to the bottom edge. */}
+        <SpringPressable
+          onPress={handleDemoMode}
+          style={styles.demoLink}
+          disabled={loading}
+          dimWhenDisabled={false}
+          feedback="highlight"
+          hitSlop={8}
+        >
+          <Text style={styles.demoLinkText}>
+            {loading ? 'Setting up demo…' : 'Explore in demo mode'}
+          </Text>
+        </SpringPressable>
       </ScrollView>
     </LinearGradient>
   );
@@ -351,24 +486,18 @@ export default function PairingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 26, gap: 28 },
+  chooseContent: { flexGrow: 1 },
   backBtn: { alignSelf: 'flex-start', padding: 4, marginBottom: 8 },
   header: { gap: 8 },
-  eyebrow: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
-    color: palette.accent.glow,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
   title: {
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 22,
   },
@@ -389,12 +518,12 @@ const styles = StyleSheet.create({
   bigOptionText: { flex: 1, gap: 2 },
   bigOptionTitle: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[0],
   },
   bigOptionSub: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
   },
   codeCard: {
@@ -409,14 +538,14 @@ const styles = StyleSheet.create({
   },
   codeLabel: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[1],
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   code: {
     fontSize: 34,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     letterSpacing: 8,
   },
@@ -434,7 +563,7 @@ const styles = StyleSheet.create({
   },
   shareText: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.accent.glow,
   },
   waitingNote: {
@@ -450,14 +579,32 @@ const styles = StyleSheet.create({
   waitingText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },
   joinInput: { alignItems: 'center', gap: 14 },
+  nameField: { gap: 6, width: '100%' },
+  nameLabel: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: palette.content[1],
+  },
+  nameInput: {
+    backgroundColor: palette.ink[2],
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: 'rgba(247, 241, 232,0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: palette.content[0],
+  },
   codeInput: {
     fontSize: 34,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     letterSpacing: 10,
     textAlign: 'center',
@@ -486,21 +633,10 @@ const styles = StyleSheet.create({
   joinErrorText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.accent.streak,
     lineHeight: 19,
   },
-  demoRow: { gap: 12, alignItems: 'center' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%' },
-  divLine: { flex: 1, height: 1, backgroundColor: 'rgba(247, 241, 232,0.07)' },
-  divText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
-  demoBtn: { paddingVertical: 8 },
-  demoBtnText: { fontSize: 16, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
-  demoNote: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: palette.content[2],
-    textAlign: 'center',
-    lineHeight: 17,
-  },
+  demoLink: { marginTop: 'auto', alignSelf: 'center', paddingVertical: 8 },
+  demoLinkText: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: palette.content[2] },
 });

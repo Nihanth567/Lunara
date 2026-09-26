@@ -1,16 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
+import { SpringPressable } from '@/components/SpringPressable';
+import { EmptyState } from '@/components/EmptyState';
+import { CoupleCompanion } from '@/components/CoupleCompanion';
 import { useApp, type DailyEntry } from '@/context/AppContext';
 import { isPro, freeHistoryCutoffDate, FREE_HISTORY_DAYS } from '@/lib/entitlements';
 import { formatMomentDate, momentIsComplete, momentVoiceCount } from '@/lib/moments';
-import { radius } from '@/constants/tokens';
-import { palette } from '@/constants/colors';
+import { weekRecap } from '@/lib/weeklyRecap';
+import { pressScale, radius } from '@/constants/tokens';
+import { palette, tint } from '@/constants/colors';
 
 /**
  * Moments — a plain chronological list of the nights a couple completed
@@ -27,7 +30,13 @@ function MomentRow({ entry, onPress }: { entry: DailyEntry; onPress: () => void 
   const preview = entry.grateful || entry.cute || entry.grow || '';
 
   return (
-    <Pressable style={styles.row} onPress={onPress}>
+    <SpringPressable
+      style={styles.row}
+      onPress={onPress}
+      scaleTo={pressScale.card}
+      accessibilityLabel={`${formatMomentDate(entry.date)}. ${preview}`}
+      accessibilityHint="Opens this night"
+    >
       <View style={styles.rowMain}>
         <View style={styles.rowHeader}>
           <Text style={styles.rowDate}>{formatMomentDate(entry.date)}</Text>
@@ -48,14 +57,15 @@ function MomentRow({ entry, onPress }: { entry: DailyEntry; onPress: () => void 
         )}
       </View>
       <Ionicons name="chevron-forward" size={16} color={palette.ink[4]} />
-    </Pressable>
+    </SpringPressable>
   );
 }
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { entries, couple } = useApp();
+  const { entries, couple, ritualDate } = useApp();
+  const weekNights = weekRecap(entries, ritualDate).nights;
 
   const proUser = isPro(couple);
   const topPad = insets.top + (Platform.OS === 'web' ? 67 : 0);
@@ -74,7 +84,6 @@ export default function HistoryScreen() {
   const lockedCount = allMoments.length - visible.length;
 
   const open = (date: string) => {
-    Haptics.selectionAsync();
     router.push(`/moment/${date}`);
   };
 
@@ -98,6 +107,27 @@ export default function HistoryScreen() {
           </Text>
         </View>
 
+        {/* The one thing worth opening first: the week, read back. Only once
+            there is a week to read. */}
+        {weekNights > 0 && (
+          <SpringPressable
+            style={styles.weekCard}
+            scaleTo={pressScale.card}
+            onPress={() => router.push('/weekly-recap' as never)}
+          >
+            <View style={styles.weekIcon}>
+              <Ionicons name="sparkles" size={18} color={palette.accent.glow} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.weekTitle}>Your week</Text>
+              <Text style={styles.weekSub}>
+                {weekNights} {weekNights === 1 ? 'night' : 'nights'} together
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={palette.content[2]} />
+          </SpringPressable>
+        )}
+
         {visible.length > 0 ? (
           <View style={styles.list}>
             {visible.map((entry) => (
@@ -105,17 +135,20 @@ export default function HistoryScreen() {
             ))}
           </View>
         ) : lockedCount === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="moon-outline" size={36} color="rgba(247, 241, 232,0.4)" />
-            <Text style={styles.emptyTitle}>Your story starts tonight</Text>
-            <Text style={styles.emptyBody}>
-              Share tonight's ritual with your partner, and this{'\n'}quiet little archive of your moments together begins
-            </Text>
-          </View>
+          <EmptyState
+            art={<CoupleCompanion state="nesting" size="md" />}
+            title="Your nights will live here"
+            body="Finish tonight together and it's kept here, for both of you."
+            action={{ label: 'Start tonight', onPress: () => router.navigate('/(app)/' as never) }}
+          />
         ) : null}
 
         {lockedCount > 0 && (
-          <Pressable style={styles.lockedBanner} onPress={() => router.push('/(modals)/paywall')}>
+          <SpringPressable
+            style={styles.lockedBanner}
+            scaleTo={pressScale.card}
+            onPress={() => router.push('/(modals)/paywall')}
+          >
             <View style={styles.lockedIcon}>
               <Ionicons name="lock-closed" size={16} color={palette.accent.glow} />
             </View>
@@ -135,7 +168,7 @@ export default function HistoryScreen() {
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={palette.content[2]} />
-          </Pressable>
+          </SpringPressable>
         )}
       </ScrollView>
     </LinearGradient>
@@ -146,10 +179,32 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingHorizontal: 22 },
   header: { marginBottom: 22, gap: 4 },
-  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
-  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  title: { fontSize: 26, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0] },
+  subtitle: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
 
   list: { gap: 10 },
+  weekCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 18,
+    marginBottom: 22,
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    backgroundColor: palette.ink[2],
+    borderWidth: 1,
+    borderColor: tint.glow(0.28),
+  },
+  weekIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tint.glow(0.12),
+  },
+  weekTitle: { fontSize: 18, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0] },
+  weekSub: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: palette.content[1] },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,29 +213,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(247, 241, 232,0.08)',
+    borderColor: tint.cream(0.08),
     padding: 16,
   },
   rowMain: { flex: 1, gap: 5 },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowDate: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
+  rowDate: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
   rowDots: { flexDirection: 'row', gap: 4 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
-  rowPreview: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
+  rowPreview: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[1] },
   rowVoice: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  rowVoiceText: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
-
-  emptyState: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyTitle: { fontSize: 22, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0],
-    letterSpacing: -0.4,
-  },
-  emptyBody: {
-    fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: palette.content[2],
-    textAlign: 'center',
-    lineHeight: 21,
-  },
+  rowVoiceText: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
 
   lockedBanner: {
     flexDirection: 'row',
@@ -202,6 +245,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  lockedTitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_600SemiBold', color: palette.content[0] },
-  lockedBody: { fontSize: 12, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
+  lockedTitle: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: palette.content[0] },
+  lockedBody: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: palette.content[1] },
 });

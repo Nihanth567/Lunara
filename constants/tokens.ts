@@ -175,6 +175,35 @@ export const duration = {
 } as const;
 
 /**
+ * Springs, for anything a finger touches.
+ *
+ * Press-in is stiff and heavily damped, so the control answers the instant it
+ * is touched and never wobbles under the finger. Release is looser, so letting
+ * go settles the way a physical key does. A linear timing on either side reads
+ * as an animation playing *at* the person rather than as the surface
+ * responding, and that difference is most of what "feels native" means.
+ *
+ * `settle` is for a card or state arriving: firm enough to land inside the
+ * 300ms band, soft enough not to bounce.
+ */
+export const spring = {
+  pressIn: { damping: 26, stiffness: 520, mass: 0.6 },
+  release: { damping: 16, stiffness: 300, mass: 0.7 },
+  settle: { damping: 20, stiffness: 200 },
+} as const;
+
+/**
+ * How far a control sinks when pressed. 0.97 for anything button-sized; big
+ * surfaces (cards, full-width rows) use `card` because the same 3% on a 340pt
+ * card moves its edge ten points and looks like a flinch.
+ */
+export const pressScale = {
+  button: 0.97,
+  card: 0.985,
+  icon: 0.92,
+} as const;
+
+/**
  * The scrim behind a modal. 0.6 rather than the more common 0.3–0.4: on a
  * background this dark a weak scrim leaves the page competing with the sheet
  * instead of receding behind it.

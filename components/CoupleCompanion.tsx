@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
+  FadeIn,
+  FadeOut,
+  LayoutAnimationConfig,
   useSharedValue,
   useAnimatedStyle,
   useReducedMotion,
@@ -22,6 +25,7 @@ import {
 } from '@/lib/companion';
 import { palette as tokens } from '@/constants/colors';
 import { type, maxFontScale } from '@/constants/typography';
+import { duration } from '@/constants/tokens';
 
 /**
  * The couple's companion, on screen.
@@ -323,6 +327,9 @@ export function CoupleCompanion({
    * arriving on a screen is not news, but a partner submitting while you are
    * looking at it is. The whole thing lands in ~420ms, inside the 300–500ms
    * window where a change still reads as a response to something.
+   *
+   * It was a 12% pop, which on top of the art cross-fading (below) read as
+   * the fox jumping. 6% is a small lift of the head — noticed, not performed.
    */
   const mounted = useRef(false);
   useEffect(() => {
@@ -332,7 +339,7 @@ export function CoupleCompanion({
     }
     if (reduceMotion) return;
     react.value = withSequence(
-      withTiming(1.12, { duration: 160, easing: Easing.out(Easing.quad) }),
+      withTiming(1.06, { duration: 160, easing: Easing.out(Easing.quad) }),
       withSpring(1, { damping: 9, stiffness: 190 }),
     );
   }, [react, reduceMotion, state]);
@@ -375,19 +382,36 @@ export function CoupleCompanion({
         >
           <Halo size={halo} color={haloColor} />
         </Animated.View>
-        <NightFoxArt
-          state={state}
-          size={art}
-          palette={foxPalette}
-          sparks={sparks}
-          light={visual.light}
-          alertness={visual.alertness}
-          // Loops only where the fox is the subject and motion is wanted. At
-          // `sm`/`md` the animation is invisible and still costs a decode, and
-          // an animated file ignores the OS Reduce Motion switch on its own —
-          // so both conditions are enforced here rather than in the art.
-          animated={big && !reduceMotion}
-        />
+        {/*
+          A state change cross-fades the art rather than cutting to it. The
+          pose swapped in a single frame before, so a partner submitting while
+          you watched looked like a glitch in the image rather than the fox
+          noticing. Keyed on the state, the outgoing pose fades out over the
+          incoming one; `skipEntering` keeps the first mount instant, since
+          arriving on a screen is not news. Reduce Motion gets a straight cut.
+        */}
+        <LayoutAnimationConfig skipEntering>
+          <Animated.View
+            key={state}
+            entering={FadeIn.duration(duration.base)}
+            exiting={FadeOut.duration(duration.exit)}
+            style={StyleSheet.absoluteFill}
+          >
+            <NightFoxArt
+              state={state}
+              size={art}
+              palette={foxPalette}
+              sparks={sparks}
+              light={visual.light}
+              alertness={visual.alertness}
+              // Loops only where the fox is the subject and motion is wanted. At
+              // `sm`/`md` the animation is invisible and still costs a decode, and
+              // an animated file ignores the OS Reduce Motion switch on its own —
+              // so both conditions are enforced here rather than in the art.
+              animated={big && !reduceMotion}
+            />
+          </Animated.View>
+        </LayoutAnimationConfig>
       </Animated.View>
 
       {showLabel && (

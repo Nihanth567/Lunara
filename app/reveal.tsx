@@ -1,12 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Pressable,
   Platform,
-  Dimensions,
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,23 +19,45 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
+import { SpringPressable } from '@/components/SpringPressable';
+import { EmptyState } from '@/components/EmptyState';
 import { MilestoneBanner } from '@/components/MilestoneBanner';
-import { GrowGuidance } from '@/components/GrowGuidance';
 import { ConfettiBurst } from '@/components/ConfettiBurst';
+import { TogetherPointsChip } from '@/components/TogetherPointsChip';
 import { CoupleCompanion } from '@/components/CoupleCompanion';
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
+import { dailyPrompt } from '@/lib/dailyPrompts';
 import { NotSignedInError, useApp } from '@/context/AppContext';
-import { useGrowCheckBack } from '@/hooks/useGrowCheckBack';
-import { isPro } from '@/lib/entitlements';
 import { partnerLabel } from '@/lib/partner';
 import { REACTIONS } from '@/lib/reactions';
-import { radius, space, elevation, duration, touchTarget } from '@/constants/tokens';
+import { haptic } from '@/lib/haptics';
+import { radius, space, elevation, duration, touchTarget, spring, hitSlopFor, pressScale } from '@/constants/tokens';
 import { glow, gradients, palette, promptAccent, tint } from '@/constants/colors';
 import { type as text, maxFontScale } from '@/constants/typography';
 
-const { width } = Dimensions.get('window');
+/**
+ * The stagger, in one place so the haptic and the confetti can land on it.
+ *
+ * It used to run 200 → 1500ms between the first card and the last, with a
+ * 600ms fade on each — over two seconds of watching words arrive that were
+ * already there to read. The brief is a short lights-up, not a sequence: the
+ * cards now follow each other closely enough to read as one arrival, and the
+ * whole screen has settled in under a second.
+ */
+const STAGGER = {
+  /** Between one prompt's pair and the next. */
+  pair: 180,
+  /** Between their card and yours inside a pair. */
+  within: 90,
+  /** Each card's own fade. */
+  fade: 360,
+  /** First pair begins. */
+  start: 120,
+} as const;
+
+/** When both of the first pair's answers are fully on screen. */
+const FIRST_PAIR_LANDED = STAGGER.start + STAGGER.within + STAGGER.fade;
 
 // ─── The lights coming up ─────────────────────────────────────────────────────
 
@@ -97,15 +117,26 @@ interface RevealCardProps {
   partnerName?: string;
   /** Voice note attached to this card, if there is one. */
   voice?: string | null;
+  voiceDurationMs?: number | null;
 }
 
-function RevealCard({ label, text, owner, accentColor, delay = 0, myName, partnerName, voice }: RevealCardProps) {
+function RevealCard({
+  label,
+  text,
+  owner,
+  accentColor,
+  delay = 0,
+  myName,
+  partnerName,
+  voice,
+  voiceDurationMs,
+}: RevealCardProps) {
   const opacity = useSharedValue(0);
-  const translateY = useSharedValue(24);
+  const translateY = useSharedValue(14);
 
   useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 600 }));
-    translateY.value = withDelay(delay, withSpring(0, { damping: 18, stiffness: 120 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: STAGGER.fade }));
+    translateY.value = withDelay(delay, withSpring(0, spring.settle));
   }, []);
 
   const style = useAnimatedStyle(() => ({
@@ -127,10 +158,19 @@ function RevealCard({ label, text, owner, accentColor, delay = 0, myName, partne
         >
           {displayName}
         </Text>
-        <Text style={styles.cardText}>{text}</Text>
+        {text ? <Text style={styles.cardText}>{text}</Text> : null}
         {voice ? (
           <View style={styles.cardVoice}>
-            <VoiceNotePlayer source={voice} color={accentColor} label="In their voice" compact />
+            <VoiceNotePlayer
+              source={voice}
+              durationMs={voiceDurationMs}
+              color={accentColor}
+              // Was hard-coded to "In their voice" on both cards, which made
+              // your own recording introduce itself as your partner's on the
+              // one screen where whose voice it is, is the entire point.
+              label={owner === 'partner' ? 'In their voice' : 'In your voice'}
+              compact
+            />
           </View>
         ) : null}
       </View>
@@ -145,22 +185,29 @@ function RevealCard({ label, text, owner, accentColor, delay = 0, myName, partne
  */
 function RevealPair({
   label,
+  question,
   accentColor,
   mine,
   theirs,
   myVoice,
   theirVoice,
+  myVoiceDurationMs,
+  theirVoiceDurationMs,
   baseDelay,
   myName,
   partnerName,
   children,
 }: {
   label: string;
+  /** The question this card asked tonight. */
+  question: string;
   accentColor: string;
   mine: string;
   theirs: string;
   myVoice?: string | null;
   theirVoice?: string | null;
+  myVoiceDurationMs?: number | null;
+  theirVoiceDurationMs?: number | null;
   baseDelay: number;
   myName: string;
   partnerName: string;
@@ -172,11 +219,14 @@ function RevealPair({
         <View style={[styles.pairDot, { backgroundColor: accentColor }]} />
         <Text style={[styles.pairTitle, { color: accentColor }]}>{label}</Text>
       </View>
-      {theirs ? (
+      <Text style={styles.pairQuestion}>{question}</Text>
+      {/* A spoken answer with no text is still an answer. */}
+      {theirs || theirVoice ? (
         <RevealCard
           label={label}
           text={theirs}
           voice={theirVoice}
+          voiceDurationMs={theirVoiceDurationMs}
           owner="partner"
           accentColor={accentColor}
           delay={baseDelay}
@@ -188,9 +238,10 @@ function RevealPair({
         label={label}
         text={mine}
         voice={myVoice}
+        voiceDurationMs={myVoiceDurationMs}
         owner="me"
         accentColor={accentColor}
-        delay={baseDelay + 300}
+        delay={baseDelay + STAGGER.within}
         myName={myName}
         partnerName={partnerName}
       />
@@ -209,7 +260,6 @@ export default function RevealScreen() {
   const { todayEntry, couple, user, entries, setMyReaction, checkMilestone } = useApp();
   const [milestone, setMilestone] = React.useState<number | null>(null);
   const [confetti, setConfetti] = React.useState(0);
-  const { markGuidanceSeen } = useGrowCheckBack(entries);
 
   const streak = couple?.currentStreak ?? 0;
 
@@ -220,30 +270,32 @@ export default function RevealScreen() {
   const myName = user?.name ?? 'You';
 
   useEffect(() => {
-    // The reveal is paced rather than instant: a soft tap as the first cards
-    // rise, then the warmer confirmation once both sides are on screen. The
-    // timings line up with the card stagger below.
-    const timers = [
-      setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 250),
-      setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 900),
-      setTimeout(() => setConfetti((c) => c + 1), 950),
-    ];
+    // The reveal is paced rather than instant: a soft touch as the first card
+    // rises, then the warm confirmation the moment both of the first pair are
+    // on screen — the unlock, felt. Timed off the same STAGGER as the cards.
+    const cancelHaptics = haptic.revealSequence(FIRST_PAIR_LANDED);
+    const confettiTimer = setTimeout(() => setConfetti((c) => c + 1), FIRST_PAIR_LANDED);
     checkMilestone().then(setMilestone).catch(() => {});
-    return () => timers.forEach(clearTimeout);
+    return () => {
+      cancelHaptics();
+      clearTimeout(confettiTimer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!todayEntry) {
     return (
-      <LinearGradient colors={gradients.screen} style={styles.container}>
-        <View style={styles.noEntry}>
-          <Ionicons name="moon-outline" size={26} color={palette.content[1]} />
-          <Text style={styles.noEntryText}>Nothing to open here yet tonight</Text>
-          <Pressable onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="arrow-back" size={20} color={palette.content[1]} />
-            <Text style={styles.closeBtnText}>Go back</Text>
-          </Pressable>
-        </View>
+      <LinearGradient
+        colors={gradients.screen}
+        locations={gradients.screenLocations}
+        style={[styles.container, styles.noEntry]}
+      >
+        <StarField />
+        <EmptyState
+          title="Nothing to open yet"
+          body="Tonight opens once you've both written yours."
+          action={{ label: 'Back to tonight', onPress: () => router.back() }}
+        />
       </LinearGradient>
     );
   }
@@ -265,12 +317,15 @@ export default function RevealScreen() {
       <WarmWash />
 
       {/* Close button */}
-      <Pressable
+      <SpringPressable
         style={[styles.closeButton, { top: topPad + 12 }]}
         onPress={() => router.back()}
+        scaleTo={pressScale.icon}
+        hitSlop={hitSlopFor(40)}
+        accessibilityLabel="Close"
       >
         <Ionicons name="close" size={22} color={palette.content[1]} />
-      </Pressable>
+      </SpringPressable>
 
       <ScrollView
         contentContainerStyle={[
@@ -292,12 +347,20 @@ export default function RevealScreen() {
           <Text style={styles.subtitle}>
             Everything you each kept sealed tonight, open at the same time
           </Text>
-          {streak > 0 && (
-            <View style={styles.streakChip}>
-              <Ionicons name="flame" size={12} color={palette.accent.streak} />
-              <Text style={styles.streakChipText}>Day {streak} together</Text>
-            </View>
-          )}
+          {/*
+            The run, and the total. Side by side on purpose — tonight has just
+            added one to each, and the second is the one that will still be
+            here if the first ever breaks.
+          */}
+          <View style={styles.chipRow}>
+            {streak > 0 && (
+              <View style={styles.streakChip}>
+                <Ionicons name="flame" size={12} color={palette.accent.streak} />
+                <Text style={styles.streakChipText}>Day {streak} together</Text>
+              </View>
+            )}
+            <TogetherPointsChip points={couple?.togetherPoints ?? 0} />
+          </View>
           <ConfettiBurst trigger={confetti} />
         </Animated.View>
 
@@ -305,67 +368,61 @@ export default function RevealScreen() {
 
         <RevealPair
           label="Grateful"
+          question={dailyPrompt('grateful', todayEntry.date)}
           accentColor={promptAccent.grateful}
           mine={todayEntry.grateful}
           theirs={todayEntry.partnerGrateful}
           myVoice={todayEntry.voiceGrateful}
           theirVoice={todayEntry.partnerVoiceGrateful}
-          baseDelay={200}
+          myVoiceDurationMs={todayEntry.voiceGratefulDurationMs}
+          theirVoiceDurationMs={todayEntry.partnerVoiceGratefulDurationMs}
+          baseDelay={STAGGER.start}
           myName={myName}
           partnerName={partnerName}
         />
 
         <RevealPair
           label="Cute"
+          question={dailyPrompt('cute', todayEntry.date)}
           accentColor={promptAccent.cute}
           mine={todayEntry.cute}
           theirs={todayEntry.partnerCute}
           myVoice={todayEntry.voiceCute}
           theirVoice={todayEntry.partnerVoiceCute}
-          baseDelay={700}
+          myVoiceDurationMs={todayEntry.voiceCuteDurationMs}
+          theirVoiceDurationMs={todayEntry.partnerVoiceCuteDurationMs}
+          baseDelay={STAGGER.start + STAGGER.pair}
           myName={myName}
           partnerName={partnerName}
         />
 
         <RevealPair
           label="Grow"
+          question={dailyPrompt('grow', todayEntry.date)}
           accentColor={promptAccent.grow}
           mine={todayEntry.grow}
           theirs={todayEntry.partnerGrow}
           myVoice={todayEntry.voiceGrow}
           theirVoice={todayEntry.partnerVoiceGrow}
-          baseDelay={1200}
+          myVoiceDurationMs={todayEntry.voiceGrowDurationMs}
+          theirVoiceDurationMs={todayEntry.partnerVoiceGrowDurationMs}
+          baseDelay={STAGGER.start + STAGGER.pair * 2}
           myName={myName}
           partnerName={partnerName}
-        >
-          {todayEntry.partnerGrow ? (
-            isPro(couple) ? (
-              <GrowGuidance
-                growTexts={[todayEntry.grow, todayEntry.partnerGrow]}
-                onShown={() => markGuidanceSeen(todayEntry.date)}
-              />
-            ) : (
-              <Pressable style={styles.aiLockedCard} onPress={() => router.push('/(modals)/paywall')}>
-                <View style={styles.aiLockedIcon}>
-                  <Ionicons name="sparkles" size={16} color={palette.accent.glow} />
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.aiLockedTitle}>A gentle way forward</Text>
-                  <Text style={styles.aiLockedBody}>Premium turns tonight&apos;s Grow notes into one small idea</Text>
-                </View>
-                <Ionicons name="lock-closed" size={16} color={palette.content[2]} />
-              </Pressable>
-            )
-          ) : null}
-        </RevealPair>
+        />
+        {/* How to grow from these notes shows once, in Tonight's single nudge
+            slot (lib/nudge.ts) — the reveal is only the two of you. */}
 
         {/* Reactions */}
         <Animated.View style={styles.reactions}>
           <Text style={styles.reactionsLabel}>How did that land?</Text>
           <View style={styles.reactionRow}>
             {REACTIONS.map((r) => (
-              <Pressable
+              <SpringPressable
                 key={r.label}
+                haptic="none"
+                accessibilityLabel={r.label}
+                accessibilityState={{ selected: todayEntry.myReaction === r.label }}
                 style={[
                   styles.reactionBtn,
                   todayEntry.myReaction === r.label && {
@@ -374,7 +431,7 @@ export default function RevealScreen() {
                   },
                 ]}
                 onPress={async () => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  haptic.reaction();
                   // `setMyReaction` throws now (an expired session, a failed
                   // write) where it used to return quietly. Unhandled, that is
                   // a rejection with no UI; caught, it is a sentence. The
@@ -383,6 +440,7 @@ export default function RevealScreen() {
                   try {
                     await setMyReaction(r.label);
                   } catch (error) {
+                    haptic.error();
                     Alert.alert(
                       'That didn’t save',
                       error instanceof NotSignedInError
@@ -394,7 +452,7 @@ export default function RevealScreen() {
               >
                 <Ionicons name={r.icon as any} size={22} color={r.color} />
                 <Text style={[styles.reactionLabel, { color: r.color }]}>{r.label}</Text>
-              </Pressable>
+              </SpringPressable>
             ))}
           </View>
         </Animated.View>
@@ -406,9 +464,9 @@ export default function RevealScreen() {
               ? `Day ${streak} together. Your fox is lit till morning.`
               : `${partnerName} is on the other side of tonight. Sleep well.`}
           </Text>
-          <Pressable style={styles.doneBtn} onPress={() => router.back()} hitSlop={8}>
+          <SpringPressable style={styles.doneBtn} onPress={() => router.back()} hitSlop={8}>
             <Text style={styles.doneBtnText}>Close this moment</Text>
-          </Pressable>
+          </SpringPressable>
           <Text style={styles.seeYouText}>Three new ones tomorrow night.</Text>
         </View>
       </ScrollView>
@@ -420,28 +478,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   // ── Locked Grow guidance ──────────────────────────────────────────────────
-  aiLockedCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: palette.ink[2],
-    borderRadius: radius.lg,
-    borderCurve: 'continuous',
-    borderWidth: 1,
-    borderColor: tint.glow(0.18),
-    padding: space.lg,
-  },
-  aiLockedIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    borderCurve: 'continuous',
-    backgroundColor: tint.glow(0.12),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  aiLockedTitle: { ...text.caption, color: palette.content[0] },
-  aiLockedBody: { ...text.caption, color: palette.content[2] },
 
   closeButton: {
     position: 'absolute',
@@ -458,6 +494,13 @@ const styles = StyleSheet.create({
 
   // ── Title ─────────────────────────────────────────────────────────────────
   titleSection: { alignItems: 'center', marginBottom: space.xxl, gap: space.sm + 2 },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   streakChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -490,6 +533,7 @@ const styles = StyleSheet.create({
   },
   pairDot: { width: 7, height: 7, borderRadius: radius.full },
   pairTitle: { ...text.overline, textTransform: 'uppercase' },
+  pairQuestion: { ...text.body, fontFamily: 'Nunito_700Bold', color: palette.content[0], marginBottom: space.xs },
 
   /**
    * A reveal card is a gift, not a form result.
@@ -563,8 +607,5 @@ const styles = StyleSheet.create({
   doneBtnText: { ...text.label, color: palette.content[0] },
   seeYouText: { ...text.caption, color: palette.content[2], textAlign: 'center' },
 
-  noEntry: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: space.lg },
-  noEntryText: { ...text.body, color: palette.content[1] },
-  closeBtn: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  closeBtnText: { ...text.callout, color: palette.content[1] },
+  noEntry: { justifyContent: 'center' },
 });

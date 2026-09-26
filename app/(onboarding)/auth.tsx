@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { StarField } from '@/components/StarField';
+import { SpringPressable } from '@/components/SpringPressable';
+import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { haptic } from '@/lib/haptics';
 import { useApp, type RemoteAccountState } from '@/context/AppContext';
 import { isGoogleSignInConfigured } from '@/lib/googleSignIn';
-import { gradients, palette } from '@/constants/colors';
-import { radius, space } from '@/constants/tokens';
+import { gradients, palette, tint } from '@/constants/colors';
+import { radius, space, touchTarget } from '@/constants/tokens';
 import { type as text } from '@/constants/typography';
 
 /**
  * Sign in — Apple and Google, and nothing else.
+ *
+ * This is the screen for the person *starting* a couple (and for anyone
+ * returning). The partner who joins with a code never sees it: they give a name
+ * on the pairing screen and get an anonymous account there — see
+ * `joinCoupleAsGuest` in AppContext.
  *
  * This screen used to offer four ways in: Apple, Google, phone OTP and
  * email/password. Four is not generosity, it is a decision handed to someone
@@ -43,14 +50,17 @@ async function afterSignIn(
   router: ReturnType<typeof useRouter>,
   account: RemoteAccountState | null,
   completeOnboarding: () => Promise<void>,
+  intent: string | undefined,
 ) {
-  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  haptic.success();
+  // Carried from "Invite my partner" so pairing can go straight to the code.
+  const query = intent === 'invite' ? '?intent=invite' : '';
   if (!account?.hasProfile) {
-    router.replace('/(onboarding)/profile-setup');
+    router.replace(`/(onboarding)/profile-setup${query}` as never);
     return;
   }
   if (!account.hasCouple) {
-    router.replace('/(onboarding)/pairing');
+    router.replace(`/(onboarding)/pairing${query}` as never);
     return;
   }
   await completeOnboarding();
@@ -60,46 +70,61 @@ async function afterSignIn(
 export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { intent } = useLocalSearchParams<{ intent?: string }>();
   const {
     signInWithApple,
     signInWithGoogle,
     refreshSharedState,
     completeOnboarding,
   } = useApp();
-  const [loading, setLoading] = useState(false);
+  /**
+   * Which provider is in flight. Both buttons used to share one boolean and
+   * simply went inert — nothing on screen said which one you'd pressed, or
+   * that anything was happening at all while the provider sheet came up and
+   * the account loaded behind it.
+   */
+  const [pending, setPending] = useState<'apple' | 'google' | null>(null);
+  const loading = pending !== null;
 
   const handleApple = async () => {
-    setLoading(true);
+    setPending('apple');
     try {
       await signInWithApple();
       const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding);
+      await afterSignIn(router, account, completeOnboarding, intent);
     } catch (error: any) {
       if (error?.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Could not sign in with Apple', error?.message ?? 'Please try again.');
+        haptic.error();
+        Alert.alert(
+          'Apple sign-in didn’t finish',
+          `${error?.message ?? 'Something got in the way.'} Nothing’s lost — try once more.`,
+        );
       }
     } finally {
-      setLoading(false);
+      setPending(null);
     }
   };
 
   const handleGoogle = async () => {
-    setLoading(true);
+    setPending('google');
     try {
       await signInWithGoogle();
       const account = await refreshSharedState();
-      await afterSignIn(router, account, completeOnboarding);
+      await afterSignIn(router, account, completeOnboarding, intent);
     } catch (error: any) {
       if (error?.code !== 'SIGN_IN_CANCELLED' && error?.code !== '-5') {
-        Alert.alert('Could not sign in with Google', error?.message ?? 'Please try again.');
+        haptic.error();
+        Alert.alert(
+          'Google sign-in didn’t finish',
+          `${error?.message ?? 'Something got in the way.'} Nothing’s lost — try once more.`,
+        );
       }
     } finally {
-      setLoading(false);
+      setPending(null);
     }
   };
 
   const handleDemoSignIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/(onboarding)/pairing');
   };
 
@@ -132,17 +157,43 @@ export default function AuthScreen() {
 
         <Animated.View style={styles.authOptions}>
           {appleAvailable && (
-            <Pressable style={styles.authButton} onPress={handleApple} disabled={loading}>
-              <Ionicons name="logo-apple" size={22} color={palette.content[0]} />
-              <Text style={styles.authButtonText}>Continue with Apple</Text>
-            </Pressable>
+            <SpringPressable
+              style={styles.authButton}
+              onPress={handleApple}
+              disabled={loading}
+              // The one you pressed stays bright and shows it is working; the
+              // other dims, so it's clear which way in is happening.
+              dimWhenDisabled={pending !== 'apple'}
+              accessibilityState={{ busy: pending === 'apple' }}
+            >
+              {pending === 'apple' ? (
+                <ThinkingOrb state="working" size={20} theme="dark" accessibilityLabel="Signing in with Apple" />
+              ) : (
+                <Ionicons name="logo-apple" size={22} color={palette.content[0]} />
+              )}
+              <Text style={styles.authButtonText}>
+                {pending === 'apple' ? 'Signing you in…' : 'Continue with Apple'}
+              </Text>
+            </SpringPressable>
           )}
 
           {googleAvailable && (
-            <Pressable style={styles.authButton} onPress={handleGoogle} disabled={loading}>
-              <Ionicons name="logo-google" size={20} color={palette.content[0]} />
-              <Text style={styles.authButtonText}>Continue with Google</Text>
-            </Pressable>
+            <SpringPressable
+              style={styles.authButton}
+              onPress={handleGoogle}
+              disabled={loading}
+              dimWhenDisabled={pending !== 'google'}
+              accessibilityState={{ busy: pending === 'google' }}
+            >
+              {pending === 'google' ? (
+                <ThinkingOrb state="working" size={20} theme="dark" accessibilityLabel="Signing in with Google" />
+              ) : (
+                <Ionicons name="logo-google" size={20} color={palette.content[0]} />
+              )}
+              <Text style={styles.authButtonText}>
+                {pending === 'google' ? 'Signing you in…' : 'Continue with Google'}
+              </Text>
+            </SpringPressable>
           )}
 
           {noProviders && (
@@ -158,9 +209,14 @@ export default function AuthScreen() {
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
-          <Pressable onPress={handleDemoSignIn} style={styles.demoBtn}>
+          <SpringPressable
+            onPress={handleDemoSignIn}
+            style={styles.demoBtn}
+            disabled={loading}
+            feedback="highlight"
+          >
             <Text style={styles.demoBtnText}>Look around first</Text>
-          </Pressable>
+          </SpringPressable>
           <Text style={styles.demoNote}>
             Explore with a stand-in partner — nothing saved, no account
           </Text>
@@ -200,7 +256,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: 'rgba(247, 241, 232, 0.12)',
+    borderColor: tint.cream(0.12),
+    minHeight: touchTarget + space.sm,
     paddingVertical: space.lg,
     paddingHorizontal: 20,
   },

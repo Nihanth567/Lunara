@@ -121,6 +121,17 @@ one-forgiven-night rule as `current`, matching `lib/streak.ts`.
     `OPENAI_API_KEY` secret (below); without it the app falls back to the
     keyword-matched templates in `lib/growGuidance.ts` automatically — nothing
     breaks either way.
+  - `transcribe-voice` — turns one of *your own* voice notes into text so you
+    can edit the written line on the same card. Takes a Storage path (never
+    audio, never a URL), and uses the same `OPENAI_API_KEY` secret as
+    `grow-guidance`. Without the key it returns 503 and the app simply doesn't
+    offer the transcript — the recording is already saved either way.
+
+    It refuses to read a partner's recording, even after the reveal has
+    opened: the path is untrusted client input, so it is parsed and checked
+    against the caller, *and* the download runs under the caller's own JWT so
+    Storage RLS is a second, independent gate. Without both, the function
+    would be an oracle for reading any object in the bucket.
 
 ### One-time dashboard configuration (needs your own accounts)
 
@@ -208,6 +219,11 @@ afternoon here.
    Edge Functions → `grow-guidance` → Secrets. The key never touches the app
    bundle or client code — it's read server-side only, via
    `Deno.env.get('OPENAI_API_KEY')` inside the function.
+7. **Voice transcription (OpenAI)**: same secret, second function — deploy it
+   with `supabase functions deploy transcribe-voice --project-ref lumixwmobjvlzgqrdjak`.
+   Edge Function secrets are project-wide, so if step 6 is done there is
+   nothing further to set. Uses `whisper-1`, which is available on every
+   account with API access.
 
 ## Deep links
 

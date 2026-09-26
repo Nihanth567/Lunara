@@ -1,17 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { VoiceNotePlayer } from '@/components/VoiceNotePlayer';
+import { SpringPressable } from '@/components/SpringPressable';
+import { EmptyState } from '@/components/EmptyState';
 import { useApp } from '@/context/AppContext';
 import { partnerLabel } from '@/lib/partner';
 import { formatMomentDate, formatMomentDateLong, momentSections, type MomentSection } from '@/lib/moments';
 import { growFollowUpLabel } from '@/lib/growCheckBack';
 import { resolveReaction } from '@/lib/reactions';
-import { radius, space } from '@/constants/tokens';
+import { hitSlopFor, pressScale, radius, space } from '@/constants/tokens';
 import { palette, tint } from '@/constants/colors';
 import { type as text } from '@/constants/typography';
 
@@ -28,11 +30,13 @@ function Answer({
   name,
   text,
   voice,
+  voiceDurationMs,
   color,
 }: {
   name: string;
   text: string;
   voice: string | null;
+  voiceDurationMs: number | null;
   color: string;
 }) {
   if (!text && !voice) return null;
@@ -42,7 +46,12 @@ function Answer({
       {text ? <Text style={styles.answerText}>{text}</Text> : null}
       {voice ? (
         <View style={styles.answerVoice}>
-          <VoiceNotePlayer source={voice} color={color} compact />
+          <VoiceNotePlayer
+            source={voice}
+            durationMs={voiceDurationMs}
+            color={color}
+            compact
+          />
         </View>
       ) : null}
     </View>
@@ -67,9 +76,22 @@ function Section({
         <View style={[styles.sectionDot, { backgroundColor: section.color }]} />
         <Text style={[styles.sectionTitle, { color: section.color }]}>{section.title}</Text>
       </View>
+      <Text style={styles.sectionQuestion}>{section.question}</Text>
       <View style={styles.sectionBody}>
-        <Answer name={myName} text={section.mine} voice={section.myVoice} color={section.color} />
-        <Answer name={partnerName} text={section.theirs} voice={section.theirVoice} color={section.color} />
+        <Answer
+          name={myName}
+          text={section.mine}
+          voice={section.myVoice}
+          voiceDurationMs={section.myVoiceDurationMs}
+          color={section.color}
+        />
+        <Answer
+          name={partnerName}
+          text={section.theirs}
+          voice={section.theirVoice}
+          voiceDurationMs={section.theirVoiceDurationMs}
+          color={section.color}
+        />
       </View>
     </View>
   );
@@ -92,14 +114,12 @@ export default function MomentScreen() {
     return (
       <LinearGradient colors={[palette.ink[0], palette.ink[2]]} style={styles.container}>
         <StarField />
-        <View style={styles.missing}>
-          <Ionicons name="moon-outline" size={26} color={palette.content[1]} />
-          <Text style={styles.missingText}>That night isn't here anymore</Text>
-          <Pressable onPress={() => router.back()} style={styles.backRow}>
-            <Ionicons name="arrow-back" size={18} color={palette.content[1]} />
-            <Text style={styles.backText}>Back to Moments</Text>
-          </Pressable>
-        </View>
+        <EmptyState
+          style={styles.missing}
+          title="That night isn't here anymore"
+          body="It may have been removed, or it hasn't synced to this phone yet."
+          action={{ label: 'Back to Moments', onPress: () => router.back() }}
+        />
       </LinearGradient>
     );
   }
@@ -112,9 +132,15 @@ export default function MomentScreen() {
     >
       <StarField />
 
-      <Pressable style={[styles.closeButton, { top: topPad + 12 }]} onPress={() => router.back()}>
+      <SpringPressable
+        style={[styles.closeButton, { top: topPad + 12 }]}
+        onPress={() => router.back()}
+        scaleTo={pressScale.icon}
+        hitSlop={hitSlopFor(40)}
+        accessibilityLabel="Back to Moments"
+      >
         <Ionicons name="chevron-back" size={22} color={palette.content[1]} />
-      </Pressable>
+      </SpringPressable>
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingTop: topPad + 62, paddingBottom: bottomPad }]}
@@ -196,15 +222,21 @@ const styles = StyleSheet.create({
   },
 
   header: { marginBottom: 28, gap: 4 },
-  title: { fontSize: 26, fontFamily: 'Fraunces_600SemiBold', color: palette.content[0] },
-  subtitle: { fontSize: 14, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[2] },
+  title: { fontSize: 26, fontFamily: 'Nunito_800ExtraBold', color: palette.content[0] },
+  subtitle: { fontSize: 14, fontFamily: 'Nunito_400Regular', color: palette.content[2] },
 
   section: { marginBottom: 26, gap: 10 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   sectionDot: { width: 7, height: 7, borderRadius: 3.5 },
+  sectionQuestion: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Nunito_700Bold',
+    color: palette.content[0],
+  },
   sectionTitle: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -221,13 +253,13 @@ const styles = StyleSheet.create({
   },
   answerName: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[2],
     letterSpacing: 0.3,
   },
   answerText: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 22,
   },
@@ -249,7 +281,7 @@ const styles = StyleSheet.create({
   followUpText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },
@@ -272,8 +304,5 @@ const styles = StyleSheet.create({
   reactionName: { ...text.caption, color: palette.content[2] },
   reactionLabel: { ...text.caption },
 
-  missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14 },
-  missingText: { fontSize: 16, fontFamily: 'PlusJakartaSans_400Regular', color: palette.content[1] },
-  backRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backText: { fontSize: 14, fontFamily: 'PlusJakartaSans_500Medium', color: palette.content[1] },
+  missing: { flex: 1, justifyContent: 'center', paddingTop: 0 },
 });

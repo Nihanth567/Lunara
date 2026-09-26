@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import { askWithReason } from '@/lib/permissions';
 
 // Configure how notifications appear when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -482,28 +483,19 @@ export function formatReminderTime(hour: number, minute: number): string {
 export async function maybeAskForNotifications(
   onGranted: () => Promise<void>,
 ): Promise<void> {
-  if (Platform.OS === 'web') return;
-  const status = await getNotificationPermissionStatus().catch(() => 'denied' as const);
-  if (status !== 'undetermined') return;
-  await new Promise<void>((resolve) => {
-    Alert.alert(
-      'One quiet reminder a night?',
+  // The same two-step ask as the mic (`lib/permissions.ts`), minus the
+  // Settings nag: someone who already declined is not asked again here.
+  const granted = await askWithReason({
+    check: Notifications.getPermissionsAsync,
+    request: Notifications.requestPermissionsAsync,
+    title: 'One quiet reminder a night?',
+    reason:
       'If the night is slipping by and you haven’t written yours yet, we’ll send one gentle nudge — never more than that.',
-      [
-        { text: 'Not now', style: 'cancel', onPress: () => resolve() },
-        {
-          text: 'Sounds good',
-          onPress: async () => {
-            const granted = await requestNotificationPermissions().catch(() => false);
-            // A grant with no token stored is a permission nobody can use — the
-            // remote pushes address a device, not an account.
-            if (granted) await onGranted().catch(() => {});
-            resolve();
-          },
-        },
-      ],
-    );
+    allowLabel: 'Sounds good',
   });
+  // A grant with no token stored is a permission nobody can use — the remote
+  // pushes address a device, not an account.
+  if (granted) await onGranted().catch(() => {});
 }
 
 // ─── Trial ending ─────────────────────────────────────────────────────────────

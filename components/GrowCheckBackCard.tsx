@@ -1,10 +1,11 @@
-import { radius } from '@/constants/tokens';
+import { duration, radius } from '@/constants/tokens';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { palette } from '@/constants/colors';
+import { SpringPressable } from '@/components/SpringPressable';
+import { haptic } from '@/lib/haptics';
+import { palette, tint } from '@/constants/colors';
 import {
   GROW_CHECK_BACK_QUESTION,
   GROW_FOLLOW_UP_OPTIONS,
@@ -36,15 +37,19 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
   const handle = (response: GrowFollowUpResponse) => {
     if (answer) return;
     setAnswer(response);
-    Haptics.impactAsync(
-      response === 'yes' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
-    );
+    // "We did it" is a small win; any other answer is just a choice.
+    if (response === 'yes') haptic.success();
+    else haptic.selection();
     onRespond(response);
     dismissRef.current = setTimeout(onDismiss, 2600);
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(220)} style={styles.card}>
+    <Animated.View
+      entering={FadeIn.duration(duration.base)}
+      exiting={FadeOut.duration(duration.exit)}
+      style={styles.card}
+    >
       {answer === null ? (
         <>
           <View style={styles.header}>
@@ -55,14 +60,15 @@ export function GrowCheckBackCard({ growText, onRespond, onDismiss }: Props) {
           <Text style={styles.quote} numberOfLines={2}>“{growText}”</Text>
           <View style={styles.pills}>
             {GROW_FOLLOW_UP_OPTIONS.map((option) => (
-              <Pressable
+              <SpringPressable
                 key={option.value}
                 style={[styles.pill, { borderColor: option.color + '33' }]}
                 onPress={() => handle(option.value)}
+                haptic="none"
               >
                 <Ionicons name={option.icon} size={13} color={option.color} />
                 <Text style={[styles.pillText, { color: option.color }]}>{option.label}</Text>
-              </Pressable>
+              </SpringPressable>
             ))}
           </View>
         </>
@@ -85,25 +91,24 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(125, 222, 181,0.18)',
     padding: 18,
     gap: 9,
-    marginBottom: 16,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   eyebrow: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[2],
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   question: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.content[0],
     lineHeight: 21,
   },
   quote: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
     fontStyle: 'italic',
@@ -119,14 +124,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    backgroundColor: 'rgba(247, 241, 232,0.04)',
+    backgroundColor: tint.cream(0.04),
   },
-  pillText: { fontSize: 12, fontFamily: 'PlusJakartaSans_500Medium' },
+  pillText: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   resultText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 19,
   },

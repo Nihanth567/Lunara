@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { fetchGrowGuidance, getGrowGuidance, type GrowSuggestion } from '@/lib/growGuidance';
-import { radius } from '@/constants/tokens';
+import { SpringPressable } from '@/components/SpringPressable';
+import { duration, pressScale, radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
 
 interface Props {
@@ -14,10 +15,17 @@ interface Props {
    * guidance they were really shown.
    */
   onShown?: () => void;
+  /** The close button. The slot records it so tonight's guidance doesn't come back. */
+  onDismiss?: () => void;
 }
 
-/** Soft, dismissible suggestions shown after both partners reveal their Grow notes — never critical, always optional. */
-export function GrowGuidance({ growTexts, onShown }: Props) {
+/**
+ * "How to grow", drawn from tonight's own Grow notes — the second-priority item
+ * in the single nudge slot on Tonight (lib/nudge.ts), after the night is
+ * revealed. It used to sit inside the reveal itself, under the Grow answers;
+ * it moved so a night has one growth surface, not two.
+ */
+export function GrowGuidance({ growTexts, onShown, onDismiss }: Props) {
   const [dismissed, setDismissed] = useState(false);
   // Templates render immediately; the model's version swaps in if it arrives.
   // `fetchGrowGuidance` never rejects, so there is no failure branch here.
@@ -46,17 +54,29 @@ export function GrowGuidance({ growTexts, onShown }: Props) {
   if (dismissed || !hasSuggestions) return null;
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(200)} style={styles.container}>
+    <Animated.View
+      entering={FadeIn.duration(duration.base)}
+      exiting={FadeOut.duration(duration.exit)}
+      style={styles.container}
+    >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="leaf-outline" size={16} color={palette.accent.success} />
           <Text style={styles.title}>A gentle way forward</Text>
         </View>
-        <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.dismissBtn}>
+        <SpringPressable
+          onPress={() => {
+            setDismissed(true);
+            onDismiss?.();
+          }}
+          hitSlop={14}
+          scaleTo={pressScale.icon}
+          style={styles.dismissBtn}
+          accessibilityLabel="Not now"
+        >
           <Ionicons name="close" size={16} color={palette.content[2]} />
-        </Pressable>
+        </SpringPressable>
       </View>
-      <Text style={styles.intro}>A few small, no-pressure ideas — take what’s useful, leave the rest.</Text>
       <View style={styles.list}>
         {suggestions.map((s) => (
           <View key={s.id} style={styles.row}>
@@ -78,7 +98,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(125, 222, 181,0.18)',
     padding: 18,
     gap: 12,
-    marginBottom: 24,
   },
   header: {
     flexDirection: 'row',
@@ -88,18 +107,12 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_600SemiBold',
+    fontFamily: 'Nunito_700Bold',
     color: palette.accent.success,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   dismissBtn: { padding: 2 },
-  intro: {
-    fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
-    color: palette.content[2],
-    lineHeight: 18,
-  },
   list: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   dot: {
@@ -112,7 +125,7 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 20,
   },

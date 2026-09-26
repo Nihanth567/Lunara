@@ -1,23 +1,10 @@
 import React from 'react';
-import {
-  Pressable,
-  Text,
-  StyleSheet,
-  ViewStyle,
-  View,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  useReducedMotion,
-  withTiming,
-  withSpring,
-} from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { Text, StyleSheet, ViewStyle, View } from 'react-native';
 import { type, maxFontScale } from '@/constants/typography';
-import { radius, elevation, space, duration, touchTarget } from '@/constants/tokens';
+import { radius, elevation, space, touchTarget } from '@/constants/tokens';
 import { glow, palette, tint } from '@/constants/colors';
 import { ThinkingOrb } from '@/components/ThinkingOrb';
+import { SpringPressable } from '@/components/SpringPressable';
 
 interface LunaraButtonProps {
   title: string;
@@ -29,8 +16,6 @@ interface LunaraButtonProps {
   /** Overrides the spoken label when `title` alone isn't descriptive. */
   accessibilityLabel?: string;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * The one button in Lunara.
@@ -57,9 +42,11 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
  * ─── Still true from before ──────────────────────────────────────────────────
  *
  * - **One type step.** Primary and secondary are both `type.label`.
- * - **Spring, not timing, on release.** A spring settles the way a physical
- *   control does. 0.97 is the press floor — deep enough to feel, shallow enough
- *   that a big pill does not appear to flinch.
+ * - **Spring both ways.** Press and release come from `SpringPressable`, the
+ *   same physics as every other control in the app. 0.97 is the press floor —
+ *   deep enough to feel, shallow enough that a big pill does not flinch.
+ * - **Disabled and loading are inert.** No spring, no haptic. The disabled
+ *   primary keeps its own low-emphasis apricot rather than the generic dim.
  *
  * Accessibility: every variant declares `accessibilityRole="button"` and its
  * busy/disabled state, so the loading indicator is announced rather than being
@@ -75,47 +62,21 @@ export function LunaraButton({
   style,
   accessibilityLabel,
 }: LunaraButtonProps) {
-  const scale = useSharedValue(1);
-  // Honour the OS "Reduce Motion" setting: the press still gives feedback via
-  // the state layer and the haptic, it just doesn't move.
-  const reduceMotion = useReducedMotion();
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   const inactive = disabled || loading;
 
-  const handlePressIn = () => {
-    if (reduceMotion || inactive) return;
-    scale.value = withTiming(0.97, { duration: duration.instant });
-  };
-
-  const handlePressOut = () => {
-    if (reduceMotion || inactive) return;
-    scale.value = withSpring(1, { damping: 15, stiffness: 260 });
-  };
-
-  const handlePress = () => {
-    if (inactive) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
-  };
-
   const a11y = {
-    accessibilityRole: 'button' as const,
     accessibilityLabel: accessibilityLabel ?? title,
-    accessibilityState: { disabled: inactive, busy: loading },
+    accessibilityState: { busy: loading },
   };
 
   if (variant === 'ghost') {
     return (
-      <AnimatedPressable
-        onPress={handlePress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
+      <SpringPressable
+        onPress={onPress}
         disabled={inactive}
-        style={[animStyle, styles.ghost, style]}
+        dimWhenDisabled={false}
+        feedback="highlight"
+        style={[styles.ghost, style]}
         {...a11y}
       >
         <Text
@@ -124,19 +85,19 @@ export function LunaraButton({
         >
           {title}
         </Text>
-      </AnimatedPressable>
+      </SpringPressable>
     );
   }
 
   const isPrimary = variant === 'primary';
 
   return (
-    <AnimatedPressable
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+    <SpringPressable
+      onPress={onPress}
       disabled={inactive}
-      style={[animStyle, styles.wrapper, isPrimary && !disabled && styles.primaryLift, style]}
+      // Draws its own disabled look below; loading must not dim at all.
+      dimWhenDisabled={false}
+      style={[styles.wrapper, isPrimary && !disabled && styles.primaryLift, style]}
       {...a11y}
     >
       <View
@@ -169,7 +130,7 @@ export function LunaraButton({
           </Text>
         )}
       </View>
-    </AnimatedPressable>
+    </SpringPressable>
   );
 }
 

@@ -6,7 +6,7 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Redirect, Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { palette } from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import { isPro } from '@/lib/entitlements';
@@ -30,12 +30,12 @@ function NativeTabLayout() {
       indicatorColor="rgba(255, 184, 107,0.14)"
       labelStyle={{
         default: {
-          fontFamily: 'PlusJakartaSans_500Medium',
+          fontFamily: 'Nunito_600SemiBold',
           fontSize: 11,
           color: 'rgba(247, 241, 232,0.45)',
         },
         selected: {
-          fontFamily: 'PlusJakartaSans_600SemiBold',
+          fontFamily: 'Nunito_700Bold',
           fontSize: 11,
           color: palette.accent.glow,
         },
@@ -72,7 +72,7 @@ function ClassicTabLayout() {
     <Tabs
       screenListeners={{
         tabPress: () => {
-          Haptics.selectionAsync();
+          haptic.selection();
         },
       }}
       screenOptions={{
@@ -104,7 +104,7 @@ function ClassicTabLayout() {
           ) : null,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontFamily: 'PlusJakartaSans_600SemiBold',
+          fontFamily: 'Nunito_700Bold',
           letterSpacing: 0.2,
           marginBottom: isIOS ? 0 : 4,
         },

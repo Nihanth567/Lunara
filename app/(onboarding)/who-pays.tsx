@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/haptics';
 import { StarField } from '@/components/StarField';
 import { LunaraButton } from '@/components/LunaraButton';
+import { SpringPressable } from '@/components/SpringPressable';
 import { useApp } from '@/context/AppContext';
-import { radius } from '@/constants/tokens';
+import { pressScale, radius } from '@/constants/tokens';
 import { palette } from '@/constants/colors';
 
 const OPTIONS = [
@@ -38,16 +39,21 @@ export default function WhoPayScreen() {
   const insets = useSafeAreaInsets();
   const { setWhoPays } = useApp();
   const [selected, setSelected] = useState<'me' | 'partner' | 'later' | null>(null);
-
-  const handleSelect = (key: 'me' | 'partner' | 'later') => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelected(key);
-  };
+  const [saving, setSaving] = useState(false);
 
   const handleContinue = async () => {
-    if (!selected) return;
-    await setWhoPays(selected);
-    router.push('/(onboarding)/pro-preview');
+    if (!selected || saving) return;
+    setSaving(true);
+    try {
+      await setWhoPays(selected);
+      router.push('/(onboarding)/pro-preview');
+    } catch {
+      // Unhandled, a failed write left Continue doing nothing at all.
+      haptic.error();
+      Alert.alert('That didn’t save', 'Something got in the way just now. Try once more.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -71,13 +77,19 @@ export default function WhoPayScreen() {
 
          <Animated.View style={styles.options}>
           {OPTIONS.map((opt) => (
-            <Pressable
+            <SpringPressable
               key={opt.key}
               style={[
                 styles.option,
                 selected === opt.key && styles.optionSelected,
               ]}
-              onPress={() => handleSelect(opt.key)}
+              scaleTo={pressScale.card}
+              // Choosing between options is a selection, not a tap.
+              haptic="selection"
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selected === opt.key }}
+              accessibilityLabel={`${opt.label}. ${opt.sub}`}
+              onPress={() => setSelected(opt.key)}
             >
               <View style={[styles.optionIcon, selected === opt.key && styles.optionIconSelected]}>
                 <Ionicons
@@ -95,7 +107,7 @@ export default function WhoPayScreen() {
               {selected === opt.key && (
                 <Ionicons name="checkmark-circle" size={22} color={palette.accent.glow} />
               )}
-            </Pressable>
+            </SpringPressable>
           ))}
         </Animated.View>
 
@@ -104,6 +116,7 @@ export default function WhoPayScreen() {
             title="Continue"
             onPress={handleContinue}
             disabled={!selected}
+            loading={saving}
           />
         </Animated.View>
       </ScrollView>
@@ -117,20 +130,20 @@ const styles = StyleSheet.create({
   header: { marginBottom: 28, gap: 10 },
   eyebrow: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.accent.glow,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 26,
-    fontFamily: 'Fraunces_600SemiBold',
+    fontFamily: 'Nunito_800ExtraBold',
     color: palette.content[0],
     lineHeight: 38,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[1],
     lineHeight: 21,
   },
@@ -155,13 +168,13 @@ const styles = StyleSheet.create({
   optionText: { flex: 1, gap: 2 },
   optionLabel: {
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: 'Nunito_600SemiBold',
     color: palette.content[1],
   },
   optionLabelSelected: { color: palette.content[0] },
   optionSub: {
     fontSize: 12,
-    fontFamily: 'PlusJakartaSans_400Regular',
+    fontFamily: 'Nunito_400Regular',
     color: palette.content[2],
   },
   footer: {},
