@@ -4,7 +4,7 @@
 -- EXECUTE to `authenticated` only. `get_my_couple` was the odd one out: it is
 -- created by a plain `create function` with no revoke — in
 -- `20260825000000_add_couples_subscription_status.sql`, and again in
--- `20260921000000_together_points_and_voice_metadata.sql` when adding
+-- `20260921210922_together_points_and_voice_metadata.sql` when adding
 -- `together_points` — so each time it came back with Postgres' default PUBLIC
 -- grant plus Supabase's default grant to `anon`.
 --

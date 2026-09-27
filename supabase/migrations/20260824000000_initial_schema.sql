@@ -315,8 +315,8 @@ $function$;
 -- This is the ORIGINAL version, kept here so the migration history is honest
 -- about what it was: anchored to `current_date` (so a couple read 0 every
 -- morning until they finished that evening) and strict about `longest`.
--- `20260829000000_retention_streak_and_notify_once.sql` and
--- `20260830000000_streak_grace_alignment.sql` replace it in turn, and the
+-- `20260829073326_retention_streak_and_notify_once.sql` and
+-- `20260901010635_streak_grace_alignment.sql` replace it in turn, and the
 -- second of those brings it in line with `lib/streak.ts`. Do not "fix" it
 -- here — the later migration is where the current rules live.
 create or replace function public.recompute_couple_streaks()
@@ -401,7 +401,7 @@ after insert or update on public.entries
 for each row execute function public.recompute_couple_streaks();
 
 -- Replaced by the insert/update split in
--- 20260829000000_retention_streak_and_notify_once.sql, which stops a partner
+-- 20260829073326_retention_streak_and_notify_once.sql, which stops a partner
 -- being re-notified every time the row is touched after submission.
 drop trigger if exists entries_submit_webhook on public.entries;
 create trigger entries_submit_webhook
@@ -532,7 +532,7 @@ for select using (
 --
 -- Public bucket, path layout {user_id}/... — a profile picture is shown to the
 -- partner, so it is readable by URL. Nothing private is ever stored here; the
--- private `voice-notes` bucket arrives in 20260828000100.
+-- private `voice-notes` bucket arrives in 20260828070437.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('avatars', 'avatars', true, 5242880, array['image/jpeg', 'image/png', 'image/webp'])

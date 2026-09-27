@@ -3,7 +3,7 @@
 -- shipped, and nothing in the app surfaced why.
 --
 -- The cause is a column-name collision inside the storage policies.
--- `20260828000100_voice_notes_storage.sql` wrote the couple-membership check as:
+-- `20260828070437_voice_notes_storage.sql` wrote the couple-membership check as:
 --
 --   exists (
 --     select 1 from public.couple_members cm

@@ -46,42 +46,22 @@ files and everything they altered had been created by hand in the dashboard.
 the project could not be rebuilt, staged or rolled back, and the RLS enforcing
 the product's central promise lived nowhere anyone could review it.
 
-**Migration history on the hosted project needs repairing once.** The baseline
-was written after the fact, and the three additive migrations were applied to
-`lumixwmobjvlzgqrdjak` under different timestamps than the filenames they now
-have. The remote records `20260825000000`, `20260828070427`, `20260828070437`,
-`20260829073326`; the repo has `20260824000000`, `20260825000000`,
-`20260828000000`, `20260828000100`, `20260829000000`, `20260830000000`,
-`20260830000100`. Reconcile before the next `supabase db push`:
+**Migration history matches the hosted project.** Every file in
+`supabase/migrations` is named for the version `lumixwmobjvlzgqrdjak` recorded
+when it was applied, so `supabase migration list` shows local and remote in
+agreement and the Supabase GitHub integration's check can run. Most were applied
+through the Supabase API, which records the apply-time timestamp rather than the
+filename; on 2026-09-27 the files were renamed to those timestamps (rather than
+rewriting the remote history), the baseline `20260824000000_initial_schema.sql`
+— written after the fact — was recorded as applied without running, and the two
+that had never reached the project (`shared_list`, the voice-note UPDATE policy)
+were applied.
 
-```bash
-supabase link --project-ref lumixwmobjvlzgqrdjak
-# Mark the baseline and the already-applied files as applied, without running them.
-supabase migration repair --status applied 20260824000000
-supabase migration repair --status reverted 20260828070427 20260828070437 20260829073326
-supabase migration repair --status applied 20260828000000 20260828000100 20260829000000
-supabase migration list        # confirm local and remote agree
-supabase db push               # applies the two that really are pending
-```
-
-The baseline is written idempotently (`create table if not exists`,
-`create or replace function`, `drop policy if exists` before each `create
-policy`), so running it against the existing project is a no-op rather than a
-collision — but repair is still the right route, so the recorded history
-matches the files.
-
-All migrations are now applied to the hosted project. The two that were
-outstanding went up on 2026-08-31 / 09-01:
-
-| Local file | Recorded remotely as |
-| --- | --- |
-| `20260830000100_fix_voice_note_storage_name_shadowing.sql` | `20260831193933` |
-| `20260830000000_streak_grace_alignment.sql` | `20260901010635` |
-
-They were applied through the Supabase API rather than `db push`, so the
-recorded versions are their apply-time timestamps rather than the filenames —
-one more reason to run the repair sequence above before the next push, so local
-and remote agree on what has run.
+**Keep it that way.** Apply new migrations with `supabase db push`, which records
+the file's own version. If one is applied through the API or MCP instead, rename
+the file to the version it was recorded under before pushing. A mismatch fails
+the GitHub check with "Remote migration versions not found in local migrations
+directory".
 
 Verified after applying: all four `voice-notes` storage policies now resolve
 `storage.objects.name` (voice notes could previously not be uploaded *or*

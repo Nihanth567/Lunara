@@ -8,7 +8,7 @@
  * types on its own, so these cost nothing to keep and nothing to run.
  *
  * `recompute_couple_streaks()` in
- * `supabase/migrations/20260830000000_streak_grace_alignment.sql` implements the
+ * `supabase/migrations/20260901010635_streak_grace_alignment.sql` implements the
  * same four rules in SQL. When a case here changes, that function changes with
  * it — the two disagreeing is precisely the bug this file exists to prevent.
  */

@@ -19,7 +19,7 @@
 --
 -- `storage.objects.name` is qualified on purpose: `couple_members` has its own
 -- `name` column, and an unqualified reference binds to it instead. See
--- 20260830000100_fix_voice_note_storage_name_shadowing.sql.
+-- 20260831193933_fix_voice_note_storage_name_shadowing.sql.
 --
 -- DELETE is left as it is: you can always remove your own recording, even
 -- from a couple you have since left.

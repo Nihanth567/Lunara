@@ -62,7 +62,7 @@ comment on column public.entries.voice_grow_duration_ms is
 
 -- ─── The trigger, extended ───────────────────────────────────────────────────
 --
--- Identical to 20260830000000_streak_grace_alignment.sql except for the two
+-- Identical to 20260901010635_streak_grace_alignment.sql except for the two
 -- places noted inline. Restated in full rather than patched: the streak rules
 -- are mirrored from lib/streak.ts and are meant to be checkable against it by
 -- eye, which is only possible while the whole function reads from one place.
