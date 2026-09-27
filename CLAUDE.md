@@ -135,9 +135,9 @@ targets/widget/      SwiftUI WidgetKit extension
   `couple_id` to filter on, so its subscription is unfiltered and the refresh
   (plus RLS) is what scopes it.
 - **Entitlements**: `isPro(couple)` (`lib/entitlements.ts`) is the single gate.
-  One subscription unlocks Premium for both partners. Route locked features to
+  One subscription unlocks Lunara+ for both partners. Route locked features to
   `/(modals)/paywall`.
-- **Where Premium is sold**: at the end of the onboarding funnel, before
+- **Where Lunara+ is sold**: at the end of the onboarding funnel, before
   sign-in, and at the front gate (`resolveGate` → `paywall`) for anyone
   signed in and unentitled. There is no free product and no in-app upsell
   moment (`lib/paywallMoment.ts` was removed). The funnel sells *before*

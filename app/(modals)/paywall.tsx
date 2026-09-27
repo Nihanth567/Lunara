@@ -105,8 +105,8 @@ function priceSentence(pkg: PurchasesPackage | null): string {
   const trial = trialLabel(pkg);
   const renewal = `Automatically renews every ${noun} at ${pkg.product.priceString} until you cancel. Cancel anytime in your Apple ID settings.`;
   return trial
-    ? `Lunara Premium — one subscription covers both of you. ${trial}, then ${price}. ${renewal}`
-    : `Lunara Premium — one subscription covers both of you. ${price}. ${renewal}`;
+    ? `Lunara+ — one subscription covers both of you. ${trial}, then ${price}. ${renewal}`
+    : `Lunara+ — one subscription covers both of you. ${price}. ${renewal}`;
 }
 
 export default function PaywallScreen() {
@@ -367,6 +367,11 @@ export default function PaywallScreen() {
             voice as the rest of the app.
           */}
           <CoupleCompanion state="glowing" streak={streak} size="lg" />
+          {/* The product's name, once, quietly — so the thing being chosen has
+              one, and it matches the purchase sheet and the Terms. */}
+          <Text style={styles.brand} accessibilityRole="header">
+            Lunara+
+          </Text>
           {/*
             "Keep your nights together" is the right line for somebody with
             nights to keep. On the front gate it is usually said to a couple who
@@ -417,7 +422,7 @@ export default function PaywallScreen() {
         {loading ? (
           // The app's one wait: it fades in after a beat, so plans that come
           // back quickly never flash a loader on the way to the list.
-          <ScreenLoading fullScreen={false} accessibilityLabel="Loading Lunara Premium" />
+          <ScreenLoading fullScreen={false} accessibilityLabel="Loading Lunara+" />
         ) : !canPurchase ? (
           <View style={styles.demoNotice}>
             <Ionicons name="people-outline" size={16} color={palette.content[1]} />
@@ -654,6 +659,9 @@ const styles = StyleSheet.create({
   },
   content: { paddingHorizontal: space.xl + 2 },
   header: { alignItems: 'center', gap: space.sm + 2, marginBottom: space.xxl },
+  // Violet, not apricot: a name is ambience, and apricot is kept for the
+  // button that acts on it.
+  brand: { ...text.overline, color: palette.accent.moon, textAlign: 'center' },
   title: { ...text.hero, color: palette.content[0], textAlign: 'center' },
   /**
    * The one warm line under the headline. Above the auto-renewal sentence,

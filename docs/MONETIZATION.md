@@ -15,9 +15,15 @@ runtime rather than hardcoding them.
 
 | | |
 |---|---|
+| **Name people see** | **Lunara+** — on the paywall, the Us tab and in the Terms |
 | **Identifier** | `premium` |
 | **Declared in** | `lib/purchases.ts` → `ENTITLEMENT_ID` |
 | **Granted by** | an active weekly or yearly subscription, **including one still inside its free trial** |
+
+The public name and the identifier are deliberately separate. The product is
+called Lunara+; the entitlement stays `premium`, because the identifier has to
+match the RevenueCat dashboard exactly and every rename is a chance to lock
+paying customers out. Rename what people read, never the id.
 
 **Console work — this is a rename.** The entitlement used to be `lunara_pro`.
 If the RevenueCat dashboard still calls it that, every customer reads as
@@ -50,7 +56,10 @@ price is the Terms of Service (`app/(modals)/terms.tsx`), which Apple requires
 in prose; keep it in step with this table by hand.
 
 **Console work:** create the products in App Store Connect / Google Play with a
-21-day introductory free trial, then map them into RevenueCat.
+21-day introductory free trial, then map them into RevenueCat. Give the
+subscription group and both products the display name **Lunara+**: the
+paywall's auto-renewal sentence names the subscription as "Lunara+", and App
+Review compares it with what the purchase sheet says.
 
 **Check before configuring the trial:** App Store Connect offers free trials in
 fixed lengths (3 days; 1 or 2 weeks; 1, 2, 3 or 6 months; 1 year), and 21 days
@@ -225,7 +234,7 @@ boolean.
 - **Revokes:** `EXPIRATION`, `SUBSCRIPTION_PAUSED`.
 - **`CANCELLATION` deliberately does not revoke.** In RevenueCat it means
   auto-renew was switched off; the subscription stays active until it expires.
-  Treating it as a revocation previously took Premium away from people who had
+  Treating it as a revocation previously took Lunara+ away from people who had
   paid through the end of their term. A **refund** arrives as a `CANCELLATION`
   with a refund reason followed by an `EXPIRATION`, and it is the `EXPIRATION`
   that ends access.
@@ -239,7 +248,7 @@ No webhook changes were needed for this work.
 ## 6. Trial
 
 21 days, requested from the stores and read back from `introPrice`. Full
-Premium for the whole couple during the trial — identical to paid.
+Lunara+ for the whole couple during the trial — identical to paid.
 
 A single reminder fires **3 days before expiry** (day 18 of 21) —
 `scheduleTrialEndingReminder()` in `services/notifications.ts`, scheduled from
@@ -313,7 +322,7 @@ returning subscriber's only way back in.
 
 `lib/paywallMoment.ts`, `hooks/usePaywallMoment.ts`, their 9 tests and the
 `PremiumMoment` card on the Tonight screen have been **removed**. They encoded
-the opposite product: never offer Premium before the first mutual reveal, only
+the opposite product: never offer Lunara+ before the first mutual reveal, only
 after three shared nights, only once. That rule protected a free tier that no
 longer exists, and under a front gate it could never fire — `shouldOfferPremium`
 returns false for anyone entitled, and nobody unentitled is inside the app.

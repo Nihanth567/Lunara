@@ -340,7 +340,7 @@ export default function ProfileScreen() {
       'Delete your account?',
       `This erases your profile, every night you’ve written, your voice notes and your keepsakes. Because your nights are shared, they also disappear from your partner’s Moments. This cannot be undone.${
         isPro(couple)
-          ? '\n\nYour Lunara Pro subscription is billed by Apple and is not cancelled by deleting your account. Cancel it in Settings → your name → Subscriptions, or you will keep being charged.'
+          ? '\n\nYour Lunara+ subscription is billed by Apple and is not cancelled by deleting your account. Cancel it in Settings → your name → Subscriptions, or you will keep being charged.'
           : ''
       }`,
       [
@@ -546,14 +546,14 @@ export default function ProfileScreen() {
           </Animated.View>
         )}
 
-        {/* Premium card */}
+        {/* Lunara+ card */}
          <Animated.View style={styles.premiumCard}>
            <View style={styles.premiumGradient}>
             <View style={styles.premiumContent}>
               <Ionicons name="sparkles" size={22} color={palette.accent.glow} />
               <View style={styles.premiumText}>
                 <Text style={styles.premiumTitle}>
-                  {couple?.isSubscribed ? 'Lunara Premium — Active' : 'Lunara Premium'}
+                  {couple?.isSubscribed ? 'Lunara+ — Active' : 'Lunara+'}
                 </Text>
                 {/* Named from lib/entitlements.ts, so this can't outlive a feature. */}
                 <Text style={styles.premiumBody}>
@@ -568,7 +568,7 @@ export default function ProfileScreen() {
                 style={styles.premiumBtn}
                 onPress={() => router.push('/(modals)/paywall')}
               >
-                <Text style={styles.premiumBtnText}>Upgrade to Pro</Text>
+                <Text style={styles.premiumBtnText}>Get Lunara+</Text>
               </SpringPressable>
             )}
            </View>

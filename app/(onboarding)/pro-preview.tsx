@@ -126,13 +126,13 @@ export default function ProPreviewScreen() {
         <Animated.View entering={FadeIn.delay(200).duration(500)} style={styles.copy}>
           <Text style={styles.title}>Feel close, even when you're apart.</Text>
           <Text style={styles.subtitle}>
-            Lunara Pro keeps every night you&apos;ve shared, in both your hands.{' '}
+            Lunara+ keeps every night you&apos;ve shared, in both your hands.{' '}
             {premiumSummary()} One subscription, for the two of you.
           </Text>
         </Animated.View>
 
         <View style={styles.footer}>
-          <LunaraButton title="Continue to Lunara Pro" onPress={handleContinue} loading={loading} />
+          <LunaraButton title="Continue to Lunara+" onPress={handleContinue} loading={loading} />
           <Text style={styles.covers}>1 Subscription Covers Both of You</Text>
           <LunaraButton title="Maybe later" variant="ghost" onPress={handleSkip} disabled={loading} />
         </View>

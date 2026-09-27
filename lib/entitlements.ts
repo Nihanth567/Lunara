@@ -24,7 +24,7 @@ export function isPro(couple: Couple | null): boolean {
 }
 
 /**
- * What Lunara Premium is — the single list the paywall and the Us tab render.
+ * What Lunara+ is — the single list the paywall and the Us tab render.
  *
  * ─── The list changed shape, because the product did ─────────────────────────
  *

@@ -114,7 +114,7 @@ one-forgiven-night rule as `current`, matching `lib/streak.ts`.
     reaction or a Grow check-back each re-sent "your partner shared their heart
     tonight" to someone who'd already been told.
   - `revenuecat-webhook` — RevenueCat → Supabase; flips `profiles.is_subscribed`
-    so the whole couple unlocks Premium when either partner pays.
+    so the whole couple unlocks Lunara+ when either partner pays.
   - `grow-guidance` — after both partners reveal tonight's Grow answers, calls
     OpenAI (`gpt-4o-mini`) to generate 2-3 gentle, non-prescriptive
     suggestions grounded in what was actually written. Needs the

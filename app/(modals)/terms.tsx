@@ -34,7 +34,7 @@ const SECTIONS: TermsSection[] = [
     // products and with docs/MONETIZATION.md. If those say anything other than
     // $2.99/week and $48/year with a 21-day free trial, this line is the thing
     // that's wrong.
-    body: 'Lunara Premium is an auto-renewing subscription, billed weekly ($2.99/week) or yearly ($48/year), each with a 21-day free trial for new subscribers. One subscription covers both partners in a couple. Prices are in US dollars; your local price is shown before you confirm. Payment is charged to your Apple ID account when the free trial ends, and the subscription renews automatically unless canceled at least 24 hours before the end of the current period in your iOS Account Settings.',
+    body: 'Lunara+ is an auto-renewing subscription, billed weekly ($2.99/week) or yearly ($48/year), each with a 21-day free trial for new subscribers. One subscription covers both partners in a couple. Prices are in US dollars; your local price is shown before you confirm. Payment is charged to your Apple ID account when the free trial ends, and the subscription renews automatically unless canceled at least 24 hours before the end of the current period in your iOS Account Settings.',
   },
   {
     heading: '3. General Disclaimer',

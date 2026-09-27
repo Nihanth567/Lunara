@@ -87,7 +87,7 @@ export function DateNightSection({ isPro, onUnlock }: Props) {
           </View>
           <SpringPressable style={styles.unlockBtn} onPress={onUnlock}>
             <Ionicons name="sparkles" size={16} color={palette.ink[0]} />
-            <Text style={styles.unlockText}>Unlock Full Date Night Playbook with Lunara Pro</Text>
+            <Text style={styles.unlockText}>Unlock the full date-night playbook with Lunara+</Text>
           </SpringPressable>
         </View>
       )}

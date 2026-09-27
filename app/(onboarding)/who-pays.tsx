@@ -70,7 +70,7 @@ export default function WhoPayScreen() {
           <Text style={styles.eyebrow}>Subscription</Text>
           <Text style={styles.title}>One of you pays.{'\n'}Both of you get everything.</Text>
           <Text style={styles.subtitle}>
-            Lunara Premium unlocks your whole archive, voice notes, your full weekly recap, and
+            Lunara+ unlocks your whole archive, voice notes, your full weekly recap, and
             the complete date-night playbook — for both of you, with a single subscription.
           </Text>
         </Animated.View>
