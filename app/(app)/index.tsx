@@ -231,6 +231,36 @@ function InvitePartnerCard({ inviteCode }: { inviteCode: string }) {
 }
 
 /**
+ * Your partner has already written tonight; you haven't.
+ *
+ * The reveal gate keeps their words sealed until yours are in, which used to
+ * mean this screen had nothing to say about them at all — "Settling in" over
+ * three empty cards while the person you love was already waiting. The
+ * partner-shared push says it on the lock screen; this says it here, for the
+ * nights the push never arrives. It knows only *that* they wrote, never what.
+ */
+function YourTurnCard({ partnerName }: { partnerName: string }) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(duration.base)}
+      style={styles.yourTurnCard}
+      accessible
+      accessibilityLabel={`${partnerName} wrote theirs. Your turn. Theirs stays sealed until yours is in.`}
+    >
+      <Ionicons name="heart" size={18} color={palette.accent.heart} />
+      <View style={styles.yourTurnText}>
+        <Text style={styles.yourTurnTitle} maxFontSizeMultiplier={maxFontScale}>
+          {partnerName} wrote theirs — your turn
+        </Text>
+        <Text style={styles.yourTurnBody} maxFontSizeMultiplier={maxFontScale}>
+          Theirs stays sealed until yours is in. Then you open them together.
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+/**
  * The half-finished night. This is the single most fragile state in a couples
  * app: one person has done their part and the loop can't close without someone
  * else. It has to reward the person who showed up, give them one real action,
@@ -465,6 +495,7 @@ export default function TonightScreen() {
     realtimeConnected,
     ritualDate,
     setVoiceNote,
+    partnerWaitingOnYou,
   } = useApp();
 
   const [grateful, setGrateful] = useState(todayEntry?.grateful ?? '');
@@ -859,6 +890,11 @@ export default function TonightScreen() {
           <InvitePartnerCard inviteCode={couple.inviteCode} />
         )}
 
+        {/* They've written; you haven't. Their words stay sealed — only the fact. */}
+        {partnerHere && !isSubmitted && partnerWaitingOnYou && (
+          <YourTurnCard partnerName={partnerName} />
+        )}
+
         {/* next_open: yesterday's follow-up, once, before tonight begins */}
         {phase === 'not_started' && <SingleNudgeSlot {...nudge} />}
 
@@ -1048,6 +1084,24 @@ const styles = StyleSheet.create({
   },
 
   cards: { gap: space.md, marginBottom: space.xl },
+
+  // ── Your turn (partner already wrote) ─────────────────────────────────────
+  // Heart, not apricot: their having written is a love note, not a task.
+  yourTurnCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.md,
+    backgroundColor: palette.ink[2],
+    borderRadius: radius.lg,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: tint.heart(0.32),
+    padding: space.lg,
+    marginBottom: space.lg,
+  },
+  yourTurnText: { flex: 1, gap: space.xs },
+  yourTurnTitle: { ...text.heading, color: palette.content[0] },
+  yourTurnBody: { ...text.callout, color: palette.content[1], lineHeight: 21 },
 
   // The companion sits centred inside cards that are otherwise left-aligned —
   // a creature hugging the left edge reads as an icon, which is the one thing

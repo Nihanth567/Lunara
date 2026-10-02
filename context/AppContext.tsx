@@ -382,6 +382,12 @@ interface AppContextType {
   /** Any session at all, anonymous included. Onboarding resumes on this. */
   hasSession: boolean;
   /**
+   * The partner has submitted tonight and you haven't. A yes/no only — their
+   * words stay sealed — so Tonight can say "{Name} wrote theirs — your turn"
+   * even when the push never arrived.
+   */
+  partnerWaitingOnYou: boolean;
+  /**
    * RevenueCat's own answer on this device — a trial or subscription bought
    * here — independent of whether a couple exists yet. `couple.isSubscribed`
    * folds it in once there is a couple; before pairing, this is the only place
@@ -921,6 +927,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * is, for as long as the user is looking at it.
    */
   const [ritualDate, setRitualDate] = useState(getToday);
+  // Read by the loaders below, which must not re-create themselves per night.
+  const ritualDateRef = useRef(ritualDate);
+  ritualDateRef.current = ritualDate;
+  /**
+   * Whether the partner has submitted tonight — a yes/no from
+   * `partner_submitted_tonight`, never their words. The reveal gate hides
+   * their entry until you submit yours, so without this the partner who hasn't
+   * written yet had no in-app sign that the other one was waiting.
+   */
+  const [partnerSubmittedTonight, setPartnerSubmittedTonight] = useState(false);
 
   const [realtimeConnected, setRealtimeConnected] = useState(false);
 
@@ -1001,6 +1017,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select('user_id, name')
         .eq('couple_id', coupleRow.id);
       const partnerRow = (memberRows ?? []).find((m) => m.user_id !== userId);
+      const { data: partnerDone } = await supabase.rpc('partner_submitted_tonight', {
+        p_couple_id: coupleRow.id,
+        p_date: ritualDateRef.current,
+      });
+      setPartnerSubmittedTonight(partnerDone === true);
 
       setCoupleState({
         id: coupleRow.id,
@@ -1050,6 +1071,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } else {
       setCoupleState(null);
+      setPartnerSubmittedTonight(false);
       setEntries([]);
       setKeepsakes([]);
       setListItems([]);
@@ -1241,7 +1263,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .eq('couple_id', coupleId);
     if (error) throw new Error(error.message);
     setEntries(mergeEntryRows(data ?? [], session.user.id, revealedDates));
-  }, [baseCouple?.id, isDemo, revealedDates, session]);
+    const { data: partnerDone } = await supabase.rpc('partner_submitted_tonight', {
+      p_couple_id: coupleId,
+      p_date: ritualDate,
+    });
+    setPartnerSubmittedTonight(partnerDone === true);
+  }, [baseCouple?.id, isDemo, revealedDates, ritualDate, session]);
 
   const refreshKeepsakes = useCallback(async (): Promise<void> => {
     const coupleId = baseCouple?.id;
@@ -2226,6 +2253,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         user,
         isGuest: session?.user.is_anonymous === true,
         hasSession: session !== null,
+        partnerWaitingOnYou:
+          !(todayEntry?.submitted ?? false) &&
+          (isDemo ? Boolean(todayEntry?.partnerSubmitted) : partnerSubmittedTonight),
         deviceEntitled: proEntitlement,
         couple,
         entries,

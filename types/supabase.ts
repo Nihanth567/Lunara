@@ -322,6 +322,10 @@ export type Database = {
           together_points: number
         }[]
       }
+      partner_submitted_tonight: {
+        Args: { p_couple_id: string; p_date: string }
+        Returns: boolean
+      }
       join_couple: {
         Args: { p_invite_code: string; p_user_name: string }
         Returns: {
