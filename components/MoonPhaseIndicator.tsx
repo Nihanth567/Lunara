@@ -75,7 +75,15 @@ export function MoonPhaseIndicator({ streak, size = 'small', showLabel = true }:
 
   return (
     <View style={[styles.container, isLarge && styles.containerLarge]}>
-      <View style={styles.moonWrap}>
+      {/* At `large` the glow is 2.4× the icon and centred on it; sized to the
+          glow so it takes up the room it draws in. Without this it poked ~25pt
+          past the wrapper and was cut flat by the edge of the card holding it. */}
+      <View
+        style={[
+          styles.moonWrap,
+          isLarge && { width: iconSize * 2.4, height: iconSize * 2.4 },
+        ]}
+      >
         <View
           style={[
             styles.glow,

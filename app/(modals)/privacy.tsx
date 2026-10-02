@@ -13,8 +13,8 @@ const SECTIONS: { heading: string; body?: string; bullets?: { label: string; tex
   {
     heading: '1. Information We Collect',
     bullets: [
-      { label: 'Account Data', text: 'Email address, phone number, or credentials supplied via Apple Sign-In or Google Sign-In.' },
-      { label: 'Relationship Inputs', text: 'Partner linkage status, routine check-ins, custom nudges, and interactive prompt responses.' },
+      { label: 'Account Data', text: 'Your name, and the email address Apple or Google shares when you sign in (Apple lets you hide it). A partner who joins with an invite code can do so with just a name.' },
+      { label: 'Relationship Inputs', text: 'Partner linkage status, your nightly answers and any voice notes you record, keepsake answers, shared list items, reactions and nudges.' },
       { label: 'Transactions', text: 'In-app purchase verification handled through RevenueCat and Apple. We do not process or store financial account details.' },
     ],
   },
@@ -27,7 +27,7 @@ const SECTIONS: { heading: string; body?: string; bullets?: { label: string; tex
     body: 'Operational data is strictly processed through secure infrastructure providers:',
     bullets: [
       { label: 'Supabase', text: 'Authentication, cloud database, and serverless edge functions.' },
-      { label: 'OpenAI', text: 'Generative model processing for contextual relationship guidance.' },
+      { label: 'OpenAI', text: 'Generates Grow suggestions from your Grow answers, and transcribes a voice note only when you tap "Turn this into text" on your own recording.' },
       { label: 'RevenueCat & Apple', text: 'Payment receipt validation and subscription state tracking.' },
     ],
   },

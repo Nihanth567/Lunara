@@ -1123,6 +1123,8 @@ const styles = StyleSheet.create({
 
   // ── Submitted, but there is nobody to reveal with yet ─────────────────────
   soloDoneCard: {
+    // Room before the streak card that follows; they were touching.
+    marginBottom: space.xl,
     backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
@@ -1144,6 +1146,8 @@ const styles = StyleSheet.create({
   // Centred, unlike the other cards. This one is a *scene* — a fox sitting up
   // with a light on — and a scene that is left-aligned reads as a notice.
   waitingCard: {
+    // Room before the streak card that follows; they were touching.
+    marginBottom: space.xl,
     backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',
@@ -1209,6 +1213,8 @@ const styles = StyleSheet.create({
   // The only card in the app that is pink rather than apricot. Both of you are
   // here; that is a love moment, not an action item.
   revealReadyCard: {
+    // Room before the streak card that follows; they were touching.
+    marginBottom: space.xl,
     borderRadius: radius.lg,
     borderCurve: 'continuous',
     borderWidth: 1,
@@ -1244,6 +1250,8 @@ const styles = StyleSheet.create({
 
   // ── Already revealed ──────────────────────────────────────────────────────
   revealedCard: {
+    // Room before the streak card that follows; they were touching.
+    marginBottom: space.xl,
     backgroundColor: palette.ink[2],
     borderRadius: radius.lg,
     borderCurve: 'continuous',

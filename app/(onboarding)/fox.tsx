@@ -89,7 +89,10 @@ export default function FoxScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: space.sm },
+  // Headroom for the halo. At `hero` it is 2.15× the art and reaches ~108pt
+  // above the fox; without this the scroll view's top edge sliced it off in a
+  // hard horizontal line just under the progress bar.
+  hero: { alignItems: 'center', gap: space.sm, paddingTop: space.xxxl + space.xl },
   hint: { ...text.callout, color: palette.content[2], textAlign: 'center' },
   question: { gap: space.md },
   questionTitle: { ...text.heading, color: palette.content[0] },
