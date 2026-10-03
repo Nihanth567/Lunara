@@ -7,27 +7,84 @@ reveal their answers together.
 ## Stack
 
 - Expo SDK 54 (Expo Router, React Native 0.81, React 19, new architecture)
-- Supabase — Auth (Apple / Google / Phone OTP), Postgres + Row Level Security,
+- Supabase — Auth (Apple, Google, anonymous for the funnel and invited partners), Postgres + Row Level Security,
   Realtime, Storage, Edge Functions
 - RevenueCat — subscriptions (`react-native-purchases`)
 - Expo Notifications — local reminders + remote push
 - iOS home screen widget — `@bacons/apple-targets`, `targets/widget/`
 
-## Setup
+## Setup — getting the app open
+
+Lunara uses native code (Sign in with Apple, RevenueCat, the home-screen
+widget), so **it does not run in Expo Go**. Scanning the QR code from a bare
+`npx expo start` in Expo Go will fail. You need a build of Lunara itself.
+
+### 1. Install and configure
 
 ```bash
 npm install
-cp .env.example .env   # already pre-filled with the Lunara Supabase project
-npx expo start
+cp .env.example .env
 ```
 
-### Environment variables (`.env`)
+`.env` is not in git and `.env.example` ships with blank values. **Ask the
+project owner for the Supabase URL and anon key** and put them in `.env`. Without
+them the app stops on launch with "Missing EXPO_PUBLIC_SUPABASE_URL".
 
-| Variable | Where to get it |
-| --- | --- |
-| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase dashboard → Project Settings → API (already filled in) |
-| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` / `_ANDROID_API_KEY` | RevenueCat dashboard → Project settings → API keys |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` / `_WEB_CLIENT_ID` | Google Cloud Console → Credentials → OAuth client IDs |
+| Variable | Needed for | Where it comes from |
+| --- | --- | --- |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Everything | Project owner (Supabase → Project Settings → API) |
+| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | Testing the paywall and purchases | RevenueCat → Project settings → API keys (the `appl_…` key). **Leave it empty to skip the paywall in development builds.** |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` / `_WEB_CLIENT_ID` | Google sign-in (optional) | Google Cloud Console → Credentials |
+
+After changing `.env`, restart Expo with `--clear` — the values are baked into
+the bundle.
+
+### 2. Run it — pick one
+
+**A. iOS Simulator, no Apple account (fastest way to look around)**
+
+```bash
+npm run ios:sim              # or: npm run ios:sim -- "iPhone 17"
+```
+
+Builds unsigned and opens the simulator. `npx expo run:ios` can't do this: the
+Sign in with Apple capability makes it demand a signing certificate even for a
+simulator ("No code signing certificates are available to use").
+
+An unsigned build has **no Sign in with Apple and no push**. To test the app as
+a paired couple anyway:
+
+```bash
+npm run dev:partner          # prints an invite code
+```
+
+Then in the app: Welcome → **"Your partner sent you a code? Join them"** → any
+name + the code. The test partner has already written tonight and added a list
+item, so you can write, reveal, react, use the list, Moments and Us. Leave the
+RevenueCat key empty so the paywall is skipped. You can also try the scripted
+demo: "Join them" → back → "Explore in demo mode".
+
+**B. Simulator or iPhone, signed (full sign-in)** — for members of the Lunara
+Apple developer team. Sign in to Xcode with your Apple ID (Xcode → Settings →
+Accounts), add `"appleTeamId": "<TEAM ID>"` under `expo.ios` in `app.json`, then
+`npm run ios` (or `npx expo run:ios --device` for a plugged-in iPhone). Sign in
+with Apple and push work; purchases need a sandbox Apple ID.
+
+**C. Install a build on your phone, no Xcode** — the project owner runs
+`npm run build:preview` (EAS, internal distribution) or uploads to TestFlight
+and shares the link. EAS builds don't see `.env`: set the variables once with
+`eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value …`
+(and the anon key, and the RevenueCat key when it's ready).
+
+### What each way can test
+
+| | A. Unsigned simulator | B. Signed | C. Phone build |
+| --- | --- | --- | --- |
+| Onboarding, quiz, paywall screen | ✓ | ✓ | ✓ |
+| Sign in with Apple | — | ✓ | ✓ |
+| Join as invited partner, Tonight, reveal, list, Moments, Us | ✓ (via `dev:partner`) | ✓ | ✓ |
+| Push notifications | — | device only | ✓ |
+| Purchases | — | sandbox ID | sandbox ID |
 
 ## Backend (Supabase project `lunara`, id `lumixwmobjvlzgqrdjak`)
 

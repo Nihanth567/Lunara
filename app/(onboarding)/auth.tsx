@@ -48,6 +48,16 @@ import { type as text } from '@/constants/typography';
  * own answer decides: no name → profile setup, no couple → pairing, otherwise
  * they are a returning user and belong straight in the app.
  */
+/**
+ * A provider's error as one finished sentence. Apple's own messages arrive
+ * without a full stop, so "…for an unknown reason Nothing's lost" ran two
+ * sentences together.
+ */
+function asSentence(message: string | undefined): string {
+  const text = (message ?? 'Something got in the way.').trim();
+  return /[.!?…]$/.test(text) ? text : `${text}.`;
+}
+
 async function afterSignIn(
   router: ReturnType<typeof useRouter>,
   account: RemoteAccountState | null,
@@ -121,7 +131,7 @@ export default function AuthScreen() {
         haptic.error();
         Alert.alert(
           'Apple sign-in didn’t finish',
-          `${error?.message ?? 'Something got in the way.'} Nothing’s lost — try once more.`,
+          `${asSentence(error?.message)} Nothing’s lost — try once more.`,
         );
       }
     } finally {
@@ -140,7 +150,7 @@ export default function AuthScreen() {
         haptic.error();
         Alert.alert(
           'Google sign-in didn’t finish',
-          `${error?.message ?? 'Something got in the way.'} Nothing’s lost — try once more.`,
+          `${asSentence(error?.message)} Nothing’s lost — try once more.`,
         );
       }
     } finally {
