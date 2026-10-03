@@ -573,7 +573,7 @@ export default function PaywallScreen() {
                         // person is left sitting on the paywall they just tried
                         // to leave — this route does not re-route itself.
                         signOut()
-                          .then(() => router.replace('/' as never))
+                          .then(() => router.replace('/(onboarding)/welcome'))
                           .catch(() => {
                             haptic.error();
                             Alert.alert(
