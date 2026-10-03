@@ -361,7 +361,7 @@ export default function ProfileScreen() {
                     setDeleting(true);
                     try {
                       await deleteAccount();
-                      router.replace('/');
+                      router.replace('/(onboarding)/welcome');
                     } catch (error) {
                       haptic.error();
                       Alert.alert(
@@ -422,7 +422,7 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               await signOut();
-              router.replace('/');
+              router.replace('/(onboarding)/welcome');
             } catch {
               haptic.error();
               Alert.alert(
