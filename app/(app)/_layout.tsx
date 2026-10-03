@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -11,7 +11,7 @@ import { palette } from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
 import { isPro } from '@/lib/entitlements';
 import { hasStoreKey } from '@/lib/purchases';
-import { resolveGate } from '@/lib/accessGate';
+import { onboardingResume, resolveGate } from '@/lib/accessGate';
 
 /**
  * iOS 26 renders this as the system Liquid Glass tab bar, which brings its own
@@ -196,7 +196,18 @@ function ClassicTabLayout() {
  * loading state, and it is the screen they came from.
  */
 function EntitlementGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, onboardingComplete, sessionExpired, couple, purchasesReady } = useApp();
+  const {
+    isLoading,
+    onboardingComplete,
+    sessionExpired,
+    couple,
+    purchasesReady,
+    hasSession,
+    isGuest,
+    user,
+    deviceEntitled,
+    completeOnboarding,
+  } = useApp();
 
   const destination = resolveGate({
     isLoading,
@@ -209,11 +220,39 @@ function EntitlementGuard({ children }: { children: React.ReactNode }) {
     isDemo: couple?.isDemoMode ?? false,
   });
 
+  const resume = onboardingResume({
+    hasSession,
+    isAnonymous: isGuest,
+    hasName: Boolean(user?.name?.trim()),
+    hasCouple: Boolean(couple) && !(couple?.isDemoMode ?? false),
+    deviceEntitled,
+    purchasesReady,
+  });
+  const finishing = destination === 'onboarding' && resume === 'finish';
+  useEffect(() => {
+    // Already in a couple; only the flag is missing. Setting it re-runs this
+    // guard, which then lets them in or shows the paywall.
+    if (finishing) completeOnboarding().catch(() => {});
+  }, [finishing, completeOnboarding]);
+
   if (destination === 'loading') return null;
   if (destination === 'auth') return <Redirect href="/(onboarding)/auth" />;
-  // The entry gate works out *where* onboarding picks up (`onboardingResume`) —
-  // someone mid-funnel with a trial running resumes at sign-in, not the quiz.
-  if (destination === 'onboarding') return <Redirect href="/" />;
+  if (destination === 'onboarding') {
+    /*
+      Where onboarding picks up — the same tested rule the entry gate uses, so
+      someone mid-funnel with a trial running resumes at sign-in, not the quiz.
+
+      This redirected to "/" for a while, which looked like "back to the entry
+      gate" but isn't: route groups add nothing to the path, so "/" is also
+      this tab group's own index (Tonight). After a sign-out the redirect went
+      nowhere and the screen stayed blank. Every target below is unambiguous.
+    */
+    if (resume === 'loading' || resume === 'finish') return null;
+    if (resume === 'signIn') return <Redirect href={'/(onboarding)/auth?after=trial' as never} />;
+    if (resume === 'profile') return <Redirect href="/(onboarding)/profile-setup" />;
+    if (resume === 'pairing') return <Redirect href="/(onboarding)/pairing" />;
+    return <Redirect href="/(onboarding)/welcome" />;
+  }
   if (destination === 'paywall') return <Redirect href={'/(modals)/paywall?gate=1' as never} />;
   return <>{children}</>;
 }
