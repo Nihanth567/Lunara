@@ -26,13 +26,14 @@ npm install
 cp .env.example .env
 ```
 
-`.env` is not in git and `.env.example` ships with blank values. **Ask the
-project owner for the Supabase URL and anon key** and put them in `.env`. Without
-them the app stops on launch with "Missing EXPO_PUBLIC_SUPABASE_URL".
+`.env` is not in git. `.env.example` already contains Lunara's Supabase URL and
+client-safe publishable key, so copying it is enough to connect to the hosted
+project. These values are designed for client apps. Never put a Supabase
+`service_role` or secret key in the app.
 
 | Variable | Needed for | Where it comes from |
 | --- | --- | --- |
-| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Everything | Project owner (Supabase → Project Settings → API) |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Everything | Included in `.env.example` |
 | `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | Testing the paywall and purchases | RevenueCat → Project settings → API keys (the `appl_…` key). **Leave it empty to skip the paywall in development builds.** |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` / `_WEB_CLIENT_ID` | Google sign-in (optional) | Google Cloud Console → Credentials |
 
@@ -74,7 +75,7 @@ with Apple and push work; purchases need a sandbox Apple ID.
 `npm run build:preview` (EAS, internal distribution) or uploads to TestFlight
 and shares the link. EAS builds don't see `.env`: set the variables once with
 `eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value …`
-(and the anon key, and the RevenueCat key when it's ready).
+(and the publishable key, and the RevenueCat key when it's ready).
 
 ### What each way can test
 
