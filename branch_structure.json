@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "codex/simplify-fox-first-onboarding-2026-10-20",
+    "feat/companion-and-design-system",
+    "fix/supabase-client-setup",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "codex/simplify-fox-first-onboarding-2026-10-20": "main",
+    "feat/companion-and-design-system": "main",
+    "fix/supabase-client-setup": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "codex/simplify-fox-first-onboarding-2026-10-20",
+    "feat/companion-and-design-system",
+    "fix/supabase-client-setup",
+    "origin"
+  ]
+}
