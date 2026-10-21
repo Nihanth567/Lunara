@@ -13,7 +13,6 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { StarField } from '@/components/StarField';
 import { SpringPressable } from '@/components/SpringPressable';
-import { QUESTIONS } from '@/lib/onboardingQuiz';
 import type { OnboardingPhotoAsset } from '@/assets/images/onboarding';
 import { gradients, palette, tint } from '@/constants/colors';
 import { duration, hitSlopFor, pressScale, radius, space } from '@/constants/tokens';
@@ -31,11 +30,14 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 export const FUNNEL = {
   intro: 1,
   fox: 2,
-  quiz: 3,
-  belief: 3 + QUESTIONS.length,
-  notifications: 4 + QUESTIONS.length,
-  building: 5 + QUESTIONS.length,
-  total: 5 + QUESTIONS.length,
+  // Setup now reaches account creation after the short product preview and
+  // fox introduction. Personalization and notification choices can happen
+  // later, when they are useful in context.
+  quiz: 2,
+  belief: 2,
+  notifications: 2,
+  building: 3,
+  total: 3,
 } as const;
 
 interface FrameProps {

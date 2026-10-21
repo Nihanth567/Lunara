@@ -71,7 +71,7 @@ export default function QuizScreen() {
   };
 
   return (
-    <OnboardingFrame step={FUNNEL.quiz + index} onBack={back}>
+    <OnboardingFrame step={Math.min(FUNNEL.quiz + index, FUNNEL.total)} onBack={back}>
       <Animated.View
         key={question.key}
         entering={FadeIn.duration(duration.base)}
