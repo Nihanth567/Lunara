@@ -29,8 +29,8 @@ import { type as text, maxFontScale } from '@/constants/typography';
  * see it, which is a server field and a feature; a name that quietly vanished
  * after onboarding would be worse than none.
  *
- * The one choice — how nights should feel — is the first answer of the quiz
- * that follows. It changes a chip on the plan card, and nothing else.
+ * The one optional choice — how nights should feel — can shape the setup
+ * preview. Skipping it never blocks someone from getting to their first night.
  */
 export default function FoxScreen() {
   const router = useRouter();
@@ -43,8 +43,7 @@ export default function FoxScreen() {
       footer={
         <LunaraButton
           title="Continue"
-          disabled={!nightFeel}
-          onPress={() => router.push('/(onboarding)/quiz' as never)}
+          onPress={() => router.push('/(onboarding)/building' as never)}
         />
       }
     >
