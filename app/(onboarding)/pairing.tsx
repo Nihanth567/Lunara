@@ -42,7 +42,7 @@ type Mode = 'choose' | 'create' | 'join';
  * ─── Why pairing is the last screen ──────────────────────────────────────────
  *
  * The purchaser arrives here at the end of the funnel — promise → the magic →
- * fox → quiz → belief → notifications → building → paywall → late sign-in —
+ * fox → account setup → paywall → late sign-in —
  * with a trial already running, and the invite is the last thing between them
  * and the real loop. It is explicit on purpose: Lunara is incomplete with one
  * person in it, and this is the screen that says so with a code in hand.
@@ -58,10 +58,10 @@ async function finishOnboarding(
   registerPushToken: () => Promise<void>,
   completeOnboarding: () => Promise<void>,
 ): Promise<void> {
-  // The purchaser was already asked on the funnel's notifications screen; ask
-  // again a minute later and it stops being a question. They still get their
-  // token registered if they said yes. The invited partner never saw that
-  // screen, so this is where they are asked.
+  // New users reach this point after they have seen the product and paired.
+  // That is a more useful moment to ask about notifications than before they
+  // know what the app does. If an earlier version already asked, do not ask a
+  // second time; register the token only when permission was granted.
   const { notificationsAsked } = await readOnboardingFunnel();
   if (notificationsAsked) {
     if ((await getNotificationPermissionStatus().catch(() => 'denied')) === 'granted') {
